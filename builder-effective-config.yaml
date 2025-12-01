@@ -1,0 +1,22 @@
+directories:
+  output: release
+  buildResources: assets
+appId: com.murchat.app
+productName: MurCHAT
+files:
+  - filter:
+      - dist-electron/**/*
+      - dist/**/*
+      - node_modules/**/*
+      - package.json
+win:
+  target: nsis
+mac:
+  target: dmg
+linux:
+  target: AppImage
+publish:
+  - provider: github
+    owner: linkoovosh
+    repo: updates
+electronVersion: 39.2.3
