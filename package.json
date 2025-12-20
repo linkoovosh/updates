@@ -1,7 +1,7 @@
 {
   "name": "murchat",
   "private": true,
-  "version": "0.0.64",
+  "version": "0.0.66",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
