@@ -6,7 +6,7 @@ npm/
 dist/
 dist-electron/
 release/
-build/
+
 
 # Server (EXCLUDE FROM REPO)
 server/
