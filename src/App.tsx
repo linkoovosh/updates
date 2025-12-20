@@ -1,26 +1,25 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import LoadingScreen from './components/LoadingScreen';
-import AuthScreen from './components/Auth/AuthScreen'; // Import AuthScreen
+import AuthScreen from './components/Auth/AuthScreen';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from './store';
 import { loadSettings } from './store/slices/settingsSlice';
 import { closeServerSettings, setSelectedServerId, setSelectedChannelId } from './store/slices/serverSlice';
 import { setSettingsPanelOpen } from './store/slices/uiSlice';
 import webSocketService from './services/websocket';
-import { C2S_MSG_TYPE } from '@common/types'; // NEW
+import { C2S_MSG_TYPE } from '@common/types';
 import AppLayout from './components/Layout/AppLayout';
 import ServerSettingsDialog from './components/Servers/ServerSettingsDialog';
 import SettingsPanel from './components/Settings/SettingsPanel';
-import StatusMenu from './components/StatusMenu/StatusMenu'; // Import StatusMenu
-import ChangelogModal from './components/Changelog/ChangelogModal'; // NEW
-import ConnectionInfoPanel from './components/UserPanel/ConnectionInfoPanel'; // NEW
-import ShutdownScreen from './components/ShutdownScreen/ShutdownScreen'; // NEW
-import SharedBrowserStage from './components/Voice/SharedBrowserStage'; // NEW
-import UpdateNotifier from './components/Layout/UpdateNotifier'; // NEW
-import { changelog } from './changelog'; // NEW
-import { logService } from './services/LogService'; // NEW
-import { playHoverSound } from './utils/soundUtils'; // NEW
+import StatusMenu from './components/StatusMenu/StatusMenu';
+import ChangelogModal from './components/Changelog/ChangelogModal';
+import ConnectionInfoPanel from './components/UserPanel/ConnectionInfoPanel';
+import ShutdownScreen from './components/ShutdownScreen/ShutdownScreen';
+import UpdateNotifier from './components/Layout/UpdateNotifier';
+import { changelog } from './changelog';
+import { logService } from './services/LogService';
+import { playHoverSound } from './utils/soundUtils';
 
 // Initialize logging immediately
 logService.init();
@@ -30,9 +29,9 @@ declare global {
     electron?: {
       send: (channel: string, data: unknown) => void;
       receive: (channel: string, func: (...args: unknown[]) => void) => void;
-      writeToClipboard: (text: string) => void; // NEW
-      getScreenSources: () => Promise<{ id: string; name: string; thumbnail: string }[]>; // NEW
-      getCurrentWindowSourceId: () => Promise<string | null>; // NEW
+      writeToClipboard: (text: string) => void;
+      getScreenSources: () => Promise<{ id: string; name: string; thumbnail: string }[]>;
+      getCurrentWindowSourceId: () => Promise<string | null>;
       saveSettings: (settings: any) => Promise<any>;
       loadSettings: () => Promise<any>;
       minimize: () => void;
@@ -42,28 +41,14 @@ declare global {
   }
 }
 
-import { C2S_MSG_TYPE } from '@common/types'; // Import types
-
-// ...
-
 function App() {
-  // ... existing hooks
-
-  // Listen for Activity Updates from Electron
-  useEffect(() => {
-      if (window.electron) {
-          window.electron.receive('activity-update', (activity: any) => {
-              console.log('Activity update from OS:', activity);
-              webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_ACTIVITY, { activity });
-          });
-      }
-  }, []);
-
-  // ... rest of component
+  const [isLoading, setIsLoading] = useState(true);
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [isShuttingDown, setIsShuttingDown] = useState(false);
 
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
-  const userId = useSelector((state: RootState) => state.auth.userId); // Add userId
-  const username = useSelector((state: RootState) => state.auth.username); // Add username
+  const userId = useSelector((state: RootState) => state.auth.userId);
+  const username = useSelector((state: RootState) => state.auth.username);
   const serverSettingsDialog = useSelector((state: RootState) => state.server.serverSettingsDialog);
   const isSettingsPanelOpen = useSelector((state: RootState) => state.ui.isSettingsPanelOpen);
   const isStatusMenuOpen = useSelector((state: RootState) => state.auth.isStatusMenuOpen);
