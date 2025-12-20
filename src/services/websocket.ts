@@ -111,7 +111,6 @@ import {
 import { webRTCService } from './webrtc';
 import { mediasoupService } from './mediasoup';
 import { db, getConversationId, type IDmMessage } from './db';
-import { v4 as uuidv4 } from 'uuid';
 
 const DEFAULT_WEBSOCKET_URL = `wss://89.221.20.26:22822`;
 
@@ -984,7 +983,7 @@ class WebSocketService {
         return;
     }
     
-    const messageId = uuidv4();
+    const messageId = crypto.randomUUID();
     const timestamp = Date.now();
     const conversationId = getConversationId(this.userId, recipientId);
 
