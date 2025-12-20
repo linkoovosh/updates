@@ -1,0 +1,168 @@
+/* src/components/ImageCropper/ImageCropperModal.css */
+
+.cropper-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(15px);
+  z-index: 20000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInSupport 0.3s ease-out;
+}
+
+.cropper-modal-content {
+  background: rgba(var(--bg-secondary-rgb), 0.6);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  padding: 32px;
+  border-radius: 24px;
+  width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  animation: scale-in-center 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cropper-modal-content h3 {
+  margin: 0;
+  color: white;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  font-size: 1.2rem;
+}
+
+.cropper-area {
+  width: 320px;
+  height: 320px;
+  background-color: #000;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 16px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.cropper-area img {
+  max-width: none;
+  user-select: none;
+  transition: transform 0.1s ease-out;
+}
+
+.cropper-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cropper-mask.circle {
+    background: radial-gradient(circle, transparent 100px, rgba(0, 0, 0, 0.7) 101px);
+}
+
+.cropper-mask.rect {
+    background: rgba(0, 0, 0, 0.5);
+    /* Create a rectangular hole */
+    clip-path: polygon(
+        0% 0%, 0% 100%, 10% 100%, 10% 10%, 90% 10%, 90% 90%, 10% 90%, 10% 100%, 100% 100%, 100% 0%
+    );
+}
+
+.cropper-mask.circle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 2px solid var(--accent-blue);
+    border-radius: 50%;
+    box-sizing: border-box;
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);
+}
+
+.cropper-mask.rect::after {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 80%;
+    border: 2px solid var(--accent-blue);
+    box-sizing: border-box;
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);
+}
+
+.cropper-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 10px;
+}
+
+.cropper-controls label {
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.cropper-controls input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-blue);
+}
+
+.cropper-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.cropper-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.cropper-btn.primary {
+  background: linear-gradient(135deg, #5865F2, #4752c4);
+  color: white;
+  box-shadow: 0 8px 20px rgba(88, 101, 242, 0.3);
+}
+
+.cropper-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px rgba(88, 101, 242, 0.4);
+}
+
+.cropper-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.cropper-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}

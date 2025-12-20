@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ES2021"],
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "outDir": "../dist-electron",
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "composite": true,
+    "noEmit": false
+  },
+  "include": [
+    "main.ts",
+    "preload.ts"
+  ]
+}

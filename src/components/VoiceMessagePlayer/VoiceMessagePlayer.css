@@ -1,0 +1,117 @@
+.voice-message-player-custom {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    padding: var(--space-xs) var(--space-s);
+    background-color: var(--bg-input); /* Or a specific message background */
+    border-radius: var(--radius-medium);
+    margin-top: var(--space-xs);
+    box-shadow: var(--shadow-sm);
+    max-width: 300px; /* Limit width */
+}
+
+.play-pause-button {
+    background: var(--accent-blue);
+    border: none;
+    border-radius: var(--radius-full);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.play-pause-button svg {
+    fill: white;
+    width: 16px;
+    height: 16px;
+}
+
+.play-pause-button:hover {
+    background-color: var(--accent-blue-dark);
+}
+
+.progress-container {
+    flex-grow: 1;
+    position: relative;
+    height: 30px; /* To align with button height */
+    display: flex;
+    align-items: center;
+}
+
+.progress-bar-background {
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background-color: var(--bg-elevated);
+    border-radius: var(--radius-small);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--accent-blue);
+    border-radius: var(--radius-small);
+    width: 0%; /* Controlled by JS */
+    transition: width 0.1s linear;
+}
+
+.seek-slider {
+    position: absolute;
+    width: 100%;
+    height: 30px; /* Make it easier to grab */
+    -webkit-appearance: none;
+    background: transparent;
+    cursor: pointer;
+    margin: 0; /* Remove default margin */
+}
+
+/* Thumb for the slider */
+.seek-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    background: var(--accent-blue);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    margin-top: -4px; /* Adjust to center on track */
+}
+
+.seek-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    background: var(--accent-blue);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 2px rgba(0,0,0,0.5);
+}
+
+/* Track for the slider */
+.seek-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    background: transparent; /* Track is handled by .progress-bar-background/.progress-bar-fill */
+    border-radius: var(--radius-small);
+}
+
+.seek-slider::-moz-range-track {
+    width: 100%;
+    height: 4px;
+    background: transparent;
+    border-radius: var(--radius-small);
+}
+
+
+.time-display {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    min-width: 70px; /* Space for "00:00 / 00:00" */
+    text-align: right;
+    flex-shrink: 0;
+}

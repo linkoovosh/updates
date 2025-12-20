@@ -1,0 +1,49 @@
+.badge {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 99px;
+    font-weight: bold;
+    color: white;
+    z-index: 10;
+    pointer-events: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    transition: all 0.2s ease-in-out;
+}
+
+.badge.variant-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.badge.variant-count {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 16px;
+}
+
+.badge.color-red {
+    background-color: #ED4245;
+}
+
+.badge.color-gray {
+    background-color: #4F545C;
+}
+
+/* Specific positioning for Server Icon (Bottom Right) */
+.server-badge {
+    bottom: -2px;
+    right: -2px;
+    border: 3px solid var(--bg-primary); /* Cutout effect */
+}
+
+/* Specific positioning for Channel Item (Right Center) */
+.channel-badge {
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+}

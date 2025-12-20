@@ -1,0 +1,71 @@
+/* src/components/Servers/ServersBar.css */
+
+.servers-bar {
+    width: 72px;
+    background-color: var(--bg-tertiary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    flex-shrink: 0;
+    gap: 8px;
+    z-index: 100;
+    animation: slide-in-left 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.server-icon {
+  -webkit-app-region: no-drag;
+  width: 48px;
+  height: 48px;
+  background-color: var(--bg-panels);
+  border-radius: 15px; /* Rounded square */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.server-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.server-icon:hover {
+  border-radius: 15px;
+  box-shadow: var(--shadow-glow-blue);
+}
+
+.server-icon.selected {
+    border-radius: 15px;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+/* Specific background on selected/hover is now handled by the image in some cases, but can add a subtle effect */
+.server-icon:hover img, .server-icon.selected img {
+    transform: scale(1.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+
+.server-icon.home-icon {
+    width: 60px;
+    height: 60px;
+}
+
+.create-server-icon {
+  color: var(--status-positive);
+  background-color: var(--bg-panels);
+  font-size: 24px;
+  transition: all 0.2s;
+  border-radius: 15px;
+}
+
+.create-server-icon:hover {
+  background-color: var(--status-positive);
+  color: var(--text-primary);
+  box-shadow: none;
+}

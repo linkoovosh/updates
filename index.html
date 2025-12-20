@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/murchat.ico" />
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>murchat</title>
+    <style>
+      :root {
+        --bg-primary: #18191c;
+        --text-primary: #dcddde;
+        --font-main: 'Inter', sans-serif; /* Add default font too */
+      }
+      body, html, #root {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background-color: #18191c; /* Dark background immediately */
+        color: #dcddde;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>

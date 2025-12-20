@@ -1,0 +1,348 @@
+/* src/components/TopBar/TopBar.css */
+
+.topbar {
+  height: 48px;
+  width: 100%;
+  background: var(--bg-primary); 
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+  position: relative;
+  z-index: 100;
+  padding-right: 140px; 
+  
+  animation: slide-in-top 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+  transition: all 0.3s ease;
+}
+
+/* --- CAT MODE OVERRIDES --- */
+:root.cat-mode .topbar {
+    background: transparent !important;
+    backdrop-filter: blur(10px) saturate(120%);
+}
+
+.topbar svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0;
+    display: block;
+}
+
+.topbar-left,
+.topbar-center,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  -webkit-app-region: drag;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* LEFT: High priority */
+.topbar-left {
+    flex-shrink: 0;
+    min-width: 0;
+    z-index: 5;
+}
+
+/* CENTER: Low priority - shrinks first */
+.topbar-center {
+  flex: 1;
+  padding: 0 15px;
+  justify-content: center;
+  min-width: 0; 
+  overflow: hidden;
+  gap: 8px;
+}
+
+/* RIGHT: Medium priority */
+.topbar-right {
+    flex-shrink: 0;
+    justify-content: flex-end;
+}
+
+.topbar button, .topbar input, .search-box {
+  -webkit-app-region: no-drag;
+}
+
+.mobile-menu-container {
+    display: none;
+    position: relative;
+    -webkit-app-region: no-drag;
+}
+
+/* --- Friends Header --- */
+.friends-header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 100%;
+}
+
+.friends-header-content h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.friends-header-content h2::before {
+    content: '👋';
+    font-size: 18px;
+}
+
+.friend-tabs {
+    display: flex;
+    gap: 8px;
+    height: 100%;
+    align-items: center;
+}
+
+.friend-tabs button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.friend-tabs button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.friend-tabs button.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* Mobile Friends Header Fix */
+@media (max-width: 768px) {
+    .friends-header-content h2 { display: none; } /* Hide title on mobile */
+    .friend-tabs button { padding: 4px 8px; font-size: 12px; }
+}
+
+/* --- LEFT: Server Info --- */
+.server-icon-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.server-name {
+  margin: 0 4px 0 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  transition: max-width 0.3s ease;
+}
+
+.server-dropdown {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+/* --- CENTER: Channel Info --- */
+.channel-icon {
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+}
+
+.channel-name {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  transition: max-width 0.3s ease;
+}
+
+.channel-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* --- RIGHT: Tools --- */
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  opacity: 0.6;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.icon-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  transform: translateY(-1px) scale(1.05);
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 0 8px;
+}
+
+/* --- Search Box Adaptive --- */
+.search-box {
+  margin-left: 8px;
+  width: 140px;
+  height: 28px;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-box input {
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-color: var(--accent-blue);
+  width: 200px;
+  box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.1);
+}
+
+.search-icon-hint {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none; /* Let clicks pass through to input (or handle click in JS) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-icon-hint svg {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+.desktop-only-flex {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* --- ADAPTIVE BREAKPOINTS --- */
+
+/* At 1100px: Start shrinking labels */
+@media (max-width: 1100px) {
+    .server-name { max-width: 120px; }
+    .channel-name { max-width: 140px; }
+    .search-box { width: 120px; }
+}
+
+/* At 980px (The problem zone): Shrink aggressively */
+@media (max-width: 980px) {
+    .topbar-center { gap: 4px; padding: 0 8px; }
+    .channel-name { max-width: 100px; }
+    .server-name { max-width: 100px; }
+    .channel-tools .icon-btn:not(:last-child) { display: none; } /* Hide some tools */
+    .search-box { width: 32px; overflow: hidden; }
+    .search-box input { opacity: 0; padding: 0; }
+    .search-box::after {
+        content: '🔍';
+        position: absolute;
+        left: 8px; top: 50%;
+        transform: translateY(-50%);
+        font-size: 14px;
+        pointer-events: none;
+    }
+}
+
+/* At 850px: Hide center completely */
+@media (max-width: 850px) {
+    .topbar-center { display: none !important; }
+    .divider { display: none; }
+    .server-name { max-width: 140px; }
+}
+
+/* Small screens / Snap 1/4 */
+@media (max-width: 750px) {
+    .topbar { padding-right: 140px; }
+    .mobile-menu-container { display: flex !important; margin-left: auto; }
+    .desktop-only-flex { display: none; }
+}
+
+@keyframes slide-in-top {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile Dropdown Styling (Keep existing) */
+.mobile-dropdown {
+    position: absolute;
+    top: 40px; right: 0;
+    width: 260px;
+    background-color: rgba(var(--bg-primary-rgb), 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    padding: 8px;
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transform-origin: top right;
+}

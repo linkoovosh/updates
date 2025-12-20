@@ -1,0 +1,565 @@
+/* murchat/src/components/UserProfilePopup/UserProfilePopup.css */
+
+.user-profile-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(4px);
+}
+
+.user-profile-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    z-index: 10000;
+    perspective: 1200px;
+}
+
+/* Fly-to-Center Animation for Self Profile */
+.user-profile-popup.is-self-launch {
+    animation: holo-launch-to-center 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+@keyframes holo-launch-to-center {
+    0% {
+        opacity: 0;
+        /* Offset from the center to the bottom-left corner */
+        transform: translate(-48vw, 40vh) scale(0.1) rotateX(30deg) rotateZ(-10deg);
+        filter: blur(20px) brightness(2);
+    }
+    70% {
+        /* Slight overshoot for spring effect */
+        transform: translate(-50%, -50%) scale(1.05);
+        filter: blur(0) brightness(1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        filter: blur(0) brightness(1);
+    }
+}
+
+/* Default animation for others */
+.user-profile-popup:not(.is-self-launch) {
+    animation: holo-spawn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes holo-spawn {
+    from { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.holo-card {
+    position: relative;
+    width: 100%;
+    background: rgba(25, 25, 30, 0.7);
+    border-radius: 24px;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    
+    /* Ultra-sharp borders */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+        0 10px 20px rgba(0,0,0,0.3);
+
+    transform-style: preserve-3d;
+    transition: transform 0.15s cubic-bezier(0.23, 1, 0.32, 1);
+    overflow: hidden;
+    will-change: transform;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* RESET FOR CUSTOM THEMES */
+.holo-card.custom-theme-override {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* SPECULAR SHINE EFFECT */
+.holo-shine {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0) 45%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 55%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 250% 250%;
+    background-position: 100% 100%;
+    z-index: 10;
+    pointer-events: none;
+    transition: background-position 0.1s ease-out;
+}
+
+.adaptive-glow {
+    position: absolute;
+    top: -10%; left: -10%; right: -10%; bottom: -10%;
+    border-radius: 40px;
+    z-index: -1;
+    opacity: 0.2;
+    filter: blur(50px);
+    transition: background-color 0.8s ease;
+}
+
+.profile-banner {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-content {
+    padding: 0 18px 18px;
+    position: relative;
+    transform: translateZ(40px); /* Significant lift */
+}
+
+.profile-avatar-wrapper {
+    width: 84px;
+    height: 84px;
+    margin-top: -42px;
+    position: relative;
+    margin-bottom: 14px;
+    border-radius: 50%;
+    background: #19191e; 
+    padding: 3px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    transform: translateZ(50px);
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+}
+
+.status-ring {
+    position: absolute;
+    top: -3px; left: -3px; right: -3px; bottom: -3px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+.status-ring.online { border-color: #3ba55d; box-shadow: 0 0 10px rgba(59, 165, 93, 0.4); animation: breathe-green 3s infinite; }
+.status-ring.idle { border-color: #faa61a; animation: breathe-yellow 3s infinite; }
+.status-ring.dnd { border-color: #ed4245; animation: breathe-red 3s infinite; }
+
+@keyframes breathe-green { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.02); } }
+/* Other breathe animations similar */
+
+.user-identity {
+    margin-bottom: 14px;
+}
+
+.user-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+}
+
+.user-discriminator {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.4);
+    margin-left: 2px;
+}
+
+.bio-box {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.5;
+}
+
+.bio-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 6px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bio-label::before {
+    content: '';
+    width: 4px; height: 4px;
+    background: currentColor;
+    border-radius: 50%;
+}
+
+.role-pill {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    background: rgba(255,255,255,0.03);
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* If there's only one button, it should take full width or we can handle it via JSX. 
+   But usually, we have two: Message and Add Friend. */
+
+.holo-btn {
+    position: relative;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 10px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle fallback border */
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Gradient background that is hidden by default */
+.holo-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+}
+
+.holo-btn:hover {
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.holo-btn:hover::before {
+    opacity: 1;
+}
+
+.holo-btn:active {
+    transform: scale(0.98);
+}
+
+.holo-btn span {
+    font-size: 1.1rem;
+}
+
+/* PRIMARY BUTTON: Gradient Border & Fill (Purple/Blue) */
+.holo-btn.primary {
+    border: none; /* We use a pseudo-element for the border */
+    background: rgba(20, 20, 25, 0.6); /* Match card bg */
+    color: white;
+}
+
+/* Gradient Border trick */
+.holo-btn.primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    padding: 1px; /* Border width */
+    background: linear-gradient(135deg, #5865F2, #9B59B6);
+    -webkit-mask: 
+       linear-gradient(#fff 0 0) content-box, 
+       linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+    opacity: 0.8;
+}
+
+/* Hover Fill */
+.holo-btn.primary::before {
+    background: linear-gradient(135deg, #5865F2, #9B59B6);
+    opacity: 0.1; /* Slight tint by default */
+}
+
+.holo-btn.primary:hover::before {
+    opacity: 1; /* Full fill on hover */
+}
+
+.holo-btn.primary:hover {
+    box-shadow: 0 5px 15px rgba(88, 101, 242, 0.3);
+}
+
+/* SECONDARY BUTTON: Green Gradient Border & Fill (for Add Friend) */
+.holo-btn.secondary {
+    border: none;
+    background: rgba(20, 20, 25, 0.6);
+    color: white;
+}
+
+.holo-btn.secondary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    padding: 1px;
+    background: linear-gradient(135deg, #3BA55D, #2D8A4E);
+    -webkit-mask: 
+       linear-gradient(#fff 0 0) content-box, 
+       linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+    opacity: 0.8;
+}
+
+.holo-btn.secondary::before {
+    background: linear-gradient(135deg, #3BA55D, #2D8A4E);
+    opacity: 0.1;
+}
+
+.holo-btn.secondary:hover::before {
+    opacity: 1;
+}
+
+.holo-btn.secondary:hover {
+    box-shadow: 0 5px 15px rgba(59, 165, 93, 0.3);
+}
+
+/* --- PROFILE THEMES (applied to any container with .theme-* class) --- */
+
+/* 1. Glass Theme */
+.theme-glass .holo-card, .holo-card.theme-glass {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(30px);
+}
+
+/* 2. Cyberpunk Theme */
+.theme-cyberpunk .holo-card, .holo-card.theme-cyberpunk {
+    background: rgba(10, 10, 15, 0.9);
+    border: 2px solid #00F3FF;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.2);
+}
+.theme-cyberpunk .user-name, .holo-card.theme-cyberpunk .user-name {
+    color: #00F3FF;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+.theme-cyberpunk .user-discriminator, .holo-card.theme-cyberpunk .user-discriminator { color: #FF00FF; }
+
+/* 3. Luxury Theme */
+.theme-luxury .holo-card, .holo-card.theme-luxury {
+    background: linear-gradient(135deg, #0f0f10 0%, #1a1a1d 100%);
+    border: 1px solid #BF953F;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 15px rgba(191, 149, 63, 0.2);
+}
+.theme-luxury .user-name, .holo-card.theme-luxury .user-name {
+    background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* 4. Minimalist Theme */
+.theme-minimalist .holo-card, .holo-card.theme-minimalist {
+    background: #fff;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+.theme-minimalist .user-name, .holo-card.theme-minimalist .user-name { color: #000; }
+
+/* 5. Aero Theme */
+.theme-aero .holo-card, .holo-card.theme-aero {
+    background: rgba(116, 235, 213, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(25px) saturate(200%);
+}
+
+/* 6. Vaporwave Theme */
+.theme-vaporwave .holo-card, .holo-card.theme-vaporwave {
+    background: linear-gradient(135deg, #ff71ce 0%, #01cdfe 100%);
+    border: 3px solid #fff;
+    box-shadow: 0 0 20px #ff71ce, 0 0 40px #01cdfe;
+}
+
+/* 7. Ocean Theme */
+.theme-ocean .holo-card, .holo-card.theme-ocean {
+    background: rgba(0, 105, 148, 0.4);
+    border: 1px solid #00F3FF;
+    backdrop-filter: blur(40px) brightness(0.8);
+}
+
+/* 8. Forest Theme */
+.theme-forest .holo-card, .holo-card.theme-forest {
+    background: rgba(20, 40, 20, 0.8);
+    border: 1px solid #3BA55D;
+}
+
+/* 9. Bloodmoon Theme */
+.theme-bloodmoon .holo-card, .holo-card.theme-bloodmoon {
+    background: linear-gradient(180deg, #1a0505 0%, #000 100%);
+    border: 1px solid #ed4245;
+}
+
+/* 10. Sakura Theme */
+.theme-sakura .holo-card, .holo-card.theme-sakura {
+    background: rgba(255, 240, 245, 0.9);
+    border: 2px solid #ffb7c5;
+}
+
+/* 11. Matrix Theme */
+.theme-matrix .holo-card, .holo-card.theme-matrix {
+    background: #000;
+    border: 1px solid #00ff41;
+}
+
+/* --- THEMED AVATAR STYLES --- */
+
+/* 1. Glass Theme Avatar */
+.theme-glass .profile-avatar-wrapper, .holo-card.theme-glass .profile-avatar-wrapper {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* 2. Cyberpunk Theme Avatar */
+.theme-cyberpunk .profile-avatar-wrapper, .holo-card.theme-cyberpunk .profile-avatar-wrapper {
+    background: #000;
+    border: 2px solid #00F3FF;
+    box-shadow: 0 0 20px #00F3FF, inset 0 0 10px #00F3FF;
+    animation: neon-pulse 1.5s infinite alternate;
+}
+@keyframes neon-pulse {
+    from { box-shadow: 0 0 10px #00F3FF, inset 0 0 5px #00F3FF; }
+    to { box-shadow: 0 0 25px #00F3FF, 0 0 5px #FF00FF, inset 0 0 10px #00F3FF; }
+}
+
+/* 3. Luxury Theme Avatar */
+.theme-luxury .profile-avatar-wrapper, .holo-card.theme-luxury .profile-avatar-wrapper {
+    background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+    padding: 4px; /* Thicker gold border */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5), 0 0 20px rgba(191, 149, 63, 0.6);
+}
+
+/* 4. Minimalist Theme Avatar */
+.theme-minimalist .profile-avatar-wrapper, .holo-card.theme-minimalist .profile-avatar-wrapper {
+    background: #fff;
+    padding: 2px;
+    border: 1px solid #ddd;
+    box-shadow: none;
+}
+.theme-minimalist .profile-avatar, .holo-card.theme-minimalist .profile-avatar {
+    border-radius: 12px; /* Squrcle for minimalist */
+}
+.theme-minimalist .profile-avatar-wrapper, .holo-card.theme-minimalist .profile-avatar-wrapper {
+    border-radius: 14px;
+}
+
+/* 5. Aero Theme Avatar */
+.theme-aero .profile-avatar-wrapper, .holo-card.theme-aero .profile-avatar-wrapper {
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 10px rgba(116, 235, 213, 0.6), inset 0 0 10px rgba(255,255,255,0.8);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* 6. Vaporwave Theme Avatar */
+.theme-vaporwave .profile-avatar-wrapper, .holo-card.theme-vaporwave .profile-avatar-wrapper {
+    background: linear-gradient(to right, #ff71ce, #01cdfe);
+    padding: 3px;
+    box-shadow: 4px 4px 0px rgba(255, 113, 206, 0.5), -4px -4px 0px rgba(1, 205, 254, 0.5);
+    border-radius: 0; /* Square for retro feel */
+}
+.theme-vaporwave .profile-avatar, .holo-card.theme-vaporwave .profile-avatar {
+    border-radius: 0;
+}
+
+/* 7. Ocean Theme Avatar */
+.theme-ocean .profile-avatar-wrapper, .holo-card.theme-ocean .profile-avatar-wrapper {
+    background: rgba(0, 30, 60, 0.8);
+    border: 2px solid #00F3FF;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+    animation: ripple-glow 3s infinite;
+}
+@keyframes ripple-glow {
+    0% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 243, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 243, 255, 0); }
+}
+
+/* 8. Forest Theme Avatar */
+.theme-forest .profile-avatar-wrapper, .holo-card.theme-forest .profile-avatar-wrapper {
+    background: #1a2f1a;
+    border: 2px dashed #3BA55D;
+    box-shadow: 0 0 15px rgba(59, 165, 93, 0.4);
+}
+
+/* 9. Bloodmoon Theme Avatar */
+.theme-bloodmoon .profile-avatar-wrapper, .holo-card.theme-bloodmoon .profile-avatar-wrapper {
+    background: #000;
+    border: 2px solid #ed4245;
+    box-shadow: 0 0 20px #ed4245;
+    animation: blood-pulse 2s infinite ease-in-out;
+}
+@keyframes blood-pulse {
+    0%, 100% { box-shadow: 0 0 20px #ed4245; }
+    50% { box-shadow: 0 0 40px #ed4245, inset 0 0 20px #ed4245; }
+}
+
+/* 10. Sakura Theme Avatar */
+.theme-sakura .profile-avatar-wrapper, .holo-card.theme-sakura .profile-avatar-wrapper {
+    background: #fff0f5;
+    border: 2px solid #ffb7c5;
+    box-shadow: 0 0 15px #ffb7c5;
+}
+
+/* 11. Matrix Theme Avatar */
+.theme-matrix .profile-avatar-wrapper, .holo-card.theme-matrix .profile-avatar-wrapper {
+    background: #000;
+    border: 1px solid #00ff41;
+    box-shadow: 0 0 10px #00ff41;
+}
+.theme-matrix .profile-avatar-wrapper::after {
+    content: '0101';
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #00ff41;
+    font-family: monospace;
+    font-size: 10px;
+    animation: matrix-text 1s infinite steps(2);
+}
+@keyframes matrix-text {
+    0% { content: '0101'; }
+    50% { content: '1010'; }
+}
+
+
+

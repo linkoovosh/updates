@@ -1,0 +1,25 @@
+/* Resize Handles for Frameless Window */
+.resize-handle-top,
+.resize-handle-bottom,
+.resize-handle-left,
+.resize-handle-right,
+.resize-handle-top-left,
+.resize-handle-top-right,
+.resize-handle-bottom-left,
+.resize-handle-bottom-right {
+  position: fixed;
+  z-index: 900;
+  -webkit-app-region: no-drag; /* Important: let clicks pass to OS frame logic if possible, or handle manually */
+  background-color: rgba(0, 0, 0, 0.001); /* Required for Windows transparent windows to detect mouse events, keep it minimal */
+}
+
+.resize-handle-top { top: 0; left: 10px; right: 10px; height: 5px; cursor: ns-resize; }
+.resize-handle-bottom { bottom: 0; left: 10px; right: 10px; height: 5px; cursor: ns-resize; }
+.resize-handle-left { top: 10px; bottom: 10px; left: 0; width: 5px; cursor: ew-resize; }
+.resize-handle-right { top: 10px; bottom: 10px; right: 0; width: 5px; cursor: ew-resize; }
+
+/* Corners */
+.resize-handle-top-left { top: 0; left: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+.resize-handle-top-right { top: 0; right: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+.resize-handle-bottom-left { bottom: 0; left: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+.resize-handle-bottom-right { bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; }

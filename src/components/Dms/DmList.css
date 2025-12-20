@@ -1,0 +1,149 @@
+/* murchat/src/components/Dms/DmList.css */
+
+.dm-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-secondary);
+  /* The container might inherit 'drag' from AppLayout or parent, 
+     but usually the content inside needs to be interactable. */
+}
+
+/* --- CAT MODE OVERRIDES --- */
+:root.cat-mode .dm-list-container {
+    background: transparent !important;
+}
+
+:root.cat-mode .friends-button {
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+:root.cat-mode .dm-list-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 4px;
+}
+
+:root.cat-mode .dm-list-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dm-list-actions {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bg-modifier-hover);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  -webkit-app-region: no-drag; /* CRITICAL: Allow clicking buttons */
+}
+
+.friends-button {
+  width: 100%;
+  padding: 8px 16px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-size: 14px;
+}
+
+.friends-button:hover {
+  background-color: var(--bg-modifier-hover);
+  color: var(--text-primary);
+}
+
+.friends-button.active {
+  background-color: var(--bg-modifier-selected);
+  color: var(--text-primary);
+}
+
+.dm-list-header {
+  padding: 16px 16px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  -webkit-app-region: no-drag; /* Allow selection if needed */
+}
+
+.dm-list-header span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dm-list-header span:hover {
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.dm-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  -webkit-app-region: no-drag; /* CRITICAL: Allow clicking items */
+}
+
+.dm-list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer; 
+  color: var(--text-secondary);
+  transition: all 0.1s ease-in-out;
+  margin-bottom: 2px;
+}
+
+.dm-list-item:hover {
+  background-color: var(--bg-modifier-hover);
+  color: var(--text-primary);
+}
+
+.dm-list-item.active {
+  background-color: var(--bg-modifier-selected);
+  color: var(--text-primary);
+}
+
+.dm-friend-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+  background-color: var(--bg-tertiary);
+}
+
+.dm-friend-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dm-friend-username {
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dm-friend-status {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.dm-list-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.4;
+}

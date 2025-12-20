@@ -1,0 +1,66 @@
+.username-input-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: var(--bg-primary); /* Use primary background */
+  color: var(--text-primary); /* Use primary text color */
+}
+
+.username-input-card {
+  background-color: var(--bg-elevated); /* Use elevated background for card */
+  padding: var(--space-xxl); /* Larger padding */
+  border-radius: var(--radius-large); /* Larger radius */
+  box-shadow: var(--shadow-layer); /* Deep shadow */
+  border: 1px solid rgba(77, 124, 255, 0.2); /* Subtle accent border */
+  text-align: center;
+  width: 380px; /* Slightly wider card */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl); /* Spacing between elements */
+}
+
+.username-input-card h2 {
+  margin-bottom: var(--space-s); /* Adjust margin */
+  color: var(--text-primary);
+  font-size: var(--h1-size);
+  font-weight: var(--h1-weight);
+}
+
+.username-input-card input {
+  width: 100%;
+  padding: 10px 14px; /* Consistent with chat input */
+  border: none; /* No border */
+  border-radius: var(--radius-medium); /* Medium radius */
+  background-color: var(--bg-input); /* Input background */
+  color: var(--text-primary);
+  font-size: var(--text2-size);
+  outline: none; /* Remove default outline */
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.username-input-card input::placeholder {
+  color: var(--text-placeholder); /* Placeholder color */
+}
+
+.username-input-card input:focus {
+  box-shadow: var(--shadow-glow-blue); /* Blue glowing border on focus */
+}
+
+.username-input-card button {
+  width: 100%;
+  padding: var(--space-s) var(--space-l); /* Consistent with save button */
+  border: none;
+  border-radius: var(--radius-medium); /* Medium radius */
+  background-color: var(--accent-blue);
+  color: var(--text-primary);
+  font-size: var(--text1-size);
+  font-weight: var(--text1-weight);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.username-input-card button:hover {
+  box-shadow: var(--shadow-glow-blue); /* Blue glowing on hover */
+}

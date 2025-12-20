@@ -1,0 +1,161 @@
+/* src/components/Servers/CreateServerModal.css */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000; /* Higher than settings */
+}
+
+.modal-content {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: var(--space-xl);
+  border-radius: var(--radius-medium);
+  width: 400px;
+  box-shadow: var(--shadow-layer);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.modal-content h2 {
+  margin: 0;
+  text-align: center;
+  font-size: var(--h1-size);
+}
+
+.modal-content p {
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: var(--text2-size);
+  margin: 0;
+}
+
+.modal-content input[type="text"] { /* Target text input specifically */
+  background-color: var(--bg-input);
+  border: none;
+  padding: 10px;
+  border-radius: var(--radius-small);
+  color: var(--text-primary);
+  font-size: var(--text1-size);
+  outline: none;
+}
+
+.modal-content input[type="text"]:focus {
+  box-shadow: var(--shadow-glow-blue);
+}
+
+/* Custom Checkbox Styles */
+.checkbox-container {
+  display: block;
+  position: relative;
+  padding-left: 30px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  font-size: var(--text1-size);
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  color: var(--text-secondary);
+}
+
+/* Hide the browser's default checkbox */
+.checkbox-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+/* Create a custom checkbox */
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: var(--bg-input);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border-color);
+}
+
+/* On mouse-over, add a light background color */
+.checkbox-container:hover input ~ .checkmark {
+  background-color: var(--bg-elevated);
+}
+
+/* When the checkbox is checked, add a blue background */
+.checkbox-container input:checked ~ .checkmark {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+/* Create the checkmark/indicator (hidden when not checked) */
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+/* Show the checkmark when checked */
+.checkbox-container input:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* Style the checkmark/indicator */
+.checkbox-container .checkmark:after {
+  left: 7px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  -webkit-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  transform: rotate(45deg);
+}
+
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-m);
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-small);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.cancel-button {
+  background-color: transparent;
+  color: var(--text-primary);
+}
+
+.cancel-button:hover {
+  text-decoration: underline;
+}
+
+.create-button {
+  background-color: var(--accent-blue);
+  color: white;
+}
+
+.create-button:hover {
+  background-color: var(--accent-purple); /* Just for variety on hover */
+}

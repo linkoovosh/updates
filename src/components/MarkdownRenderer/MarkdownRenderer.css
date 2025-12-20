@@ -1,0 +1,66 @@
+.markdown-content {
+  font-size: var(--text2-size);
+  color: var(--text-primary);
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.markdown-content p {
+  margin: 0 0 0.5em 0;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content code {
+  background-color: var(--bg-elevated);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', 'Andale Mono', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  margin: 0.5em 0;
+  border-radius: var(--radius-medium);
+  overflow: hidden; /* Ensure rounded corners clip content */
+}
+
+/* Override syntax highlighter default background if needed, 
+   but vscDarkPlus usually handles it well. 
+   Just ensure it fits the theme. */
+.markdown-content pre > div {
+    background-color: var(--bg-tertiary) !important;
+    border: 1px solid var(--bg-elevated);
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid var(--accent-purple);
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: var(--text-secondary);
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.2em;
+}
+
+.markdown-content img {
+    max-width: 100%;
+    border-radius: var(--radius-medium);
+}

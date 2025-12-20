@@ -1,0 +1,224 @@
+/* src/components/Friends/FriendsView.css */
+.friends-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  height: 100%;
+}
+
+/* --- CAT MODE OVERRIDES --- */
+:root.cat-mode .friends-view {
+    background: transparent !important;
+    backdrop-filter: blur(10px);
+}
+
+:root.cat-mode .friend-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    margin-bottom: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+:root.cat-mode .friend-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
+}
+
+:root.cat-mode .action-btn {
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+}
+
+.friends-content {
+  flex: 1;
+  padding: var(--space-xl);
+  overflow-y: auto;
+}
+
+/* Friend List Styles */
+.friend-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.list-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.friend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-radius: 8px;
+    border-top: 1px solid var(--bg-modifier-hover);
+    cursor: default;
+    transition: background-color 0.2s;
+}
+
+.friend-item:hover, .friend-item.hoverable:hover {
+    background-color: var(--bg-modifier-hover);
+}
+
+.friend-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.friend-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.friend-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.friend-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.friend-discriminator {
+    color: var(--text-secondary);
+    font-weight: 400;
+    opacity: 0; /* Hide by default */
+    transition: opacity 0.2s;
+}
+
+.friend-item:hover .friend-discriminator {
+    opacity: 1;
+}
+
+.friend-status {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.friend-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    color: var(--text-primary);
+}
+
+.action-btn.accept:hover {
+    color: var(--status-positive);
+}
+
+.action-btn.reject:hover {
+    color: var(--status-negative);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+}
+
+/* Add Friend Screen */
+.add-friend-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.add-friend-header h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.add-friend-header p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.add-friend-input-wrapper {
+  display: flex;
+  background-color: var(--bg-input);
+  border: 1px solid var(--bg-elevated); /* Default border */
+  border-radius: 8px;
+  padding: 4px 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.add-friend-input-wrapper:focus-within {
+  border-color: var(--accent-blue);
+}
+
+.add-friend-input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 10px;
+  font-size: 16px;
+  outline: none;
+}
+
+.add-friend-input-wrapper button {
+  padding: 8px 24px;
+  background-color: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-friend-input-wrapper button:disabled {
+  background-color: var(--bg-elevated);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.success-message {
+  color: var(--status-positive);
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.error-message {
+  color: var(--status-negative);
+  margin-top: 8px;
+  font-size: 14px;
+}

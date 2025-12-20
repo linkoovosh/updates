@@ -1,0 +1,265 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import './styles/GlassMenu.css';
+
+/* 1. Design Tokens */
+:root {
+  /* Radii */
+  --radius-small: 6px;
+  --radius-medium: 10px;
+  --radius-large: 16px;
+  --radius-full: 999px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-s: 8px;
+  --space-m: 12px;
+  --space-l: 16px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+
+  /* Shadows */
+  --shadow-glow-blue: 0 0 10px rgba(77, 124, 255, 0.5);
+  --shadow-glow-purple: 0 0 10px rgba(165, 107, 255, 0.5);
+  --shadow-layer: 0 8px 20px rgba(0, 0, 0, 0.25);
+
+  /* Typography */
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  --h1-size: 22px;
+  --h1-weight: 600; /* Semibold */
+  
+  --h2-size: 18px;
+  --h2-weight: 600; /* Semibold */
+
+  --text1-size: 16px;
+  --text1-weight: 400; /* Regular */
+  
+  --text2-size: 14px;
+  --text2-weight: 400; /* Regular */
+  
+  --p-size: 12px;
+  --p-weight: 500; /* Medium */
+
+  --micro-size: 10px;
+  --micro-weight: 400; /* Regular */
+}
+
+/* Dark Theme (Default) */
+.dark {
+  --bg-primary-rgb: 30, 31, 34;       /* #1E1F22 */
+  --bg-secondary-rgb: 43, 45, 49;     /* #2B2D31 */
+  --bg-elevated-rgb: 48, 50, 56;      /* #303238 */
+  --bg-surface-rgb: 48, 50, 56;
+  --bg-panels-rgb: 35, 36, 40;        /* #232428 */
+  --bg-input-rgb: 58, 60, 66;         /* #3A3C42 */
+  --bg-context-menu-rgb: 17, 18, 20;  /* #111214 */
+
+  --bg-opacity: 1; /* Controlled by JS */
+
+  --bg-primary: rgba(var(--bg-primary-rgb), var(--bg-opacity));
+  --bg-secondary: rgba(var(--bg-secondary-rgb), var(--bg-opacity));
+  --bg-elevated: rgba(var(--bg-elevated-rgb), var(--bg-opacity));
+  --bg-surface: rgba(var(--bg-surface-rgb), var(--bg-opacity));
+  --bg-panels: rgba(var(--bg-panels-rgb), var(--bg-opacity));
+  --bg-input: rgba(var(--bg-input-rgb), 0.8); /* Input usually more opaque */
+  --bg-context-menu: #111214;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #B5B7BE;
+  --text-tertiary: #7A7C85; /* Alias for passive text */
+  --text-placeholder: #6F7178;
+
+  --accent-blue: #4D7CFF; /* Will be overridden by JS */
+  --accent-purple: #A56BFF;
+  
+  --status-positive: #3BA55D;
+  --status-negative: #ED4245;
+
+  --border-accent: 1px solid var(--accent-blue);
+}
+
+/* Light Theme */
+.light {
+  --bg-primary-rgb: 242, 243, 245;    /* #F2F3F5 */
+  --bg-secondary-rgb: 255, 255, 255;  /* #FFFFFF */
+  --bg-elevated-rgb: 255, 255, 255;   /* #FFFFFF */
+  --bg-surface-rgb: 255, 255, 255;
+  --bg-panels-rgb: 227, 229, 232;     /* #E3E5E8 */
+  --bg-input-rgb: 233, 234, 237;      /* #E9EAED */
+  --bg-context-menu-rgb: 255, 255, 255; /* #FFFFFF */
+
+  --bg-opacity: 1;
+
+  --bg-primary: rgba(var(--bg-primary-rgb), var(--bg-opacity));
+  --bg-secondary: rgba(var(--bg-secondary-rgb), var(--bg-opacity));
+  --bg-elevated: rgba(var(--bg-elevated-rgb), var(--bg-opacity));
+  --bg-surface: rgba(var(--bg-surface-rgb), var(--bg-opacity));
+  --bg-panels: rgba(var(--bg-panels-rgb), var(--bg-opacity));
+  --bg-input: rgba(var(--bg-input-rgb), 0.8);
+  --bg-context-menu: #FFFFFF;
+
+  --text-primary: #2E3338;
+  --text-secondary: #5c5e66;
+  --text-tertiary: #7A7C85;
+  --text-placeholder: #8A8C94;
+  
+  --accent-blue: #4D7CFF;
+  --accent-purple: #A56BFF;
+  
+  --status-positive: #3BA55D;
+  --status-negative: #ED4245;
+  
+  --border-accent: 1px solid var(--accent-blue);
+}
+
+/* 2. Base & Reset Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%; /* Avoid 100vh issues */
+  overflow: hidden;
+  position: fixed; /* Locks viewport */
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Prevent browser from scrolling to focused element */
+*:focus {
+  scroll-margin: 0 !important;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: transparent; /* Allow electron transparency */
+  color: var(--text-primary);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  background-color: transparent; /* Let Electron handle transparency */
+  border-radius: 8px; /* Round application corners */
+  overflow: hidden; /* Clip content */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-elevated);
+}
+
+/* 3. Animation Control */
+:root:not(.animations-enabled) *,
+:root:not(.animations-enabled) *::before,
+:root:not(.animations-enabled) *::after {
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+
+/* GLOBAL INPUT FIX: Ensure inputs are always clickable and selectable */
+input, textarea, [contenteditable] {
+  -webkit-app-region: no-drag !important;
+  user-select: text !important;
+  cursor: text !important;
+  pointer-events: auto !important;
+}
+
+/* --- Liquid Glass System --- */
+
+/* 1. Solid Mode (Fallback to opaque background if enabled) */
+.glass-solid {
+  background-color: var(--bg-primary); /* Opaque app background */
+}
+.glass-solid .glass-panel {
+  background-color: var(--bg-secondary);
+  backdrop-filter: none;
+  border: none;
+}
+
+/* 2. Soft Glass Mode */
+.glass-soft {
+   background-color: rgba(var(--bg-primary-rgb), 0.2); /* Slight tint on app bg */
+}
+.glass-soft .glass-panel {
+  background: rgba(var(--bg-secondary-rgb), 0.7); /* High opacity for readability */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 3. Liquid iOS Mode */
+.glass-liquid-ios {
+  background-color: transparent; /* Full see-through for gaps */
+}
+.glass-liquid-ios .glass-panel {
+  /* Use variable for opacity if set, else default to 0.4 */
+  background: rgba(var(--bg-secondary-rgb), var(--bg-opacity, 0.4));
+  backdrop-filter: blur(40px) saturate(180%) brightness(1.2);
+  -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+     inset 0 0 50px rgba(255, 255, 255, 0.05),
+     inset 0 0 20px rgba(255, 255, 255, 0.1),
+     0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Apply to specific panels globally when class is present on root */
+/* If root has .glass-liquid-ios, then sidebar/panels get the effect */
+
+/* --- Cyber Spring Animations --- */
+@keyframes slide-in-left {
+    0% { opacity: 0; transform: translateX(-50px) scale(0.95); filter: blur(10px); }
+    100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+}
+
+@keyframes slide-in-right {
+    0% { opacity: 0; transform: translateX(50px) scale(0.95); filter: blur(10px); }
+    100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+}
+
+@keyframes slide-in-top {
+    0% { opacity: 0; transform: translateY(-30px); filter: blur(5px); }
+    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes scale-in-center {
+    0% { opacity: 0; transform: scale(0.9) translateY(10px); filter: blur(10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+@keyframes cascade-fade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.anim-slide-left { animation: slide-in-left 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.anim-slide-right { animation: slide-in-right 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.anim-slide-top { animation: slide-in-top 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; }
+.anim-scale-in { animation: scale-in-center 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }

@@ -1,0 +1,27 @@
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-primary); /* Use primary background */
+  color: var(--text-primary); /* Use primary text color */
+  font-family: var(--font-main); /* Use global font */
+  z-index: 9999; /* Ensure it's on top */
+}
+
+.loading-video {
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
+}
+
+.loading-text {
+  margin-top: var(--space-xl);
+  font-size: var(--h1-size);
+  font-weight: var(--h1-weight);
+}

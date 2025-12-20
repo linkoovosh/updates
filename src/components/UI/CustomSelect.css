@@ -1,0 +1,124 @@
+/* murchat/src/components/UI/CustomSelect.css */
+
+.custom-select-container {
+    position: relative;
+    width: 100%;
+    min-width: 200px;
+    user-select: none;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.custom-select-trigger:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.custom-select-trigger.open {
+    border-color: var(--accent-blue);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.15);
+}
+
+.selected-value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px;
+}
+
+.select-arrow svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+    transition: transform 0.3s;
+}
+
+.custom-select-trigger.open .select-arrow svg {
+    transform: rotate(180deg);
+    opacity: 1;
+    color: var(--accent-blue);
+}
+
+/* DROPDOWN */
+.custom-select-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    max-height: 250px;
+    overflow-y: auto;
+    background: #19191e; /* Solid fallback */
+    background: rgba(25, 25, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 1000;
+    padding: 6px;
+    
+    /* Animation */
+    animation: dropdown-slide 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transform-origin: top center;
+}
+
+@keyframes dropdown-slide {
+    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.custom-option {
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.15s;
+}
+
+.custom-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.custom-option.selected {
+    background: rgba(88, 101, 242, 0.15);
+    color: var(--accent-blue);
+    font-weight: 700;
+}
+
+.check-mark {
+    color: var(--accent-blue);
+    font-size: 14px;
+}
+
+/* Custom Scrollbar for Dropdown */
+.custom-select-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-select-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-select-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+.custom-select-dropdown::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

@@ -1,0 +1,83 @@
+.shared-browser-stage {
+    /* Embedded style instead of fixed overlay */
+    width: 100%;
+    /* Height will be determined by aspect ratio or container */
+    aspect-ratio: 16 / 9; 
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px; /* Spacing from other members */
+    border: 1px solid var(--bg-tertiary);
+}
+
+.browser-header {
+    height: 32px; /* Smaller header */
+    background: #202225;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    justify-content: space-between;
+    border-bottom: 1px solid #2f3136;
+}
+
+.browser-info {
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.browser-url {
+    color: #b9bbbe;
+    font-weight: 400;
+    font-size: 11px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.browser-video-container {
+    flex: 1;
+    position: relative;
+    background: #000;
+    cursor: crosshair; /* Indicate input capability */
+}
+
+.browser-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.control-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+}
+
+.close-browser-btn {
+    background: #ED4245;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 10px;
+}
+
+/* Owner Webview specific */
+webview {
+    width: 100%;
+    height: 100%;
+}

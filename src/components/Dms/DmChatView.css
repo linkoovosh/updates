@@ -1,0 +1,115 @@
+/* murchat/src/components/Dms/DmChatView.css */
+
+.dm-chat-view {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Ensure it takes full height of its container */
+}
+
+.dm-chat-view.placeholder {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+}
+.dm-chat-view.placeholder h3 {
+    color: var(--header-primary);
+}
+
+.dm-messages-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dm-message-wrapper {
+    display: flex;
+    max-width: 75%;
+}
+
+.dm-message-wrapper.sent {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.dm-message-wrapper.received {
+    align-self: flex-start;
+}
+
+.dm-message {
+    padding: 10px 14px;
+    border-radius: 18px;
+    color: var(--text-primary);
+    position: relative;
+}
+
+.dm-message-wrapper.sent .dm-message {
+    background-color: var(--brand-500);
+    border-bottom-right-radius: 4px;
+}
+
+.dm-message-wrapper.received .dm-message {
+    background-color: var(--bg-secondary);
+    border-bottom-left-radius: 4px;
+}
+
+.dm-message-content {
+    margin: 0;
+    padding-right: 50px; /* Space for timestamp */
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.dm-message-timestamp {
+    position: absolute;
+    bottom: 5px;
+    right: 12px;
+    font-size: 0.7rem;
+    color: var(--text-muted-light);
+}
+
+.dm-message-wrapper.received .dm-message-timestamp {
+    color: var(--text-muted);
+}
+
+
+.dm-chat-form {
+    display: flex;
+    padding: 16px;
+    gap: 10px;
+    border-top: 1px solid var(--bg-modifier-accent);
+}
+
+.dm-chat-input {
+    flex-grow: 1;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius-medium);
+    background-color: var(--bg-input);
+    color: var(--text-input);
+    font-size: 1rem;
+}
+
+.dm-chat-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-blue-faded);
+}
+
+.dm-send-button {
+    padding: 0 20px;
+    border: none;
+    border-radius: var(--radius-medium);
+    background-color: var(--brand-500);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dm-send-button:hover {
+    background-color: var(--brand-600);
+}

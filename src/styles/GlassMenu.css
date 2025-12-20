@@ -1,0 +1,71 @@
+/* Global Holographic Glass Menu Styles */
+
+.glass-menu {
+    position: absolute; /* Or fixed, depending on usage context */
+    background: rgba(20, 20, 25, 0.95);
+    border-radius: 12px;
+    box-shadow: 
+        0 10px 40px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    padding: 6px;
+    z-index: 10000;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    animation: menu-spawn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 180px;
+    overflow: hidden;
+    color: var(--text-normal);
+}
+
+@keyframes menu-spawn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.glass-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.1s ease;
+    gap: 10px;
+}
+
+.glass-menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: translateX(2px);
+}
+
+.glass-menu-item.danger {
+    color: #ed4245;
+}
+
+.glass-menu-item.danger:hover {
+    background: #ed4245;
+    color: #fff;
+}
+
+.glass-menu-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 4px 6px;
+}
+
+/* Optional: Icons styling if they exist inside items */
+.glass-menu-item svg, 
+.glass-menu-item i,
+.glass-menu-item span.icon {
+    opacity: 0.7;
+    width: 18px;
+    text-align: center;
+}
+
+.glass-menu-item:hover svg, 
+.glass-menu-item:hover i {
+    opacity: 1;
+}

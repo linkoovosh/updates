@@ -1,0 +1,236 @@
+/* src/components/Auth/AuthScreen.css */
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--bg-primary); /* Default dark background */
+  position: relative;
+  overflow: hidden; /* Hide overflow from floating icons */
+}
+
+/* --- CAT MODE (Neko Mode) in Auth --- */
+.auth-container.cat-mode {
+    background: linear-gradient(135deg, #2b1026 0%, #1a0b1e 50%, #0d0d14 100%) !important;
+}
+
+.auth-container.cat-mode::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    /* Layer 1: Cat Heads (Sparse, appearing occasionally) */
+    /* Layer 2: Paws (Dense pattern) */
+    background-image: 
+        url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 35 L20 15 L40 25 L60 25 L80 10 L70 35 C 85 45 85 70 50 70 C 15 70 15 45 30 35 Z' fill='none' stroke='%23ff9ce6' stroke-width='3' stroke-opacity='0.15' stroke-linejoin='round'/%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff9ce6' fill-opacity='0.08' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+    
+    /* Cats are large and spaced out (400px), Paws are tight (120px) */
+    background-size: 400px 400px, 120px 120px;
+    background-position: 0 0, 0 0;
+    z-index: 0; /* Behind everything inside the container */
+    
+    /* Animation moves Top-Left (Negative coordinates) */
+    animation: cat-drift-auth 30s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes cat-drift-auth {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: -400px -400px, -240px -240px; }
+}
+
+.auth-card {
+  background: rgba(var(--bg-context-menu-rgb), var(--app-opacity)); /* Glass background for auth-card */
+  border-radius: var(--radius-large);
+  padding: 40px;
+  box-shadow: var(--shadow-elevation-medium);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  color: var(--text-primary);
+  border: 2px solid var(--bg-elevated); /* Dark gray border */
+  box-shadow: var(--shadow-elevation-high);
+  z-index: 100; /* Ensure auth card is above floating icons AND auth-glass-layer */
+  position: relative;
+  backdrop-filter: blur(var(--blur-intensity-strong)); /* Stronger blur for the card itself */
+  -webkit-backdrop-filter: blur(var(--blur-intensity-strong));
+}
+
+.auth-header {
+  margin-bottom: 30px;
+}
+
+.auth-header h2 {
+  font-size: 28px;
+  margin-bottom: 10px;
+  color: var(--header-primary);
+}
+
+.auth-header p {
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--bg-modifier-accent);
+  border-radius: var(--radius-medium);
+  color: var(--text-primary);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(var(--accent-blue-rgb), 0.3);
+}
+
+.auth-error {
+  color: var(--status-negative);
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.auth-button {
+  background-color: var(--accent-blue);
+  color: white;
+  padding: 14px 20px;
+  border: none;
+  border-radius: var(--radius-medium);
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-top: 10px;
+}
+
+.auth-button:hover {
+  background-color: var(--accent-blue-hover);
+  transform: translateY(-1px);
+}
+
+.auth-footer {
+  margin-top: 25px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.auth-footer p {
+  margin: 0;
+}
+
+.auth-link {
+  color: var(--accent-blue);
+  cursor: pointer;
+  margin-left: 5px;
+  transition: color 0.2s ease;
+}
+
+.auth-link:hover {
+  color: var(--accent-blue-hover);
+  text-decoration: underline;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-button {
+  position: absolute;
+  bottom: 15px; /* Adjust as needed */
+  right: 15px; /* Adjust as needed */
+  background-color: var(--bg-modifier-hover); /* A subtle background */
+  color: var(--text-secondary); /* Icon color */
+  border: none;
+  border-radius: 50%; /* Make it round */
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-elevation-low);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  z-index: 101; /* Above auth-card (100) */
+}
+
+.theme-toggle-button:hover {
+  background-color: var(--accent-blue);
+  color: white;
+  transform: scale(1.05);
+}
+
+
+/* Floating Icons Background */
+.floating-icons-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1; /* Behind auth-glass-layer */
+  pointer-events: none;
+  background-color: transparent; /* No blur here */
+}
+
+/* Intermediate Glass Layer styled as full-screen blur */
+.auth-glass-layer {
+    position: absolute; /* Full screen */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(var(--bg-context-menu-rgb), 0.1); /* Very subtle background color */
+    backdrop-filter: blur(5px); /* Fixed, less intense blur for the layer */
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 15; /* Between floating icons (1) and auth-card (100) */
+    pointer-events: none;
+    border-radius: 0; /* No radius, full screen */
+    box-shadow: none; /* No box shadow */
+    border: none; /* No border */
+}
+
+
+.floating-icon {
+  position: absolute;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  object-fit: cover;
+  animation: float var(--duration) linear var(--delay) infinite;
+  opacity: 0.7;
+  left: var(--start-x);
+  top: 100%;
+  box-shadow: 0 0 10px 5px var(--glow-color);
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  100% {
+    transform: translateY(-200vh) rotate(360deg) scale(1.2);
+  }
+}

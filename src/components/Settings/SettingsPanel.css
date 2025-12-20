@@ -1,0 +1,581 @@
+/* src/components/Settings/SettingsPanel.css */
+
+.settings-panel-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(15px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.settings-panel {
+  background: rgba(var(--bg-context-menu-rgb), 0.6);
+  color: var(--text-primary);
+  border-radius: 24px;
+  width: 85vw;
+  height: 80vh;
+  min-width: 850px;
+  min-height: 550px;
+  max-width: 1200px;
+  max-height: 900px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  overflow: hidden;
+  position: relative;
+  animation: scale-in-center 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- SIDEBAR --- */
+.settings-sidebar {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 40px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-sidebar-header {
+  padding: 0 12px 20px;
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.settings-sidebar-item {
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.settings-sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.settings-sidebar-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* --- MAIN CONTENT --- */
+.settings-main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.settings-header {
+  padding: 40px 50px 0;
+  flex-shrink: 0;
+}
+
+.settings-header h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+}
+
+.settings-content {
+  padding: 30px 50px 50px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.section-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    opacity: 0.8;
+}
+
+/* --- SETTINGS ITEMS (THE FIX) --- */
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column; /* Changed to column for better readability */
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 12px;
+  min-height: auto;
+}
+
+.setting-item.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Row-based items (Checkboxes) */
+.setting-item:has(input[type="checkbox"]) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+}
+
+.setting-item label {
+  width: 100%;
+  font-weight: 700;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.2;
+  min-width: 0;
+  margin-bottom: 2px;
+}
+
+.setting-item select,
+.setting-item .custom-select-container,
+.setting-item input[type="range"] {
+  width: 100% !important; /* Make controls take full width */
+  max-width: none !important;
+  flex-shrink: 0;
+}
+
+.setting-item input[type="range"] {
+    margin: 8px 0;
+}
+
+.setting-item select {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.setting-item select:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.setting-item select:focus {
+    border-color: var(--accent-blue);
+    background-color: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.15);
+}
+
+/* Styling options (works partially in Electron/Chrome) */
+.setting-item select option {
+    background-color: #19191e;
+    color: #fff;
+    padding: 12px;
+}
+
+.setting-item select option:checked {
+    background-color: var(--accent-blue);
+}
+
+.setting-item input[type="range"] {
+    width: 140px;
+}
+
+/* --- ACCOUNT & PROFILE --- */
+.account-settings-container,
+.profile-customization-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 50px;
+    align-items: start;
+}
+
+.profile-preview-column {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.profile-edit-column {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.preview-card-outer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px; /* Provide some breathing room */
+}
+
+/* Let the holo-card behave naturally inside the preview, but constrain width */
+.preview-card-outer .holo-card {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    /* Remove forced overrides that break custom themes */
+}
+
+/* Form Fields */
+.info-field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.info-field label {
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.settings-input, .settings-textarea {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: white;
+    font-size: 15px;
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.settings-textarea:focus {
+    border-color: var(--accent-blue);
+    background: rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.1);
+}
+
+.change-password-button {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    width: 100%;
+}
+
+.change-password-button:hover {
+    background: rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.4);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.15);
+    transform: translateY(-2px);
+}
+
+.change-password-button:active {
+    transform: scale(0.98);
+}
+
+.change-password-button svg {
+    opacity: 0.7;
+    transition: all 0.3s;
+}
+
+.change-password-button:hover svg {
+    opacity: 1;
+    color: #ff6b6b;
+    filter: drop-shadow(0 0 5px rgba(255, 107, 107, 0.5));
+}
+
+/* --- THEMES --- */
+.profile-themes-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.theme-card {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    cursor: pointer;
+    gap: 20px;
+    transition: all 0.3s ease;
+}
+
+.theme-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(6px);
+}
+
+.theme-card.custom {
+    border-style: dashed;
+}
+
+.theme-delete-btn {
+    padding: 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: auto;
+    transition: all 0.2s;
+}
+
+.theme-delete-btn:hover {
+    background: #ed4245;
+    color: white;
+}
+
+.theme-card.active {
+    border-color: var(--accent-blue);
+    border-style: solid;
+    background: rgba(88, 101, 242, 0.1);
+}
+
+/* THE MAGIC BUTTON */
+.magic-create-theme-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    font-weight: 800;
+    color: white;
+    font-size: 1rem;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(
+        45deg,
+        #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000
+    );
+    background-size: 400%;
+    animation: rainbow-bg 20s linear infinite;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+
+@keyframes rainbow-bg {
+    0% { background-position: 0 0; }
+    50% { background-position: 400% 0; }
+    100% { background-position: 0 0; }
+}
+
+.magic-create-theme-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+}
+
+.magic-create-theme-btn::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 14px;
+    z-index: 0;
+}
+
+.magic-create-theme-btn span {
+    position: relative;
+    z-index: 1;
+}
+
+/* Misc */
+.mic-test-bar-bg {
+    width: 100%;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
+    position: relative;
+    margin-top: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mic-test-level {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-primary);
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.5);
+    transition: width 0.1s ease-out, background-color 0.2s;
+}
+
+.mic-test-threshold {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.4);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.save-changes-bar {
+    position: sticky;
+    bottom: 0;
+    margin-top: 40px;
+    background: rgba(35, 165, 89, 0.2);
+    border: 1px solid rgba(35, 165, 89, 0.4);
+    border-radius: 20px;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(20px);
+    z-index: 100;
+}
+
+.profile-save-bar {
+    position: relative; /* Not fixed in the theme tab to flow with content */
+    margin-top: 20px;
+    width: 100%;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 30px; right: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+}
+
+.close-modal-btn:hover {
+    transform: rotate(90deg) scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Accent Color Picker */
+.accent-color-picker {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.color-swatch:hover {
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.color-swatch.active {
+    border-color: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.transparent-swatch {
+    background: linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+    background-color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.transparent-swatch::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0;
+    width: 100%; height: 2px;
+    background: #ff4d4d;
+    transform: rotate(-45deg);
+}
+
+.accent-color-picker input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    background: transparent;
+    padding: 0;
+    margin-left: 5px;
+}
+
+.accent-color-picker input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.accent-color-picker input[type="color"]::-webkit-color-swatch {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+}
+
+/* Edit Overlay Icons */
+.edit-overlay-icon {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(2px);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.profile-banner:hover .edit-overlay-icon,
+.profile-avatar:hover .edit-overlay-icon {
+    opacity: 1;
+}
+
+.profile-avatar .edit-overlay-icon {
+    border-radius: 50%;
+}

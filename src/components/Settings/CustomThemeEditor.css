@@ -1,0 +1,143 @@
+.theme-editor-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-editor-window {
+    width: 900px;
+    height: 600px;
+    background: rgba(20, 20, 25, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+}
+
+.editor-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.editor-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.editor-controls {
+    width: 400px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    background: rgba(0,0,0,0.2);
+}
+
+.control-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-tabs button {
+    flex: 1;
+    padding: 15px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.control-tabs button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
+.control-tabs button.active {
+    color: #5865F2;
+    border-bottom: 2px solid #5865F2;
+}
+
+.control-panel {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.control-group input[type="text"],
+.control-group input[type="color"] {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-family: monospace;
+}
+
+.help-text {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 5px;
+}
+
+.save-section {
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.theme-name-input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.editor-preview {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-image: 
+        linear-gradient(45deg, #111 25%, transparent 25%), 
+        linear-gradient(-45deg, #111 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #111 75%), 
+        linear-gradient(-45deg, transparent 75%, #111 75%);
+    background-size: 20px 20px;
+    background-color: #0a0a0a;
+}
+
+.preview-container {
+    width: 300px;
+    transform: scale(1.1);
+}

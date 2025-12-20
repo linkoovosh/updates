@@ -1,0 +1,82 @@
+/* src/components/Servers/ServerContextMenu.css */
+
+.context-menu {
+  position: fixed;
+  width: 220px;
+  background: rgba(var(--bg-context-menu-rgb), var(--app-opacity)); /* Use theme variables */
+  backdrop-filter: blur(var(--blur-intensity-strong));
+  -webkit-backdrop-filter: blur(var(--blur-intensity-strong));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-medium);
+  padding: 6px;
+  box-shadow: var(--shadow-elevation-high);
+  z-index: 100000; 
+  animation: menuScaleIn 0.15s cubic-bezier(0.17, 0.17, 0, 1) forwards;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+@keyframes menuScaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.context-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-small);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.context-item:hover {
+  background-color: var(--accent-blue);
+  color: white;
+}
+
+.context-item svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.8;
+}
+
+.context-item:hover svg {
+    opacity: 1;
+}
+
+.context-item.danger {
+  color: var(--status-negative);
+}
+
+.context-item.danger:hover {
+  background-color: var(--status-negative);
+  color: white;
+}
+
+.context-separator {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 4px 6px;
+}
+
+.context-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 4px 12px;
+  margin-top: 4px;
+  font-weight: 700;
+}

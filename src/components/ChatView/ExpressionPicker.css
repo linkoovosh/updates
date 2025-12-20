@@ -1,0 +1,192 @@
+.expression-picker {
+    position: absolute;
+    bottom: 80px; /* Над полем ввода */
+    right: 20px;
+    /* Убираем жесткие размеры для адаптивности */
+    max-width: 400px; /* Максимальная ширина */
+    width: 90vw; /* Адаптивная ширина */
+    max-height: 500px; /* Максимальная высота */
+    height: 60vh; /* Адаптивная высота */
+    
+    background-color: var(--bg-secondary-alpha-80); /* Полупрозрачный фон */
+    backdrop-filter: blur(10px); /* Размытие для "стеклянного" эффекта */
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--radius-large); /* Используем переменную закругления */
+    box-shadow: var(--shadow-deep); /* Глубокая тень */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
+    border: 1px solid var(--border-color); /* Цвет рамки */
+    transition: all 0.2s ease-in-out;
+}
+
+.picker-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-tertiary-alpha-80); /* Полупрозрачный фон вкладок */
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.picker-tab {
+    flex: 1;
+    padding: 12px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-size: var(--font-size-small); /* Использование переменной шрифта */
+    border-radius: var(--radius-medium) var(--radius-medium) 0 0; /* Закругления только сверху */
+}
+
+.picker-tab:hover {
+    background-color: var(--bg-modifier-hover-alpha-50); /* Полупрозрачный ховер */
+    color: var(--text-normal);
+}
+
+.picker-tab.active {
+    color: var(--text-primary); /* Активная вкладка - основной цвет текста */
+    border-bottom: 2px solid var(--text-muted); /* Рамка активной вкладки - серый цвет */
+    background-color: var(--bg-modifier-active-alpha-50); /* Полупрозрачный активный фон */
+}
+
+.picker-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background-color: transparent; /* Контент прозрачный, фон дает пикер */
+}
+
+/* Emoji */
+.emoji-picker-wrapper {
+    height: 100%;
+    overflow: hidden; /* Важно, чтобы скролл был внутри пикера */
+    border-radius: 0 0 var(--radius-large) var(--radius-large); /* Закругления снизу */
+}
+
+/* Переопределение стилей EmojiPickerReact */
+.EmojiPickerReact {
+    --epr-bg-color: transparent !important; /* Прозрачный фон */
+    --epr-category-label-bg-color: transparent !important;
+    --epr-text-color: var(--text-primary) !important;
+    --epr-border-color: var(--border-color) !important;
+    --epr-hover-bg-color: var(--bg-modifier-hover-alpha-50) !important;
+    --epr-focus-bg-color: var(--bg-modifier-active-alpha-50) !important;
+    --epr-active-bg-color: var(--bg-modifier-active-alpha-50) !important;
+    --epr-shadow: none !important; /* Убираем лишние тени */
+    border: none !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* GIF */
+.gif-picker-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 8px;
+}
+
+.gif-search-input {
+    width: 100%;
+    padding: 8px;
+    background-color: var(--bg-input-alpha-50); /* Полупрозрачный инпут */
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-medium);
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: var(--font-size-normal);
+    transition: all 0.2s;
+}
+
+.gif-search-input:focus {
+    outline: none;
+    border-color: var(--text-normal); /* Нейтральный цвет при фокусе */
+    box-shadow: 0 0 0 1px var(--text-normal);
+}
+
+.gif-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Гибкая сетка */
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 4px; /* Для скроллбара */
+}
+
+.gif-item {
+    cursor: pointer;
+    border-radius: var(--radius-medium);
+    overflow: hidden;
+    height: 80px; /* Немного меньше для лучшего отображения в сетке */
+    transition: transform 0.1s ease-in-out;
+    border: 1px solid transparent;
+}
+
+.gif-item:hover {
+    transform: scale(1.05);
+    border-color: var(--text-normal); /* Нейтральный цвет при ховере */
+}
+
+.gif-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Sticker */
+.sticker-picker-wrapper {
+    padding: 8px;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Гибкая сетка для стикеров */
+    gap: 8px;
+}
+
+.sticker-item {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-medium);
+    transition: background-color 0.2s;
+    background-color: var(--bg-tertiary-alpha-50); /* Полупрозрачный фон для стикеров */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+}
+
+.sticker-item:hover {
+    background-color: var(--bg-modifier-hover-alpha-50);
+}
+
+.sticker-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Add Sticker Button */
+.add-sticker-btn {
+    border: 2px dashed var(--text-muted);
+    background-color: transparent;
+    color: var(--text-muted);
+}
+
+.add-sticker-btn:hover {
+    border-color: var(--text-normal);
+    color: var(--text-normal);
+    background-color: var(--bg-modifier-hover-alpha-50);
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+}

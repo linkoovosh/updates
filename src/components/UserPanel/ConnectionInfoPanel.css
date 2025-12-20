@@ -1,0 +1,93 @@
+.connection-info-panel {
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.7); /* Darker, more opaque for overlay */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color 0.3s ease;
+    border-left: 3px solid #3ba55c;
+    font-family: var(--font-main);
+    backdrop-filter: blur(8px);
+    width: auto; /* Auto width */
+    min-width: 140px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5); /* Shadow for floating effect */
+    user-select: none; /* Prevent text selection while dragging */
+}
+
+.connection-info-panel:active {
+    cursor: grabbing !important;
+}
+
+.connection-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.voice-connected-text {
+    font-size: 9px; 
+    color: #3ba55c; 
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 3px;
+}
+
+.channel-name-small {
+    font-size: 11px;
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.connection-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.ping-value {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: monospace;
+    min-width: 35px;
+    text-align: right;
+}
+
+/* Signal Bars */
+.signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 10px;
+    width: 12px;
+}
+
+.bar {
+    width: 2px;
+    background-color: var(--text-tertiary);
+    border-radius: 1px;
+}
+
+.bar-1 { height: 3px; }
+.bar-2 { height: 6px; }
+.bar-3 { height: 10px; }
+
+/* Quality States */
+.connection-stats.good .bar { background-color: #3ba55c; }
+.connection-info-panel:has(.good) { border-left-color: #3ba55c; }
+.connection-info-panel:has(.good) .voice-connected-text { color: #3ba55c; }
+
+.connection-stats.average .bar { background-color: #faa61a; }
+.connection-info-panel:has(.average) { border-left-color: #faa61a; }
+.connection-info-panel:has(.average) .voice-connected-text { color: #faa61a; }
+
+.connection-stats.bad .bar { background-color: #ed4245; }
+.connection-info-panel:has(.bad) { border-left-color: #ed4245; }
+.connection-info-panel:has(.bad) .voice-connected-text { color: #ed4245; }

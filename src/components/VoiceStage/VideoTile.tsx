@@ -1,0 +1,178 @@
+import React from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
+import { generateAvatarColor, getInitials } from '../../utils/avatarUtils';
+import webSocketService from '../../services/websocket';
+import './VoiceStage.css';
+
+interface VideoTileProps {
+  userId: string;
+  stream?: MediaStream;
+  onClick?: () => void;
+  isSelected?: boolean;
+}
+
+const MicOffIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ background: '#ed4245', borderRadius: '50%', padding: '2px', color: 'white' }}><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+);
+
+const PopOutIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+);
+
+const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelected }) => {
+  const users = useSelector((state: RootState) => state.auth.users); // Other users cache
+  const currentUser = useSelector((state: RootState) => state.auth); // My profile
+  
+  // Resolve user data: Check if it's me, otherwise look in cache
+  const isLocal = userId === currentUser.userId;
+  const user = isLocal ? currentUser : (users ? users[userId] : undefined);
+  
+  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); 
+  const voiceState = voiceStates ? voiceStates[userId] : undefined;
+  
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  
+  const [volume, setVolume] = React.useState(1);
+  const [hasAudio, setHasAudio] = React.useState(false);
+
+  const isSpeaking = voiceState ? voiceState.volume > 0.05 : false; 
+  const isMuted = voiceState?.isMuted;
+  
+  // Prioritize voiceState data, then user data
+  const username = voiceState?.username || user?.username || userId.substring(0, 8);
+  const avatar = voiceState?.avatar || user?.avatar;
+  const profileBanner = user?.profile_banner; 
+  
+  const selfId = currentUser.userId;
+  const selfVoiceState = selfId && voiceStates ? voiceStates[selfId] : undefined;
+  const isDeafened = selfVoiceState?.isDeafened || false;
+
+  const hasVideo = stream && stream.getVideoTracks().length > 0;
+
+  React.useEffect(() => {
+    if (videoRef.current && stream && hasVideo) {
+      console.log(`[VideoTile] Setting stream for ${username}: ID=${stream.id}, Tracks=${stream.getTracks().length}`);
+      videoRef.current.srcObject = stream;
+      
+      // Explicitly call play() because changing srcObject doesn't always trigger autoPlay
+      videoRef.current.play().catch(e => {
+          const err = e as Error;
+          console.error(`[VideoTile] Play failed for ${username}: ${err.name} - ${err.message}`);
+      });
+      
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+          setHasAudio(true);
+          // Mute if local OR if deafened
+          videoRef.current.muted = isLocal || isDeafened;
+          if (!isLocal && !isDeafened) {
+              videoRef.current.volume = volume;
+          }
+      } else {
+          setHasAudio(false);
+          videoRef.current.muted = true;
+      }
+    }
+  }, [stream, isLocal, isDeafened, hasVideo]);
+
+  // Update volume when slider changes
+  React.useEffect(() => {
+      if (videoRef.current && !isLocal && hasAudio && hasVideo) {
+          videoRef.current.volume = isDeafened ? 0 : volume;
+          videoRef.current.muted = isDeafened;
+      }
+  }, [volume, isLocal, hasAudio, isDeafened, hasVideo]);
+
+  const handlePopOut = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (videoRef.current && document.pictureInPictureEnabled) {
+          if (document.pictureInPictureElement === videoRef.current) {
+              document.exitPictureInPicture();
+          } else {
+              videoRef.current.requestPictureInPicture().catch(err => console.error("PiP failed:", err));
+          }
+      } else {
+          alert("Ваш браузер не поддерживает функцию 'Картинка в картинке' или видео еще не загружено.");
+      }
+  };
+
+  return (
+    <div 
+        className={`video-tile ${isSpeaking ? 'speaking' : ''} ${isSelected ? 'selected' : ''}`}
+        onClick={onClick}
+    >
+      {hasVideo ? (
+        <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            muted={isLocal || isDeafened}
+            className="tile-video" 
+        />
+      ) : (
+        <div className="tile-avatar-container">
+           {/* Animated Banner Background - Always mounted for smoothness */}
+           {profileBanner && (
+               <div 
+                   className="tile-banner-bg"
+                   style={{
+                       position: 'absolute',
+                       top: 0, left: 0, right: 0, bottom: 0,
+                       backgroundImage: `url(${profileBanner})`,
+                       backgroundSize: 'cover',
+                       backgroundPosition: 'center',
+                       opacity: isSpeaking ? 0.6 : 0, // Fade in/out instead of mount/unmount
+                       filter: 'blur(2px)', 
+                       zIndex: 0,
+                       transition: 'opacity 0.3s ease',
+                       pointerEvents: 'none'
+                   }}
+               />
+           )}
+           
+           <div 
+                className="tile-avatar"
+                style={{ 
+                    backgroundColor: avatar ? 'transparent' : generateAvatarColor(username),
+                    backgroundImage: avatar ? `url(${avatar})` : 'none',
+                    zIndex: 2 // Keep avatar above banner
+                }}
+            >
+                {!avatar && getInitials(username)}
+            </div>
+        </div>
+      )}
+
+      <div className="tile-overlay">
+        <div className="tile-name">
+            {username}
+            {isMuted && <span className="tile-mic-status"><MicOffIcon /></span>}
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {stream && hasAudio && !isLocal && (
+                <div className="tile-volume-control" onClick={e => e.stopPropagation()} title={`Громкость: ${Math.round(volume * 100)}%`}>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="1" 
+                        step="0.05" 
+                        value={volume} 
+                        onChange={(e) => setVolume(parseFloat(e.target.value))}
+                        style={{ width: '60px', height: '4px', accentColor: 'var(--accent-primary)' }}
+                    />
+                </div>
+            )}
+            {stream && (
+                <button className="tile-btn" onClick={handlePopOut} title="Открыть в отдельном окне">
+                    <PopOutIcon />
+                </button>
+            )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default React.memo(VideoTile);

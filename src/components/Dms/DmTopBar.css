@@ -1,0 +1,37 @@
+/* murchat/src/components/Dms/DmTopBar.css */
+
+.dm-top-bar {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--bg-modifier-accent);
+    color: var(--text-primary);
+    flex-shrink: 0; /* Prevent the top bar from shrinking */
+}
+
+.dm-top-bar-default {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--header-primary);
+}
+
+.dm-top-bar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 12px;
+}
+
+.dm-top-bar-username {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--header-primary);
+}
+
+.dm-top-bar-discriminator {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}

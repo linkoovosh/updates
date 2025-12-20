@@ -1,0 +1,178 @@
+/* src/components/UserPanel/UserPanel.css */
+
+.user-panel {
+  display: flex;
+  flex-direction: column; /* Stack controls above info */
+  align-items: center; /* Center items horizontally */
+  padding: 12px; /* Overall padding */
+  font-family: var(--font-main);
+  box-sizing: border-box; 
+  height: auto; /* Let content define height */
+
+  /* Floating Card Design */
+  position: relative; 
+  width: calc(100% - 16px); /* Leave space for margins */
+  margin: 8px; /* Margin from all sides of container */
+  z-index: 100; 
+  
+  border-radius: 20px; 
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  
+  /* Glass Effect override/enforce */
+  background: rgba(var(--bg-panels-rgb), 0.6); 
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.user-panel:hover {
+    background: rgba(var(--bg-panels-rgb), 0.75);
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.user-panel:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.user-controls-panel {
+    display: flex;
+    justify-content: space-around; /* Distribute buttons */
+    align-items: center;
+    width: 100%;
+    padding: 8px 0; /* Padding inside the controls panel */
+    margin-bottom: 10px; /* Space between controls and info */
+    background: rgba(var(--bg-elevated-rgb), 0.7); /* Background for the controls panel */
+    border-radius: 12px; /* Rounded corners for the controls panel */
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1); /* Subtle inner shadow */
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+
+.user-info {
+  display: flex;
+  align-items: center;
+  width: 100%; /* Take full width */
+  min-width: 0; 
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  flex-grow: 1; 
+  transition: background-color 0.2s;
+  background-color: rgba(var(--bg-elevated-rgb), 0.5); /* Background for info panel */
+}
+
+.user-info:hover {
+  background-color: var(--bg-elevated);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-right: 10px;
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Online status indicator */
+.user-avatar::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--status-positive); 
+  border-radius: 50%;
+  border: 3px solid var(--bg-panels); /* Thicker border to match panel bg */
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-tag {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.1;
+  opacity: 0.8;
+}
+
+.control-button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 40px; /* Fixed larger size */
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative; /* Ensure z-index works contextually */
+  z-index: 10; /* Bring above overlays inside panel */
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Ensure SVG fills the center but doesn't overflow */
+.control-button svg {
+    width: 24px;
+    height: 24px;
+    pointer-events: none; /* Let clicks pass through to button */
+}
+
+.control-button:hover {
+  background-color: var(--bg-modifier-hover);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.control-button:active {
+    transform: translateY(0);
+}
+
+.control-button.active-red {
+  color: var(--status-negative);
+  background-color: rgba(237, 66, 69, 0.1);
+}
+
+.control-button.active-red:hover {
+    color: #ff4d4d;
+    background-color: rgba(237, 66, 69, 0.2);
+}
+
+.control-button.active-green {
+    color: var(--status-positive);
+    background-color: rgba(35, 165, 89, 0.1);
+}
+
+.control-button.active-green:hover {
+    color: #3ba55c;
+    background-color: rgba(35, 165, 89, 0.2);
+}

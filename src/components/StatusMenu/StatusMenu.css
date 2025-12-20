@@ -1,0 +1,61 @@
+.status-menu {
+    position: absolute;
+    bottom: calc(100% + 8px); /* Pop up above the button */
+    left: 0;
+    width: 100%;
+    min-width: 160px;
+    background: rgba(20, 20, 25, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    padding: 6px;
+    z-index: 10001; /* Above the holo card */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: menu-slide-up 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+}
+
+@keyframes menu-slide-up {
+    from { opacity: 0; transform: translateY(10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.status-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.status-menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.05);
+    transform: translateX(2px);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 12px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    transition: box-shadow 0.2s;
+}
+
+/* Add neon glow on hover */
+.status-menu-item:hover .status-dot.online { box-shadow: 0 0 10px var(--status-positive); }
+.status-menu-item:hover .status-dot.idle { box-shadow: 0 0 10px var(--status-warning); }
+.status-menu-item:hover .status-dot.dnd { box-shadow: 0 0 10px var(--status-negative); }
+
+.status-dot.online { background-color: var(--status-positive); }
+.status-dot.idle { background-color: var(--status-warning); }
+.status-dot.dnd { background-color: var(--status-negative); }
+.status-dot.offline { background-color: var(--text-muted); }

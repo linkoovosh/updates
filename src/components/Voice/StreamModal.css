@@ -1,0 +1,65 @@
+.stream-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 6000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.stream-modal-content {
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 16px;
+    width: 90vw;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.stream-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 8px;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.video-container {
+    flex: 1;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}

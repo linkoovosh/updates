@@ -1,0 +1,50 @@
+.shutdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999; /* Over everything */
+    color: white;
+    font-family: var(--font-main);
+    animation: fadeIn 0.5s ease-out;
+}
+
+.shutdown-content {
+    text-align: center;
+}
+
+.shutdown-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: bounce 1s infinite alternate;
+}
+
+.shutdown-text h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--accent-blue);
+    text-shadow: 0 0 10px rgba(77, 124, 255, 0.5);
+}
+
+.shutdown-text p {
+    font-size: 16px;
+    color: #ccc;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+}

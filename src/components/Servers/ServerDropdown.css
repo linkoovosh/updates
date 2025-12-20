@@ -1,0 +1,84 @@
+.server-dropdown-menu {
+    position: absolute;
+    top: 55px; /* Right below the header */
+    left: 10px;
+    width: 220px;
+    background: rgba(var(--bg-context-menu-rgb), 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--radius-medium);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    padding: 6px;
+    z-index: 1000;
+    border: 1px solid rgba(255,255,255,0.05);
+    animation: dropdownSlide 0.15s ease-out;
+    transform-origin: top left;
+}
+
+@keyframes dropdownSlide {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.1s;
+    margin-bottom: 2px;
+}
+
+.dropdown-item:hover {
+    background-color: var(--accent-blue);
+    color: white;
+}
+
+.dropdown-item svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.8;
+}
+
+.dropdown-item:hover svg {
+    opacity: 1;
+}
+
+.dropdown-separator {
+    height: 1px;
+    background-color: rgba(255,255,255,0.1);
+    margin: 4px 6px;
+}
+
+/* Special Items */
+.dropdown-item.boost {
+    color: #f47fff;
+}
+.dropdown-item.boost:hover {
+    background-color: #f47fff;
+    color: white;
+}
+.dropdown-item.boost svg {
+    fill: currentColor; /* Fill the gem icon */
+}
+
+.dropdown-item.invite {
+    color: #6370f4;
+}
+.dropdown-item.invite:hover {
+    background-color: #6370f4;
+    color: white;
+}
+
+.dropdown-item.danger {
+    color: var(--status-negative);
+}
+.dropdown-item.danger:hover {
+    background-color: var(--status-negative);
+    color: white;
+}

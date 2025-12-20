@@ -1,0 +1,33 @@
+/* src/components/TerminalPanel.css */
+.terminal-panel {
+  background-color: var(--bg-primary); /* Use primary background */
+  color: var(--text-primary); /* Use primary text color */
+  border-top: 1px solid var(--bg-elevated); /* Elevated border */
+  border-top-left-radius: var(--radius-small); /* Rounded top corners */
+  border-top-right-radius: var(--radius-small);
+  display: flex;
+  flex-direction: column;
+  height: 200px; /* Or any desired height */
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  z-index: 500;
+  overflow: hidden; /* Ensure rounded corners clip content */
+}
+
+.terminal-header {
+  background-color: var(--bg-panels); /* Panels background */
+  padding: var(--space-xs) var(--space-s);
+  font-weight: var(--p-weight); /* Medium weight */
+  font-size: var(--text2-size);
+  color: var(--text-secondary);
+}
+
+.terminal-content {
+  padding: var(--space-s);
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--text2-size);
+  color: var(--text-tertiary); /* Terminal output often less prominent */
+  flex-grow: 1;
+}

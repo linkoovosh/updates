@@ -1,0 +1,139 @@
+/* src/components/VoicePanel/VoicePanel.css */
+
+.voice-panel {
+  display: flex;
+  flex-direction: column; /* Changed to column to stack voice members */
+  padding: 8px; /* Adjusted padding */
+  background-color: var(--bg-panels); /* Use panel background (darker than sidebar usually) */
+  font-family: var(--font-main);
+  flex: 1; /* Allow it to grow in the sidebar, or take its content size */
+  min-height: 0; /* Important for scrollable content */
+  /* Remove border-top as it will be at the bottom of the sidebar */
+}
+
+/* Styles for voice channel members */
+.voice-channel-members {
+  flex-grow: 1; /* Allow members list to grow */
+  overflow-y: auto; /* Make it scrollable */
+  padding-right: 8px; /* For scrollbar */
+}
+
+.voice-channel-members::-webkit-scrollbar {
+  width: 8px;
+  background-color: transparent;
+}
+
+.voice-channel-members::-webkit-scrollbar-thumb {
+  background-color: var(--bg-modifier-accent);
+  border-radius: 4px;
+}
+
+.voice-member {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  margin: 1px 0;
+  border-radius: 4px;
+  position: relative;
+  animation: fadeScaleIn 0.2s ease-out forwards;
+  cursor: pointer;
+}
+
+.voice-member:hover {
+  background-color: var(--bg-elevated);
+}
+
+.member-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: box-shadow 0.1s ease-out;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Connecting state */
+.voice-member.connecting .member-avatar {
+    border: 2px dashed var(--text-tertiary);
+    animation: spin 2s linear infinite;
+    background-color: transparent !important;
+    color: transparent;
+}
+
+.voice-member.disconnected {
+    opacity: 0.5;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.member-name {
+  color: var(--text-secondary);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.1s ease-out;
+}
+
+.voice-member.speaking .member-name {
+    color: #A56BFF;
+    font-weight: 600;
+}
+
+.voice-state-icon {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background-color: var(--bg-secondary);
+    color: var(--status-negative);
+    font-size: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+.no-voice-members, .no-active-voice {
+    color: var(--text-muted);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.live-badge {
+    background: #ff4444;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    cursor: pointer;
+    font-weight: bold;
+    display: inline-block;
+    width: fit-content;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    animation: pulse 2s infinite;
+}
+
+.live-badge:hover {
+    background: #ff2222;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+}

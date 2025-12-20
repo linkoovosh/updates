@@ -1,0 +1,92 @@
+.audio-recorder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+}
+
+/* Animation for the entire AudioRecorder component when active */
+.audio-recorder.recording-active {
+    background-color: var(--bg-secondary); /* Match input area background */
+    border-radius: var(--radius-medium);
+    animation: pulse-red 1s infinite; /* Pulsing effect for the active state */
+}
+
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(255, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+}
+
+.record-button, .stop-recording-button, .cancel-recording-button {
+    background: var(--accent-blue); /* Use accent blue for default record button */
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    padding: 0; /* Override default button padding */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.record-button svg {
+    fill: white;
+    width: 20px;
+    height: 20px;
+}
+
+.record-button:hover {
+    background-color: var(--accent-blue-dark);
+}
+
+.recording-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s); /* Use existing spacing variable */
+    flex-grow: 1; /* Allow controls to take available space */
+    justify-content: space-between;
+    padding: 0 var(--space-s); /* Add some padding */
+}
+
+.recording-duration {
+    font-size: 0.9em;
+    color: var(--text-secondary); /* Use existing text color variable */
+    min-width: 45px; /* Ensure space for duration */
+    text-align: center;
+    flex-grow: 1; /* Allow it to take available space */
+}
+
+.stop-recording-button {
+    background-color: var(--accent-red); /* Use accent red for stop button */
+    border-radius: var(--radius-small); /* Square stop button */
+    width: 36px;
+    height: 36px;
+}
+
+.stop-recording-button svg {
+    fill: white;
+    width: 16px;
+    height: 16px;
+}
+
+.stop-recording-button:hover {
+    background-color: var(--accent-red-dark);
+}
+
+.cancel-recording-button {
+    background-color: var(--bg-elevated); /* Use existing background elevated color */
+}
+
+.cancel-recording-button svg {
+    fill: var(--text-secondary); /* Icon color */
+    width: 16px;
+    height: 16px;
+}
+
+.cancel-recording-button:hover {
+    background-color: var(--bg-input); /* Lighter on hover */
+}

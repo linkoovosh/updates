@@ -1,0 +1,102 @@
+.dm-friends-dropdown {
+  position: absolute;
+  top: 100%; /* Position it right below the top bar */
+  left: 10px; /* Align with the 'Личные чаты' button */
+  width: 280px;
+  max-height: 400px;
+  border-radius: 8px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-color-heavy);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.dm-friends-dropdown .dropdown-header {
+  padding: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color-light);
+  flex-shrink: 0;
+}
+
+.dm-friends-dropdown .friends-list {
+  padding: 8px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.dm-friends-dropdown .friend-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.dm-friends-dropdown .friend-item:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.dm-friends-dropdown .friend-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+}
+
+.dm-friends-dropdown .friend-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0; /* Prevents overflow */
+}
+
+.dm-friends-dropdown .friend-username {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dm-friends-dropdown .friend-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+/* Status indicator colors */
+.friend-status.online { color: var(--status-online); }
+.friend-status.idle { color: var(--status-idle); }
+.friend-status.dnd { color: var(--status-dnd); }
+.friend-status.offline { color: var(--status-offline); }
+
+
+.dm-friends-dropdown .no-friends-message {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Add a new style for the button in TopBar */
+.topbar-left .dm-friends-button {
+    padding: 0 12px;
+    height: 32px;
+    border: none;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
+}
+
+.topbar-left .dm-friends-button:hover {
+    background-color: var(--background-modifier-hover);
+}

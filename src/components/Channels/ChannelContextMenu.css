@@ -1,0 +1,62 @@
+/* Reusing styles similar to ServerContextMenu/UserContextMenu but dedicated file */
+.context-menu-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    cursor: default;
+}
+
+.context-menu {
+    position: fixed;
+    width: 220px;
+    background-color: var(--bg-context-menu);
+    border-radius: 4px;
+    padding: 6px 8px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.24);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: scaleIn 0.1s ease-out;
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.context-menu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.1s;
+}
+
+.context-menu-item:hover {
+    background-color: var(--accent-blue);
+    color: white;
+}
+
+.context-menu-item.danger {
+    color: var(--status-negative);
+}
+
+.context-menu-item.danger:hover {
+    background-color: var(--status-negative);
+    color: white;
+}
+
+.context-menu-separator {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 4px 0;
+}

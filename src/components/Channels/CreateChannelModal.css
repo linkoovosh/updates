@@ -1,0 +1,339 @@
+/* src/components/Channels/CreateChannelModal.css */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.create-channel-modal {
+  background-color: var(--bg-primary); /* Use solid color or variable */
+  color: var(--text-primary);
+  width: 460px;
+  max-width: 100%;
+  border-radius: 16px; /* Discord-like radius */
+  box-shadow: var(--shadow-layer);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Header */
+.modal-header {
+    padding: 24px 16px 0 16px;
+    position: relative;
+    text-align: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modal-subtitle {
+    margin-top: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 0;
+}
+
+.close-btn:hover {
+    color: var(--text-primary);
+}
+
+/* Body */
+.modal-body {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+/* Type Selector */
+.type-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.type-option {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: 1px solid transparent;
+}
+
+.type-option:hover {
+    background-color: var(--bg-elevated);
+}
+
+.type-option.selected {
+    background-color: rgba(88, 101, 242, 0.1); /* Slight tint */
+    border-color: transparent;
+}
+
+/* Icon */
+.type-icon {
+    color: var(--text-secondary);
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.type-option.selected .type-icon {
+    color: var(--text-primary);
+}
+
+/* Content */
+.type-content {
+    flex: 1;
+}
+
+.type-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.type-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.3;
+}
+
+/* Radio Button */
+.type-radio {
+    margin-left: 8px;
+}
+
+.type-radio input {
+    display: none;
+}
+
+.radio-circle {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--text-tertiary);
+    border-radius: 50%;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.type-radio input:checked + .radio-circle {
+    border-color: var(--text-primary);
+    background-color: transparent;
+}
+
+.type-radio input:checked + .radio-circle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background-color: var(--text-primary);
+    border-radius: 50%;
+}
+
+/* Input Group */
+.input-group {
+    margin-bottom: 24px;
+}
+
+.channel-input-wrapper {
+    background-color: var(--bg-input);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+}
+
+.hashtag {
+    color: var(--text-tertiary);
+    font-size: 20px;
+    margin-right: 4px;
+}
+
+.channel-name-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 10px 0;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+}
+
+/* Private Channel Toggle */
+.private-channel-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.private-content {
+    flex: 1;
+    margin-right: 16px;
+}
+
+.private-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.lock-icon {
+    color: var(--text-primary);
+    margin-right: 8px;
+}
+
+.private-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.private-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--text-tertiary); /* Gray */
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--accent-green); /* Green active */
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+
+/* Footer */
+.modal-footer {
+    padding: 16px;
+    background-color: var(--bg-secondary); /* Slightly darker footer */
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+}
+
+.cancel-button {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 10px 16px;
+}
+
+.cancel-button:hover {
+    text-decoration: underline;
+}
+
+.create-button {
+    background-color: var(--accent-purple); /* Discord Blurpleish */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.create-button:hover {
+    background-color: #4752c4; /* Darker blurple */
+}
+
+.create-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

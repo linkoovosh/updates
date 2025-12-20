@@ -1,0 +1,233 @@
+/* src/components/Layout/AppLayout.css */
+
+.app-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: absolute; /* Fix position to prevent scroll shifts */
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  /* Background handled by root/glass classes */
+}
+
+.left-nav-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: calc(72px + 240px); /* ServersBar (72) + Sidebar (240) */
+  flex-shrink: 0;
+  background-color: var(--bg-secondary); /* Use the standard sidebar gray */
+  overflow: hidden;
+  padding-bottom: 4px; /* Space for shadow and floating effect */
+  transition: background-color 0.3s ease;
+}
+
+.left-nav-top {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+/* 1. Servers Bar (Leftmost) */
+.servers-bar {
+  width: 72px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 12px;
+  padding-bottom: 0; /* Removed fixed padding */
+  overflow-y: auto;
+  /* Background handled by .glass-panel */
+}
+
+/* 2. Sidebar Column (Channels + User) */
+.sidebar-column {
+  width: 240px;
+  height: 100%;
+  max-height: none; /* Let parent handle height */
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  /* Background handled by .glass-panel on children */
+  padding-bottom: 0; 
+  overflow: hidden; 
+}
+
+/* The Channels component usually includes the Server Header. */
+.channels-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Take all available space */
+  min-height: 0; /* Allow inner scrolling */
+}
+
+.voice-panel {
+  flex-shrink: 0;
+  /* Height is determined by content, usually ~52px */
+}
+
+/* 3. Main Column (TopBar + Chat + Members) */
+.main-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevent flex items from overflowing */
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease;
+}
+
+.top-bar {
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--bg-elevated);
+}
+
+.content-area {
+  flex: 1;
+  display: flex;
+  min-height: 0; /* Important for scrolling */
+}
+
+.chat-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.members-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: none; /* Hide on small screens if needed, or flex */
+}
+
+/* Responsive: Show members on larger screens */
+@media (min-width: 1000px) {
+  .members-sidebar {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Welcome Server View Styles */
+.welcome-server-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary-alt); /* Slightly different background */
+  color: var(--text-secondary);
+  font-size: 1.1em;
+  padding: 20px;
+  text-align: center;
+}
+
+.welcome-server-view p {
+  margin-top: 20px;
+  font-size: 1.2em;
+  color: var(--text-tertiary);
+  max-width: 400px;
+}
+
+/* --- CAT MODE OVERRIDES --- */
+:root.cat-mode .left-nav-container {
+    background-color: rgba(20, 20, 25, 0.4) !important;
+    backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(150, 150, 150, 0.3) !important;
+}
+
+/* Force all inner containers to be transparent so the parent background shows */
+:root.cat-mode .servers-bar,
+:root.cat-mode .sidebar-column,
+:root.cat-mode .sidebar-column.glass-panel,
+:root.cat-mode .members-sidebar,
+:root.cat-mode .members-sidebar.glass-panel,
+:root.cat-mode .topbar,
+:root.cat-mode .topbar.glass-panel,
+:root.cat-mode .top-bar,
+:root.cat-mode .topbar-left,
+:root.cat-mode .topbar-center,
+:root.cat-mode .topbar-right,
+:root.cat-mode .channels-sidebar {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Semi-transparent panels for User Panel in Cat Mode */
+:root.cat-mode .user-controls-panel,
+:root.cat-mode .user-info {
+    background: rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid rgba(150, 150, 150, 0.2) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(8px);
+}
+
+:root.cat-mode .user-info:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+
+/* TARGETING THE SIDEBAR WITH GLASS PANEL SPECIFICALLY */
+:root.cat-mode .members-sidebar.glass-panel {
+    border-left: 1px solid rgba(150, 150, 150, 0.3) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+:root.cat-mode .members-sidebar {
+    background: transparent !important;
+}
+
+:root.cat-mode .main-column {
+    background-color: rgba(20, 20, 25, 0.25) !important;
+    backdrop-filter: blur(10px);
+}
+
+:root.cat-mode .chat-view, 
+:root.cat-mode .content-area,
+:root.cat-mode .welcome-server-view {
+    background: transparent !important;
+}
+
+:root.cat-mode .top-bar, :root.cat-mode .topbar {
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+:root.cat-mode .user-panel {
+    background: rgba(20, 20, 25, 0.4) !important; /* Soft semi-transparent frame */
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px !important;
+    backdrop-filter: blur(10px);
+    width: calc(100% - 24px) !important;
+    margin: 12px !important;
+    padding: 10px !important; /* Restore inner space */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Internal elements inside the frame */
+:root.cat-mode .user-controls-panel,
+:root.cat-mode .user-info {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(5px);
+    margin-bottom: 8px !important;
+    border-radius: 12px !important;
+}
+
+:root.cat-mode .user-info {
+    margin-bottom: 0 !important; /* Last element no margin */
+}
+
