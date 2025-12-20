@@ -103,6 +103,12 @@ const serverSlice = createSlice({
             member.status = action.payload.status;
         }
     },
+    updateMemberActivity: (state, action: PayloadAction<{ userId: string; activity: any }>) => {
+        const member = state.serverMembers.find(m => m.id === action.payload.userId);
+        if (member) {
+            member.activity = action.payload.activity;
+        }
+    },
     setServerRoles: (state, action: PayloadAction<Role[]>) => {
         state.currentServerRoles = action.payload;
     },
@@ -145,6 +151,7 @@ export const {
     removeServerMember,
     updateMemberRoles,
     updateMemberStatus,
+    updateMemberActivity, // NEW
     setServerRoles,
     addRole,
     updateRole,

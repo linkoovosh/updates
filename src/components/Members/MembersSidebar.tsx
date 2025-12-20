@@ -163,7 +163,19 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
                                     >
                                         {member.username}
                                     </div>
-                                    {roleDots.length > 0 && (
+                                    
+                                    {member.activity && (
+                                        <div className="member-activity" style={{ fontSize: '11px', color: '#b9bbbe', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                            {member.activity.icon && (
+                                                <img src={member.activity.icon} alt="" style={{ width: 14, height: 14 }} />
+                                            )}
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {member.activity.name}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {roleDots.length > 0 && !member.activity && (
                                         <div className="member-roles-mini">
                                             {roleDots.map(dot => (
                                                 <div 

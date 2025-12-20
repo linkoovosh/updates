@@ -5,6 +5,7 @@ import https from 'node:https';
 import { fileURLToPath } from 'node:url';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import { activityService } from './activityService'; // NEW
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -191,6 +192,11 @@ function createWindow() {
       if (!win) return;
       win.show();
       win.focus();
+      
+      // Start Activity Tracking
+      activityService.setWindow(win);
+      activityService.start();
+
       // Smooth fade in
       for (let i = 0; i <= 1.0; i += 0.1) {
           win.setOpacity(i);

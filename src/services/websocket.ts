@@ -27,6 +27,7 @@ import type {
   PresenceUpdatePayload,
   UpdateStatusPayload,
   UserUpdatedPayload,
+  ActivityUpdatePayload, // NEW
   DmHistoryPayload,
   GetDmHistoryPayload,
   IncomingCallPayload,
@@ -81,6 +82,7 @@ import {
   deleteRole,
   updateMemberRoles,
   updateMemberStatus,
+  updateMemberActivity, // NEW
   addServer,
   removeServer,
   updateServer,
@@ -310,6 +312,13 @@ class WebSocketService {
                     const payload = message.payload as PresenceUpdatePayload;
                     this.dispatch(updateUserStatus(payload));
                     this.dispatch(updateMemberStatus(payload));
+                }
+                break;
+
+            case S2C_MSG_TYPE.ACTIVITY_UPDATE:
+                {
+                    const payload = message.payload as ActivityUpdatePayload;
+                    this.dispatch(updateMemberActivity({ userId: payload.userId, activity: payload.activity }));
                 }
                 break;
             

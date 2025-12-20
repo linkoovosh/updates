@@ -8,6 +8,7 @@ import { loadSettings } from './store/slices/settingsSlice';
 import { closeServerSettings, setSelectedServerId, setSelectedChannelId } from './store/slices/serverSlice';
 import { setSettingsPanelOpen } from './store/slices/uiSlice';
 import webSocketService from './services/websocket';
+import { C2S_MSG_TYPE } from '@common/types'; // NEW
 import AppLayout from './components/Layout/AppLayout';
 import ServerSettingsDialog from './components/Servers/ServerSettingsDialog';
 import SettingsPanel from './components/Settings/SettingsPanel';
@@ -41,10 +42,24 @@ declare global {
   }
 }
 
+import { C2S_MSG_TYPE } from '@common/types'; // Import types
+
+// ...
+
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [showChangelog, setShowChangelog] = useState(false);
-  const [isShuttingDown, setIsShuttingDown] = useState(false); // NEW
+  // ... existing hooks
+
+  // Listen for Activity Updates from Electron
+  useEffect(() => {
+      if (window.electron) {
+          window.electron.receive('activity-update', (activity: any) => {
+              console.log('Activity update from OS:', activity);
+              webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_ACTIVITY, { activity });
+          });
+      }
+  }, []);
+
+  // ... rest of component
 
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const userId = useSelector((state: RootState) => state.auth.userId); // Add userId
@@ -56,6 +71,16 @@ function App() {
   const selectedServerId = useSelector((state: RootState) => state.server.selectedServerId);
   const selectedChannelId = useSelector((state: RootState) => state.server.selectedChannelId);
   const dispatch: AppDispatch = useDispatch();
+
+  // Listen for Activity Updates from Electron
+  useEffect(() => {
+      if (window.electron) {
+          window.electron.receive('activity-update', (activity: any) => {
+              // console.log('Activity update from OS:', activity);
+              webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_ACTIVITY, { activity });
+          });
+      }
+  }, []);
 
   // Sync user with LogService
   useEffect(() => {
