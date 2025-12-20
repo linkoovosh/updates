@@ -1,28 +1,32 @@
 /* MembersSidebar.css */
 .members-sidebar {
     width: 240px;
-    background-color: transparent; /* Glass effect managed by glass-panel class */
+    background-color: transparent;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: 24px 8px 0 16px;
-    flex-shrink: 0; /* Prevent shrinking */
-    animation: slide-in-right 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both;
+    padding: 24px 8px 20px 8px; /* Adjusted padding */
+    flex-shrink: 0;
+    /* Custom Scrollbar for this panel */
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-tertiary) transparent;
 }
 
-.members-header {
+.member-group {
+    margin-bottom: 24px;
+}
+
+.group-header {
     font-size: 12px;
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     padding-left: 8px;
-}
-
-.members-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .member-item {
@@ -33,6 +37,7 @@
     cursor: pointer;
     transition: background-color 0.1s;
     color: var(--text-normal);
+    margin-bottom: 2px;
 }
 
 .member-item:hover {
@@ -45,6 +50,7 @@
     margin-right: 12px;
     width: 32px;
     height: 32px;
+    flex-shrink: 0;
 }
 
 .member-avatar {
@@ -65,12 +71,17 @@
     position: absolute;
     bottom: -2px;
     right: -2px;
-    width: 14px;
-    height: 14px;
+    width: 10px; /* Slightly smaller for cleaner look */
+    height: 10px;
     border-radius: 50%;
-    border: 3px solid var(--bg-primary); /* Should match sidebar effective bg or be masked */
+    border: 3px solid #2b2d31; /* Match default sidebar bg, ideally should be dynamic var */
     background-color: var(--text-muted);
+    z-index: 2;
 }
+
+/* Override mask color if we can detect theme, otherwise rely on z-index */
+/* Note: In a glass UI, "masking" with a solid border is tricky. 
+   Ideally, we use SVG masks, but a dark border usually blends ok. */
 
 .status-indicator.online { background-color: var(--status-positive); }
 .status-indicator.idle { background-color: var(--status-warning); }
@@ -81,26 +92,44 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    justify-content: center;
+    flex: 1;
 }
 
 .member-name {
-    font-size: 15px;
+    font-size: 14px; /* Reduced slightly from 15px */
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+/* Activity Status */
+.member-activity {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.member-activity img {
+    border-radius: 2px;
 }
 
 .member-roles-mini {
     display: flex;
     gap: 4px;
-    margin-top: 2px;
+    margin-top: 3px;
+    flex-wrap: wrap;
 }
 
 .member-role-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    /* Border to separate from background if colors are dark */
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.2); 
+    /* box-shadow: 0 0 0 1px rgba(0,0,0,0.2);  Too noisy */
 }

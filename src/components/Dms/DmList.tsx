@@ -39,6 +39,7 @@ const DmList: React.FC = () => {
   const handleFriendClick = (friendId: string) => {
     console.log('DmList: Clicked friend with ID:', friendId);
     dispatch(setActiveDmConversationId(friendId));
+    webSocketService.getDmHistory(friendId); // Load history from server
   };
 
   const handleContextMenu = (e: React.MouseEvent, friend: any) => {

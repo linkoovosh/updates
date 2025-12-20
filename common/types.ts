@@ -7,6 +7,14 @@ export interface Attachment {
     size: number;
 }
 
+export interface UserActivity { // NEW
+    type: 'playing' | 'listening' | 'watching';
+    name: string; // "Dota 2"
+    details?: string; // "Ranked Match"
+    startedAt: number; // Timestamp
+    icon?: string | null; // Base64 icon
+}
+
 export interface ChannelMessage { // Renamed from Message
   id: string;
   channelId: string;
@@ -76,6 +84,7 @@ export interface User {
   bio?: string;
   profile_banner?: string;
   profile_theme?: string; // NEW: holographic, glass, cyberpunk, etc.
+  activity?: UserActivity | null; // NEW: Current activity
 }
 
 export interface ServerMember extends User {
@@ -128,6 +137,7 @@ export const C2S_MSG_TYPE = {
   LOGIN_WITH_TOKEN: 'C2S_LOGIN_WITH_TOKEN',
   UPDATE_PROFILE: 'C2S_UPDATE_PROFILE',
   UPDATE_STATUS: 'C2S_UPDATE_STATUS',
+  UPDATE_ACTIVITY: 'C2S_UPDATE_ACTIVITY', // NEW
   SEND_MESSAGE: 'C2S_SEND_MESSAGE',
   CREATE_SERVER: 'C2S_CREATE_SERVER',
   UPDATE_SERVER: 'C2S_UPDATE_SERVER',
@@ -218,6 +228,7 @@ export const S2C_MSG_TYPE = {
   AUTH_ERROR: 'S2C_AUTH_ERROR',
   USER_UPDATED: 'S2C_USER_UPDATED',
   PRESENCE_UPDATE: 'S2C_PRESENCE_UPDATE',
+  ACTIVITY_UPDATE: 'S2C_ACTIVITY_UPDATE', // NEW
   NEW_MESSAGE: 'S2C_NEW_MESSAGE',
   MESSAGE_UPDATED: 'S2C_MESSAGE_UPDATED',
   MESSAGE_DELETED: 'S2C_MESSAGE_DELETED',
@@ -320,6 +331,15 @@ export interface UpdateProfilePayload {
 
 export interface UpdateStatusPayload {
     status: 'online' | 'idle' | 'dnd' | 'offline';
+}
+
+export interface UpdateActivityPayload { // NEW
+    activity: UserActivity | null;
+}
+
+export interface ActivityUpdatePayload { // NEW (S2C)
+    userId: string;
+    activity: UserActivity | null;
 }
 
 export interface UpdateServerProfilePayload {
