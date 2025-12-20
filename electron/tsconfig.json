@@ -15,6 +15,7 @@
   },
   "include": [
     "main.ts",
-    "preload.ts"
+    "preload.ts",
+    "activityService.ts"
   ]
 }

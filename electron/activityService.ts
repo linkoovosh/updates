@@ -88,7 +88,7 @@ export class ActivityService {
                         }
 
                         // Send to Renderer
-                        this.win.webContents.send('activity-update', {
+                        this.win?.webContents.send('activity-update', {
                             type: 'playing',
                             name: interestingApp.ProcessName, // e.g. "dota2"
                             details: appName, // e.g. "Dota 2"
@@ -99,7 +99,7 @@ export class ActivityService {
                         // Nothing interesting, send clear
                         if (this.lastActivity !== null) {
                             this.lastActivity = null;
-                            this.win.webContents.send('activity-update', null);
+                            this.win?.webContents.send('activity-update', null);
                         }
                     }
 
