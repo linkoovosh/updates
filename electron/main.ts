@@ -313,6 +313,16 @@ if (!gotTheLock) {
     }
   });
 
+// Helper to manage auto-launch
+function updateAutoLaunch(enabled: boolean) {
+    if (!app.isPackaged) return; // Don't mess with dev env
+    
+    app.setLoginItemSettings({
+        openAtLogin: enabled,
+        path: app.getPath('exe'),
+    });
+}
+
   app.whenReady().then(async () => {
     // Try to load settings, safe fail
     const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -320,8 +330,15 @@ if (!gotTheLock) {
         const data = await fs.readFile(settingsPath, 'utf-8');
         const settings = JSON.parse(data);
         allowDevTools = !!settings.isTerminalVisible;
+        
+        // Apply auto-launch setting (default to true if not specified)
+        const shouldAutoLaunch = settings.autoLaunch !== false; 
+        updateAutoLaunch(shouldAutoLaunch);
+
     } catch (e) {
         allowDevTools = false;
+        // Default: Auto-launch enabled on first run
+        updateAutoLaunch(true); 
     }
 
     createTray(); // Try create tray (safe inside function)
@@ -342,6 +359,12 @@ if (!gotTheLock) {
     ipcMain.handle('save-settings', async (_, settings) => {
       try {
         allowDevTools = !!settings.isTerminalVisible;
+        
+        // Handle Auto-Launch toggle
+        if (settings.autoLaunch !== undefined) {
+            updateAutoLaunch(settings.autoLaunch);
+        }
+
         await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
         return { success: true };
       } catch (error) {
