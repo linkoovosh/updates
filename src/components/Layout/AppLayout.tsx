@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import type { RootState } from '../../store';
+import type { RootState, AppDispatch } from '../../store';
 import TopBar from '../TopBar/TopBar';
 import ServersBar from '../Servers/ServersBar';
 import ChannelsSidebar from '../Channels/ChannelsSidebar';
 import ChatView from '../ChatView/ChatView';
 import MembersSidebar from '../Members/MembersSidebar';
 import FriendsView from '../Friends/FriendsView';
-import DmChatView from '../Dms/DmChatView'; 
 import ResizeHandles from './ResizeHandles';
 import VoiceManager from '../VoiceManager';
 import UserProfilePopup from '../UserProfilePopup/UserProfilePopup';
@@ -15,7 +14,7 @@ import UserPanel from '../UserPanel/UserPanel';
 import IncomingCallModal from '../VoicePanel/IncomingCallModal'; 
 import VoiceStage from '../VoiceStage/VoiceStage'; 
 import InviteModal from '../Invites/InviteModal'; 
-import AccessDeniedModal from '../UI/AccessDeniedModal'; // NEW
+import AccessDeniedModal from '../UI/AccessDeniedModal';
 import { setInviteModalServerId } from '../../store/slices/uiSlice'; 
 import './AppLayout.css';
 
@@ -34,14 +33,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ className }) => {
   const userProfileOpenForId = useSelector((state: RootState) => state.auth.userProfileOpenForId);
   const showMembersSidebar = useSelector((state: RootState) => state.ui.showMembersSidebar);
   const inviteModalServerId = useSelector((state: RootState) => state.ui.inviteModalServerId);
-  const showAccessDenied = useSelector((state: RootState) => state.ui.showAccessDenied); // NEW
+  const showAccessDenied = useSelector((state: RootState) => state.ui.showAccessDenied);
+  const callState = useSelector((state: RootState) => state.voice.callState); // NEW
 
   const [activeFriendTab, setActiveFriendTab] = useState<Tab>('online');
 
   const renderMainView = () => {
+    // DM CALL MODE (Ringing or Connected)
+    if (callState.isInCall || callState.isRinging) {
+        return <VoiceStage />;
+    }
+
     if (selectedServerId === null) {
       if (activeDmConversationId) {
-        return <DmChatView />;
+        return <ChatView />;
       }
       return <FriendsView activeTab={activeFriendTab} setActiveTab={setActiveFriendTab} />;
     }

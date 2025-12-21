@@ -109,6 +109,18 @@ const serverSlice = createSlice({
             member.activity = action.payload.activity;
         }
     },
+    updateServerMemberUser: (state, action: PayloadAction<User>) => {
+        const member = state.serverMembers.find(m => m.id === action.payload.id);
+        if (member) {
+            // Update fields that might have changed
+            member.username = action.payload.username;
+            member.avatar = action.payload.avatar;
+            member.bio = action.payload.bio;
+            member.profile_banner = action.payload.profile_banner;
+            member.profile_theme = action.payload.profile_theme;
+            member.discriminator = action.payload.discriminator;
+        }
+    },
     setServerRoles: (state, action: PayloadAction<Role[]>) => {
         state.currentServerRoles = action.payload;
     },
@@ -151,7 +163,8 @@ export const {
     removeServerMember,
     updateMemberRoles,
     updateMemberStatus,
-    updateMemberActivity, // NEW
+    updateMemberActivity,
+    updateServerMemberUser, // NEW
     setServerRoles,
     addRole,
     updateRole,

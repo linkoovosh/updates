@@ -82,7 +82,8 @@ import {
   deleteRole,
   updateMemberRoles,
   updateMemberStatus,
-  updateMemberActivity, // NEW
+  updateMemberActivity,
+  updateServerMemberUser, // NEW
   addServer,
   removeServer,
   updateServer,
@@ -876,6 +877,7 @@ class WebSocketService {
               {
                 const payload = message.payload as UserUpdatedPayload;
                 console.log('[WS] Received USER_UPDATED:', payload);
+                
                 if (payload.userId === this.userId) {
                     this.dispatch(updateUserProfile({
                         avatar: payload.user.avatar,
@@ -884,6 +886,12 @@ class WebSocketService {
                         bio: payload.user.bio,
                         profile_theme: payload.user.profile_theme,
                     }));
+                } else {
+                    // Update cached user data for others (popups, lists)
+                    this.dispatch(cacheUser(payload.user));
+                    
+                    // Update server member list if they are there
+                    this.dispatch(updateServerMemberUser(payload.user));
                 }
               }
               break;

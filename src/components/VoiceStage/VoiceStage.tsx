@@ -18,17 +18,30 @@ const VoiceStage: React.FC = () => {
     const voiceStates = useSelector((state: RootState) => state.voice.voiceStates);
     const channels = useSelector((state: RootState) => state.ui.channels);
     const sharedBrowser = useSelector((state: RootState) => state.voice.sharedBrowser); 
+    const callState = useSelector((state: RootState) => state.voice.callState); // NEW
     
     // Settings
     const { screenShareResolution, screenShareFps } = useSelector((state: RootState) => state.settings);
     
     const selfId = webSocketService.getUserId();
 
-    // Filter users in the current channel
-    const participants = Object.keys(voiceStates).filter(id => {
-        const state = voiceStates[id];
-        return state.channelId === activeVoiceChannelId;
-    });
+    // FIXED PARTICIPANTS LOGIC
+    const participants = React.useMemo(() => {
+        if (activeVoiceChannelId) {
+            // Server Voice Channel
+            return Object.keys(voiceStates).filter(id => {
+                const state = voiceStates[id];
+                return state.channelId === activeVoiceChannelId;
+            });
+        } else if (callState.isInCall || callState.isRinging) {
+            // Private DM Call
+            const list = [];
+            if (selfId) list.push(selfId);
+            if (callState.otherUserId) list.push(callState.otherUserId);
+            return list;
+        }
+        return [];
+    }, [activeVoiceChannelId, voiceStates, callState, selfId]);
     
     // State for video streams
     const [streams, setStreams] = React.useState<Record<string, MediaStream>>({});
@@ -50,7 +63,15 @@ const VoiceStage: React.FC = () => {
     const isDraggingRef = React.useRef(false);
     const lastMousePositionRef = React.useRef({ x: 0, y: 0 });
 
-    const channelName = channels.find(c => c.id === activeVoiceChannelId)?.name || 'Голосовой канал';
+    // FIXED NAME LOGIC
+    const channelName = React.useMemo(() => {
+        if (activeVoiceChannelId) {
+            return channels.find(c => c.id === activeVoiceChannelId)?.name || 'Голосовой канал';
+        } else if (callState.isInCall || callState.isRinging) {
+            return `Звонок: ${callState.otherUserData?.username || 'Собеседник'}`;
+        }
+        return 'Голосовой чат';
+    }, [activeVoiceChannelId, channels, callState]);
 
     // Effects for Mediasoup
     React.useEffect(() => {

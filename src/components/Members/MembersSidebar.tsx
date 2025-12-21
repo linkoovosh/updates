@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../../store';
 import { generateAvatarColor, getInitials } from '../../utils/avatarUtils';
 import UserContextMenu from './UserContextMenu';
@@ -7,6 +7,8 @@ import MemberTooltip from './MemberTooltip';
 import type { ServerMember } from '@common/types';
 import webSocketService from '../../services/websocket';
 import { C2S_MSG_TYPE } from '@common/types';
+import { CrownIcon } from '../UI/Icons';
+import { setUserProfileForId } from '../../store/slices/authSlice';
 import './MembersSidebar.css';
 
 interface MembersSidebarProps {
@@ -14,20 +16,32 @@ interface MembersSidebarProps {
 }
 
 const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
+    const dispatch = useDispatch();
     const selectedServerId = useSelector((state: RootState) => state.server.selectedServerId);
+    const server = useSelector((state: RootState) => state.server.servers.find(s => s.id === selectedServerId));
     const members = useSelector((state: RootState) => state.server.serverMembers);
     const roles = useSelector((state: RootState) => state.server.currentServerRoles);
-    const auth = useSelector((state: RootState) => state.auth); // UPDATED
+    const auth = useSelector((state: RootState) => state.auth); 
     const currentUserId = auth.userId;
+    
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; user: ServerMember } | null>(null);
     const [hoveredMember, setHoveredMember] = useState<{ member: ServerMember; x: number; y: number } | null>(null);
 
+    // --- SHARED HELPERS ---
+    const isOnline = (m: ServerMember) => m.id === currentUserId || m.status === 'online' || m.status === 'dnd' || m.status === 'idle';
+
+    const getMemberRoleColor = (member: ServerMember) => {
+        if (!member.roles || member.roles.length === 0) return undefined;
+        const memberRoles = roles
+            .filter(r => member.roles.includes(r.id))
+            .sort((a, b) => b.position - a.position);
+        return memberRoles.length > 0 ? memberRoles[0].color : undefined;
+    };
+
     // --- EFFECTIVE MEMBERS LIST ---
-    // Ensure I am ALWAYS in the list if I'm looking at a server
     const effectiveMembers = React.useMemo(() => {
         const list = [...members];
         if (currentUserId && !list.find(m => m.id === currentUserId)) {
-            // Self-injection for reliability
             list.push({
                 id: auth.userId!,
                 username: auth.username || 'Unknown',
@@ -47,7 +61,6 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
 
     useEffect(() => {
         if (selectedServerId) {
-            console.log(`[MembersSidebar] Fetching members for server: ${selectedServerId}`);
             webSocketService.sendMessage(C2S_MSG_TYPE.GET_SERVER_MEMBERS, { serverId: selectedServerId });
         }
     }, [selectedServerId]);
@@ -59,7 +72,6 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
 
     const handleMouseEnter = (e: React.MouseEvent, member: ServerMember) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        // Position tooltip to the left of the item
         setHoveredMember({ member, x: rect.left, y: rect.top });
     };
 
@@ -67,83 +79,132 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
         setHoveredMember(null);
     };
 
-    const getMemberRoleData = (member: ServerMember) => {
-        if (!member.roles || member.roles.length === 0) return { color: undefined, roleDots: [] };
-
-        const memberRoles = roles
-            .filter(r => member.roles.includes(r.id))
-            .sort((a, b) => b.position - a.position);
-
-        if (memberRoles.length === 0) return { color: undefined, roleDots: [] };
-
-        const color = memberRoles[0].color;
-        const roleDots = memberRoles.map(r => ({ id: r.id, color: r.color, name: r.name }));
-
-        return { color, roleDots };
-    };
-
-    console.log('[MembersSidebar] Render. Members:', effectiveMembers.length, 'Roles:', roles.length);
-
     // --- Grouping Logic ---
-    const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
-    const groups: { name: string; color?: string; members: ServerMember[] }[] = [];
-    
-    const isOnline = (m: ServerMember) => m.id === currentUserId || m.status === 'online' || m.status === 'dnd' || m.status === 'idle';
+    const groupedMembers = React.useMemo(() => {
+        if (!server) return [];
 
-    // 1. Role Groups
-    sortedRoles.forEach(role => {
-        const roleMembers = effectiveMembers.filter(m => {
-            if (!isOnline(m)) return false;
-            if (!m.roles || !Array.isArray(m.roles) || m.roles.length === 0) return false;
-            
-            // Get all valid roles for this member that actually exist in the server roles list
-            const validMemberRoles = roles
-                .filter(r => m.roles.includes(r.id))
-                .sort((a, b) => b.position - a.position);
-            
-            return validMemberRoles.length > 0 && validMemberRoles[0].id === role.id;
-        });
+        const ownerId = server.ownerId;
+        const groups: { name: string; color?: string; members: ServerMember[] }[] = [];
         
-        if (roleMembers.length > 0) {
-            groups.push({ name: role.name.toUpperCase(), color: role.color, members: roleMembers });
+        const getHighestRole = (memberRoles: string[]) => {
+            if (!memberRoles || memberRoles.length === 0) return null;
+            const validRoles = roles.filter(r => memberRoles.includes(r.id));
+            if (validRoles.length === 0) return null;
+            return validRoles.sort((a, b) => b.position - a.position)[0];
+        };
+
+        const processedIds = new Set<string>();
+        const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
+
+        // 1. Roles (Online Only + Owner)
+        sortedRoles.forEach(role => {
+            const roleMembers = effectiveMembers.filter(m => {
+                if (processedIds.has(m.id)) return false;
+                const isMemberOnline = isOnline(m);
+                const isOwner = m.id === ownerId;
+                if (!isMemberOnline && !isOwner) return false;
+
+                const highest = getHighestRole(m.roles);
+                return highest && highest.id === role.id;
+            });
+
+            if (roleMembers.length > 0) {
+                roleMembers.sort((a, b) => {
+                    if (a.id === ownerId) return -1;
+                    if (b.id === ownerId) return 1;
+                    return a.username.localeCompare(b.username);
+                });
+                groups.push({ name: role.name.toUpperCase(), color: role.color, members: roleMembers });
+                roleMembers.forEach(m => processedIds.add(m.id));
+            }
+        });
+
+        // 2. Online (No Role)
+        const onlineNoRole = effectiveMembers.filter(m => {
+            if (processedIds.has(m.id)) return false;
+            const isMemberOnline = isOnline(m);
+            const isOwner = m.id === ownerId;
+            return (isMemberOnline || isOwner);
+        });
+
+        if (onlineNoRole.length > 0) {
+            onlineNoRole.sort((a, b) => {
+                if (a.id === ownerId) return -1;
+                if (b.id === ownerId) return 1;
+                return a.username.localeCompare(b.username);
+            });
+            groups.push({ name: 'В СЕТИ', members: onlineNoRole });
+            onlineNoRole.forEach(m => processedIds.add(m.id));
         }
-    });
 
-    // 2. Online (No roles or roles hidden)
-    const onlineMembers = effectiveMembers.filter(m => 
-        isOnline(m) && 
-        (!m.roles || !Array.isArray(m.roles) || m.roles.length === 0 || !m.roles.some(rId => roles.find(r => r.id === rId)))
-    );
-    if (onlineMembers.length > 0) {
-        groups.push({ name: 'В СЕТИ', members: onlineMembers });
-    }
+        // 3. Offline
+        const offlineMembers = effectiveMembers.filter(m => !processedIds.has(m.id));
+        if (offlineMembers.length > 0) {
+            offlineMembers.sort((a, b) => a.username.localeCompare(b.username));
+            groups.push({ name: 'НЕ В СЕТИ', members: offlineMembers });
+        }
 
-    // 3. Offline
-    const offlineMembers = effectiveMembers.filter(m => !isOnline(m));
-    if (offlineMembers.length > 0) {
-        groups.push({ name: 'ОФФЛАЙН', members: offlineMembers });
-    }
+        return groups;
+    }, [effectiveMembers, roles, server, currentUserId]);
 
     return (
         <div className={`members-sidebar glass-panel ${className || ''}`}>
-            {groups.map(group => (
+            {groupedMembers.map(group => (
                 <div key={group.name} className="member-group">
                     <div className="group-header" style={{ color: group.color ? group.color : 'var(--text-tertiary)' }}>
                         {group.name} — {group.members.length}
                     </div>
                     {group.members.map(member => {
-                        const { color, roleDots } = getMemberRoleData(member);
+                        const roleColor = getMemberRoleColor(member);
+                        const isOwner = server?.ownerId === member.id;
+                        const isMemberOnline = isOnline(member);
+                        const hasActivity = member.activity && isMemberOnline;
+
+                        if (hasActivity) {
+                            return (
+                                <div key={member.id} className="activity-card"
+                                    onClick={() => dispatch(setUserProfileForId(member.id))}
+                                    onContextMenu={(e) => handleContextMenu(e, member)}>
+                                    <div className="activity-avatar-wrapper">
+                                        <div className="activity-avatar"
+                                            style={{
+                                                backgroundImage: member.avatar ? `url(${member.avatar})` : 'none',
+                                                backgroundColor: member.avatar ? 'transparent' : generateAvatarColor(member.username)
+                                            }}
+                                        >
+                                            {!member.avatar && getInitials(member.username)}
+                                        </div>
+                                        <div className={`activity-status-dot ${member.status || 'online'}`} />
+                                    </div>
+                                    <div className="activity-content">
+                                        <div className="member-name-row">
+                                            <span className="activity-game-name" style={{ color: roleColor || '#fff' }}>{member.username}</span>
+                                            {isOwner && (
+                                                <div className="member-badges">
+                                                    <span className="owner-crown" title="Владелец">
+                                                        <CrownIcon />
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="activity-details">Играет в <strong>{member.activity!.name}</strong></div>
+                                    </div>
+                                    {member.activity!.icon && (
+                                        <div className="activity-icon-right">
+                                            <img src={member.activity!.icon} alt="" />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+
                         return (
-                            <div 
-                                key={member.id} 
-                                className="member-item"
-                                onContextMenu={(e) => handleContextMenu(e, member)}
-                                onMouseEnter={(e) => handleMouseEnter(e, member)}
-                                onMouseLeave={handleMouseLeave}
-                            >
+                            <div key={member.id} 
+                                className={`member-item ${!isMemberOnline ? 'offline' : ''}`}
+                                onClick={() => dispatch(setUserProfileForId(member.id))}
+                                onContextMenu={(e) => handleContextMenu(e, member)}>
                                 <div className="member-avatar-wrapper">
-                                    <div 
-                                        className="member-avatar"
+                                    <div className="member-avatar"
                                         style={{
                                             backgroundImage: member.avatar ? `url(${member.avatar})` : 'none',
                                             backgroundColor: member.avatar ? 'transparent' : generateAvatarColor(member.username)
@@ -151,39 +212,22 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
                                     >
                                         {!member.avatar && getInitials(member.username)}
                                     </div>
-                                    <div className={`status-indicator ${member.status || 'offline'}`} />
+                                    {isMemberOnline && <div className={`status-indicator ${member.status || 'online'}`} />}
                                 </div>
                                 <div className="member-content">
-                                    <div 
-                                        className="member-name" 
-                                        style={{ 
-                                            opacity: member.status === 'offline' ? 0.5 : 1,
-                                            color: color || 'var(--text-primary)'
-                                        }}
-                                    >
-                                        {member.username}
+                                    <div className="member-name-row">
+                                        <span className="member-name" style={{ color: roleColor || 'var(--text-primary)' }}>{member.username}</span>
+                                        {isOwner && (
+                                            <div className="member-badges">
+                                                <span className="owner-crown" title="Владелец">
+                                                    <CrownIcon />
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
-                                    
-                                    {member.activity && (
-                                        <div className="member-activity" style={{ fontSize: '11px', color: '#b9bbbe', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                                            {member.activity.icon && (
-                                                <img src={member.activity.icon} alt="" style={{ width: 14, height: 14 }} />
-                                            )}
-                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {member.activity.name}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {roleDots.length > 0 && !member.activity && (
-                                        <div className="member-roles-mini">
-                                            {roleDots.map(dot => (
-                                                <div 
-                                                    key={dot.id} 
-                                                    className="member-role-dot" 
-                                                    style={{ backgroundColor: dot.color }}
-                                                />
-                                            ))}
+                                    {isMemberOnline && member.bio && (
+                                        <div className="member-activity" title={member.bio}>
+                                            {member.bio.length > 7 ? member.bio.substring(0, 7) + "..." : member.bio}
                                         </div>
                                     )}
                                 </div>
@@ -193,21 +237,8 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
                 </div>
             ))}
             
-            {contextMenu && (
-                <UserContextMenu 
-                    position={contextMenu} 
-                    user={contextMenu.user} 
-                    onClose={() => setContextMenu(null)} 
-                />
-            )}
-            {hoveredMember && (
-                <MemberTooltip 
-                    member={hoveredMember.member} 
-                    roles={roles} 
-                    x={hoveredMember.x} 
-                    y={hoveredMember.y} 
-                />
-            )}
+            {contextMenu && <UserContextMenu position={contextMenu} user={contextMenu.user} onClose={() => setContextMenu(null)} />}
+            {hoveredMember && <MemberTooltip member={hoveredMember.member} roles={roles} x={hoveredMember.x} y={hoveredMember.y} />}
         </div>
     );
 };

@@ -2,7 +2,7 @@ import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setActiveDmConversationId, setDmView } from '../../store/slices/chatSlice';
-import { setSelectedServerId } from '../../store/slices/serverSlice';
+import { setSelectedServerId, setSelectedChannelId } from '../../store/slices/serverSlice';
 import { generateAvatarColor, getInitials } from '../../utils/avatarUtils';
 import webSocketService from '../../services/websocket';
 import DefaulServerAvatars from '/defaul_server_avatars.png'; // Import image
@@ -38,6 +38,8 @@ const DmList: React.FC = () => {
 
   const handleFriendClick = (friendId: string) => {
     console.log('DmList: Clicked friend with ID:', friendId);
+    dispatch(setSelectedServerId(null));
+    dispatch(setSelectedChannelId(null));
     dispatch(setActiveDmConversationId(friendId));
     webSocketService.getDmHistory(friendId); // Load history from server
   };
