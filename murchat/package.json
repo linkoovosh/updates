@@ -55,6 +55,7 @@
       "package.json"
     ],
     "directories": {
+      "buildResources": "build",
       "output": "release"
     },
     "nsis": {
