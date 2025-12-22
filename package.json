@@ -1,94 +1,13 @@
 {
-  "name": "murchat",
-  "private": true,
-  "version": "0.0.93",
-  "main": "dist-electron/main.js",
+  "name": "murchat-monorepo",
+  "version": "0.0.94",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -p electron && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "dist": "npm run build && electron-builder"
+    "server-start": "cd server && npm start",
+    "client-dev": "cd murchat && npm run dev",
+    "dev": "npm run server-start & npm run client-dev"
   },
   "dependencies": {
-    "@reduxjs/toolkit": "^2.11.0",
-    "@types/react-syntax-highlighter": "^15.5.13",
-    "dexie": "^4.0.7",
-    "dexie-react-hooks": "^1.1.7",
-    "electron-updater": "^6.3.0",
-    "emoji-picker-react": "^4.16.1",
-    "mediasoup-client": "^3.18.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-markdown": "^10.1.0",
-    "react-redux": "^9.2.0",
-    "react-syntax-highlighter": "^16.1.0",
-    "remark-gfm": "^4.0.1",
-    "reselect": "^5.1.1"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.5",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^39.2.3",
-    "electron-builder": "^26.0.12",
-    "electron-log": "^5.4.3",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
-    "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6"
-  },
-  "build": {
-    "appId": "com.murchat.app",
-    "productName": "MurCHAT",
-    "files": [
-      "dist-electron/**/*",
-      "dist/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
-    "directories": {
-      "buildResources": "assets",
-      "output": "release"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": false,
-      "include": "build/installer.nsh",
-      "installerIcon": "public/murchat.ico",
-      "uninstallerIcon": "public/murchat.ico",
-      "installerHeaderIcon": "public/murchat.ico",
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "MurCHAT",
-      "differentialPackage": true
-    },
-    "win": {
-      "target": "nsis",
-      "icon": "public/murchat.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
-    },
-    "mac": {
-      "target": "dmg"
-    },
-    "linux": {
-      "target": "AppImage"
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "linkoovosh",
-        "repo": "updates"
-      }
-    ]
+    "@types/uuid": "^10.0.0",
+    "uuid": "^13.0.0"
   }
 }

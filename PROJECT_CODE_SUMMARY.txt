@@ -1,0 +1,450 @@
+import sqlite3 from 'sqlite3';
+import { open, Database } from 'sqlite';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let db: Database<sqlite3.Database, sqlite3.Statement>;
+
+export const initDb = async () => {
+  // 1. Open Main DB (Content)
+  // Use process.cwd() to ensure DB is created in the project root (server/), not in dist/ 
+  const dbPath = path.join(process.cwd(), 'database.sqlite');
+  console.log(`Opening Main DB at: ${dbPath}`);
+  db = await open({
+    filename: dbPath,
+    driver: sqlite3.Database
+  });
+
+  // 2. Attach Users DB (Accounts)
+  // This allows JOINs between users and other tables
+  // IMPORTANT: Replace backslashes with forward slashes for SQLite on Windows
+  const usersDbPath = path.join(process.cwd(), 'users.sqlite').replace(/\\/g, '/');
+  console.log(`Attaching Users DB from: ${usersDbPath}`);
+  await db.run(`ATTACH DATABASE '${usersDbPath}' AS user_db`);
+
+  // ------------------------------
+  // 1. CREATE TABLES (Split)
+  // ------------------------------
+    
+    // Users Table -> user_db
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS user_db.users (
+        id TEXT PRIMARY KEY,
+        username TEXT,
+        discriminator TEXT,
+        email TEXT UNIQUE,
+        password TEXT,
+        token TEXT,
+        avatar TEXT,
+        status TEXT DEFAULT 'offline',
+        bio TEXT,
+        profile_banner TEXT,
+        isVerified INTEGER DEFAULT 0,
+        verificationCode TEXT
+      );
+    `);
+
+    // Content Tables -> main db (default)
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS servers (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        ownerId TEXT,
+        avatar_default TEXT,
+        avatar_active TEXT,
+        isPublic INTEGER DEFAULT 0, -- 0 for private (default), 1 for public
+        createdAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS channels (
+        id TEXT PRIMARY KEY,
+        serverId TEXT,
+        name TEXT,
+        type TEXT,
+        position INTEGER DEFAULT 0
+      );
+
+    CREATE TABLE IF NOT EXISTS server_members (
+      userId TEXT,
+      serverId TEXT,
+      joinedAt INTEGER,
+      PRIMARY KEY (userId, serverId)
+    );
+
+    CREATE TABLE IF NOT EXISTS roles (
+      id TEXT PRIMARY KEY,
+      serverId TEXT,
+      name TEXT,
+      color TEXT,
+      permissions TEXT,
+      position INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS user_roles (
+      userId TEXT,
+      roleId TEXT,
+      PRIMARY KEY (userId, roleId)
+    );
+
+    CREATE TABLE IF NOT EXISTS invites (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE,
+      serverId TEXT,
+      channelId TEXT,
+      authorId TEXT,
+      maxUses INTEGER,
+      uses INTEGER DEFAULT 0,
+      expiresAt INTEGER,
+      defaultRoleId TEXT,
+      temporary INTEGER DEFAULT 0,
+      createdAt INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS friends (
+      user1Id TEXT,
+      user2Id TEXT,
+      status TEXT DEFAULT 'pending', -- 'pending', 'accepted', 'blocked'
+      createdAt INTEGER DEFAULT (STRFTIME('%s', 'now')),
+      PRIMARY KEY (user1Id, user2Id)
+    );
+
+    CREATE TABLE IF NOT EXISTS direct_messages (
+      id TEXT PRIMARY KEY,
+      senderId TEXT,
+      recipientId TEXT,
+      content TEXT,
+      timestamp INTEGER,
+      read INTEGER DEFAULT 0
+    );
+  `);
+
+  // -----------------------------------------
+  // 2. AUTO-FIX missing columns
+  // -----------------------------------------
+  const migrations = [
+    "ALTER TABLE user_db.users ADD COLUMN isPublic INTEGER DEFAULT 1", // Target user_db
+    "ALTER TABLE servers ADD COLUMN isPublic INTEGER DEFAULT 0", // Target main db
+    "ALTER TABLE servers ADD COLUMN createdAt INTEGER",
+    "ALTER TABLE channels ADD COLUMN position INTEGER DEFAULT 0",
+    "ALTER TABLE roles ADD COLUMN position INTEGER",
+    "CREATE TABLE IF NOT EXISTS friends (user1Id TEXT, user2Id TEXT, status TEXT DEFAULT 'pending', createdAt INTEGER DEFAULT (STRFTIME('%s', 'now')), PRIMARY KEY (user1Id, user2Id))",
+    "CREATE TABLE IF NOT EXISTS direct_messages (id TEXT PRIMARY KEY, senderId TEXT, recipientId TEXT, content TEXT, timestamp INTEGER, read INTEGER DEFAULT 0)"
+  ];
+
+  for (const sql of migrations) {
+    try { await db.exec(sql); } catch (e: any) {
+        if (!e.message.includes("duplicate column name") && !e.message.includes("table friends already exists")) {
+            // console.warn(`Migration failed (likely already applied): ${sql}`, e.message);
+        }
+    }
+  }
+
+  // -----------------------------------------
+  // 3. Assign discriminator to users (if missing)
+  // -----------------------------------------
+  // Ensure we query from user_db.users if ambiguous, but 'users' should resolve to user_db.users as it's unique
+  const usersWithoutTag = await db.all("SELECT id FROM users WHERE discriminator IS NULL");
+  for (const u of usersWithoutTag) {
+    const tag = Math.floor(1000 + Math.random() * 9000).toString();
+    await db.run("UPDATE users SET discriminator = ? WHERE id = ?", tag, u.id);
+  }
+
+  // -----------------------------------------
+  // 4. Create default public server (if not exists)
+  // -----------------------------------------
+  const PUBLIC_SERVER_ID = 'public-default-server'; 
+  const publicServer = await db.get("SELECT id FROM servers WHERE id = ?", PUBLIC_SERVER_ID);
+
+  if (!publicServer) {
+    await db.run(
+      "INSERT INTO servers (id, name, ownerId, avatar_default, avatar_active, isPublic, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      PUBLIC_SERVER_ID,
+      "MurCHAT Global",
+      "system", // ownerId for system server
+      "/defaul_server_avatars.png",
+      "/open_server_avatars.png",
+      1, // isPublic = true
+      Date.now()
+    );
+
+    // Default channels for the public server
+    await db.run(
+      "INSERT INTO channels (id, serverId, name, type, position) VALUES (?, ?, ?, ?, ?)",
+      uuidv4(),
+      PUBLIC_SERVER_ID,
+      "general",
+      "text",
+      0
+    );
+
+    await db.run(
+      "INSERT INTO channels (id, serverId, name, type, position) VALUES (?, ?, ?, ?, ?)",
+      uuidv4(),
+      PUBLIC_SERVER_ID,
+      "voice",
+      "voice",
+      1
+    );
+  }
+
+  console.log("MurCHAT database initialized (Split: users.sqlite + database.sqlite)");
+};
+
+// Export PUBLIC_SERVER_ID for use in other modules
+export const PUBLIC_SERVER_ID = 'public-default-server';
+
+export const getDb = () => {
+  if (!db) throw new Error("Database not initialized!");
+  return db;
+}
+
+================================================================================
+FILE: murchat/server/index.ts (Snippet - Key Logic)
+================================================================================
+import { WebSocketServer, WebSocket } from 'ws';
+// ... imports ...
+import { initDb, getDb, PUBLIC_SERVER_ID } from './db.js';
+import { mediasoupManager } from './mediasoup-handler.js'; 
+
+// ... certificates setup ...
+
+// DB Proxy to fix "Cannot find name 'db'" errors without rewriting 70+ lines
+const db = {
+    get: <T = any>(sql: string, ...params: any[]) => getDb().get<T>(sql, ...params),
+    run: (sql: string, ...params: any[]) => getDb().run(sql, ...params),
+    all: <T = any[]>(sql: string, ...params: any[]) => getDb().all<T>(sql, ...params),
+    exec: (sql: string) => getDb().exec(sql)
+};
+
+async function getUserServers(userId: string) {
+    const db = getDb();
+    // Fetch servers where user is a member OR server is public
+    return await db.all<Server[]>(`
+        SELECT DISTINCT s.*
+        FROM servers s
+        LEFT JOIN server_members sm ON s.id = sm.serverId
+        WHERE sm.userId = ? OR s.isPublic = 1
+    `, userId);
+}
+
+// ... sendVerificationCode ...
+
+wss.on('connection', (ws: WebSocket) => {
+    // ...
+    ws.on('message', async (message: string) => {
+      try {
+        const parsedMessage: WebSocketMessage<unknown> = JSON.parse(message);
+        console.log(`[Server] Received: ${parsedMessage.type}`);
+
+        // --- Authentication Handlers (REGISTER, LOGIN, etc.) ---
+        if (parsedMessage.type === C2S_MSG_TYPE.REGISTER) { /* ... */ } 
+        else if (parsedMessage.type === C2S_MSG_TYPE.LOGIN) { /* ... */ }
+        // ...
+
+        // --- Authenticated Actions ---
+        else {
+            const userId = clients.get(ws);
+            console.log(`[Server] Authenticated action check: ${parsedMessage.type}. UserId: ${userId}`);
+            if (!userId) {
+                console.warn("[Server] Action rejected: User not authenticated.");
+                return;
+            }
+
+            // Mediasoup Init
+            if (!peerMediasoupData.has(userId)) {
+                peerMediasoupData.set(userId, { transports: new Map(), producers: new Map(), consumers: new Map() });
+            }
+            const peerData = peerMediasoupData.get(userId)!;
+            
+            // We need current user info for some actions
+            let currentUser = await db.get<any>('SELECT * FROM user_db.users WHERE id = ?', userId);
+
+            // --- Mediasoup Handlers ---
+            if (parsedMessage.type === C2S_MSG_TYPE.MS_GET_ROUTER_RTP_CAPABILITIES) { /* ... */ } 
+            else if (parsedMessage.type === C2S_MSG_TYPE.MS_CREATE_WEBRTC_TRANSPORT) { /* ... */ } 
+            // ... (other mediasoup)
+
+            // --- Change Password ---
+            else if (parsedMessage.type === C2S_MSG_TYPE.CHANGE_PASSWORD) { /* ... */ }
+
+            // ... (Add Friend, Get Friends, etc.)
+
+            // --- Server Creation ---
+            else if (parsedMessage.type === C2S_MSG_TYPE.CREATE_SERVER) {
+              console.log("DEBUG: Starting CREATE_SERVER handler");
+              try {
+                  const payload = parsedMessage.payload as CreateServerPayload;
+                  const newServer: Server = {
+                    id: uuidv4(),
+                    name: payload.name,
+                    ownerId: userId,
+                    isPublic: false, // Private by default
+                    avatar_default: 'defaul_server_avatars.png',
+                    avatar_active: 'open_server_avatars.png',
+                  };
+                  console.log("DEBUG: Attempting INSERT INTO servers...");
+                  await db.run('INSERT INTO servers (id, name, ownerId, isPublic, avatar_default, avatar_active) VALUES (?, ?, ?, ?, ?, ?)', 
+                    newServer.id, newServer.name, newServer.ownerId, 0, newServer.avatar_default, newServer.avatar_active);
+                  
+                  console.log("DEBUG: INSERT INTO servers successful. Attempting INSERT INTO server_members...");
+                  
+                  // Automatically add owner to the new server
+                  await db.run('INSERT INTO server_members (userId, serverId, joinedAt) VALUES (?, ?, ?)', userId, newServer.id, Date.now().toString());
+
+                  console.log(`Server created: ${newServer.name} (${newServer.id}) by ${userId}`);
+
+                  const serverCreatedNotification: WebSocketMessage<ServerCreatedPayload> = {
+                    type: S2C_MSG_TYPE.SERVER_CREATED,
+                    payload: { server: newServer }
+                  };
+                  
+                  // Notify ONLY the creator
+                  ws.send(JSON.stringify(serverCreatedNotification));
+                  console.log("DEBUG: Notification sent to creator.");
+              } catch (e) {
+                  console.error("FAILED TO CREATE SERVER. Payload:", parsedMessage.payload);
+                  console.error("Error details:", e);
+                  // Send error back to client
+                  ws.send(JSON.stringify({
+                      type: S2C_MSG_TYPE.AUTH_ERROR, // Or generic ERROR
+                      payload: { error: 'Ошибка при создании сервера' }
+                  }));
+              }
+            }
+            
+            // ... (Other handlers: DELETE_SERVER, UPDATE_SERVER, etc.)
+        }
+      } catch (error) { console.error('Error parsing message:', error); }
+    });
+});
+
+================================================================================
+FILE: murchat/src/components/Servers/CreateServerModal.tsx
+================================================================================
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import webSocketService from '../../services/websocket';
+import { C2S_MSG_TYPE } from '../../../common/types'; // Corrected path
+import type { CreateServerPayload } from '../../../common/types'; // Corrected path
+import './CreateServerModal.css';
+
+interface CreateServerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const CreateServerModal: React.FC<CreateServerModalProps> = ({ isOpen, onClose }) => {
+  const [serverName, setServerName] = useState('');
+  const [isPublic, setIsPublic] = useState(true); // New state for public/private
+
+  if (!isOpen) return null;
+
+  const handleCreate = () => {
+    if (serverName.trim()) {
+      const payload: CreateServerPayload = {
+        name: serverName.trim(),
+        ownerId: webSocketService.getUserId() || 'unknown', // Server fills this now, but type requires it
+        isPublic: isPublic, // Include public status
+      };
+      webSocketService.sendMessage(C2S_MSG_TYPE.CREATE_SERVER, payload);
+      setServerName('');
+      setIsPublic(true); // Reset state
+      onClose();
+    }
+  };
+
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
+        <h2>Создать сервер</h2>
+        <p>Введите название вашего нового сервера.</p>
+        <input
+          type="text"
+          placeholder="Название сервера"
+          value={serverName}
+          onChange={(e) => setServerName(e.target.value)}
+          autoFocus
+        />
+        <label className="checkbox-container">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+          />
+          Публичный сервер
+          <span className="checkmark"></span>
+        </label>
+        <div className="modal-actions">
+          <button className="cancel-button" onClick={onClose}>Отмена</button>
+          <button className="create-button" onClick={handleCreate}>Создать</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export default CreateServerModal;
+
+================================================================================
+FILE: murchat/src/services/websocket.ts (Snippet - Send/Receive)
+================================================================================
+// ... imports ...
+
+class WebSocketService {
+  // ... properties ...
+
+  constructor() {
+    mediasoupService.setSignal((type, payload) => this.sendMessage(type as any, payload)); // Setup SFU signaling
+    // ...
+  }
+
+  // ...
+
+  connect() {
+    // ...
+    ws.onmessage = async (event) => {
+      try {
+        const message: WebSocketMessage<unknown> = JSON.parse(event.data as string);
+
+        if (this.dispatch && this.getState) {
+          switch (message.type) {
+            // ... (Auth handlers) ...
+
+            case S2C_MSG_TYPE.INITIAL_STATE:
+              {
+                const payload = message.payload as InitialStatePayload;
+                this.dispatch(setServers(payload.servers)); // Populates server list
+                // ...
+              }
+              break;
+
+            case S2C_MSG_TYPE.SERVER_CREATED:
+              {
+                const payload = message.payload as ServerCreatedPayload;
+                this.dispatch(addServer(payload.server)); // Adds new server to UI
+              }
+              break;
+
+            // ...
+          }
+        }
+      } catch (e) { ... }
+    };
+  }
+
+  sendMessage<T>(type: C2S_MSG_TYPE, payload: T) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      const message: WebSocketMessage<T> = { type, payload };
+      this.ws.send(JSON.stringify(message));
+    } else {
+      console.error('WebSocket is not open. Cannot send message.');
+    }
+  }
+  
+  // ...
+}

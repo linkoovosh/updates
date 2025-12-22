@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../database.sqlite" // Point to the DB in server folder
+}
+
+// User Model (from schema.user.prisma)
+model User {
+  id               String  @id
+  username         String
+  discriminator    String
+  email            String  @unique
+  password         String
+  token            String?
+  avatar           String?
+  status           String  @default("offline")
+  bio              String?
+  profile_banner   String?
+  profile_theme    String? @default("holographic")
+  isVerified       Boolean @default(false)
+  verificationCode String?
+  isPublic         Boolean @default(true)
+  serverMembers    ServerMember[] // Add this line
+
+  @@map("users")
+}
+
+// Server Model (from schema.content.prisma)
+model Server {
+  id                String   @id
+  name              String
+  ownerId           String
+  description       String?
+  banner            String?
+  systemChannelId   String?
+  verificationLevel Int      @default(0)
+  avatar_default    String?
+  avatar_active     String?
+  isPublic          Boolean  @default(false)
+  createdAt         BigInt?
+  members           ServerMember[]
+  bans              ServerBan[]
+
+  @@map("servers")
+}
+
+// ServerBan Model
+model ServerBan {
+  id         String   @id @default(uuid())
+  serverId   String
+  userId     String
+  reason     String?
+  executorId String
+  createdAt  BigInt
+  
+  server     Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@map("server_bans")
+}
+
+// Channel Model (from schema.content.prisma)
+model Channel {
+  id        String  @id
+  serverId  String
+  name      String
+  type      String
+  position  Int     @default(0)
+  isPrivate Boolean @default(false)
+
+  @@map("channels")
+}
+
+// ServerMember Model (from schema.content.prisma)
+model ServerMember {
+  userId   String
+  serverId String
+  joinedAt BigInt?
+  server   Server   @relation(fields: [serverId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@id([userId, serverId])
+  @@map("server_members")
+}
+
+// Role Model (from schema.content.prisma)
+model Role {
+  id          String  @id
+  serverId    String
+  name        String
+  color       String?
+  permissions String?
+  position    Int?
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+// UserRole Model (from schema.content.prisma)
+model UserRole {
+  userId String
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// Invite Model (from schema.content.prisma)
+model Invite {
+  id            String  @id
+  code          String  @unique
+  serverId      String
+  channelId     String?
+  authorId      String
+  maxUses       Int?
+  uses          Int     @default(0)
+  expiresAt     BigInt?
+  defaultRoleId String?
+  temporary     Int     @default(0) // Boolean as Int
+  createdAt     BigInt?
+
+  @@map("invites")
+}
+
+// Friend Model (from schema.content.prisma)
+model Friend {
+  user1Id   String
+  user2Id   String
+  status    String  @default("pending")
+  createdAt BigInt?
+
+  @@id([user1Id, user2Id])
+  @@map("friends")
+}
+
+// DirectMessage Model (from schema.content.prisma)
+model DirectMessage {
+  id          String  @id
+  senderId    String
+  recipientId String
+  content     String
+  timestamp   BigInt
+  read        Int     @default(0) // Boolean
+  attachments String? // JSON string
+
+  @@map("direct_messages")
+}
+
+// ChannelMessage Model (from schema.content.prisma)
+model ChannelMessage {
+  id           String  @id
+  channelId    String
+  authorId     String
+  authorName   String
+  authorAvatar String?
+  content      String
+  timestamp    BigInt
+  attachments  String? // JSON string
+  audioData    String?
+
+  @@map("channel_messages")
+}
+
+// UserReadState Model (from schema.content.prisma)
+model UserReadState {
+  userId            String
+  channelId         String
+  lastReadMessageId String?
+  lastReadTimestamp BigInt?
+
+  @@id([userId, channelId])
+  @@map("user_read_states")
+}
+
+// Custom Themes Model
+model Theme {
+  id         String  @id
+  name       String
+  authorId   String
+  authorName String
+  config     String  // JSON string
+  isPublic   Boolean @default(true)
+  createdAt  BigInt
+
+  @@map("themes")
+}

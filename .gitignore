@@ -1,49 +1,20 @@
-# Node modules
 node_modules/
-npm/
-
-# Build output
 dist/
 dist-electron/
 release/
-
-
-# Server (EXCLUDE FROM REPO)
-server/
-
-
-# Local databases (DO NOT COMMIT)
 *.sqlite
-*.sqlite-journal
-server/database.sqlite
-server/users.sqlite
-database.sqlite
-users.sqlite
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-server/client_logs/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# IDEs
+*.tar.gz
 .idea/
 .vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Certificates (keep private!)
-server/certs/
+build/
+murchat/node_modules/
+server/node_modules/
+server/dist/
+murchat/dist/
+murchat/dist-electron/
+murchat/release/
+temp/
+client_logs/
+db_messages/
+out.log
+err.log

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Код подтверждения MurCHAT</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c2f33; /* Darker body background */
+            margin: 0;
+            padding: 0;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #36393f; /* Dark Discord-like background */
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid #23272a; /* Darker border */
+        }
+        .header {
+            background-color: #2c2f33; /* Discord-like dark header */
+            color: #ffffff;
+            padding: 20px 30px;
+            text-align: center;
+            border-bottom: 1px solid #23272a; /* Darker border */
+        }
+        .header img {
+            max-width: 50px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .content {
+            padding: 30px;
+            background-color: #36393f; /* Dark background */
+            color: #ffffff; /* Light text */
+            line-height: 1.6;
+        }
+        .content p {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        .verification-code {
+            display: block;
+            width: fit-content;
+            margin: 25px auto;
+            padding: 15px 30px;
+            background-color: #5865f2; /* Discord-like blue */
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            border-radius: 6px;
+            text-align: center;
+            text-decoration: none; /* In case it becomes a link */
+        }
+        .footer {
+            background-color: #2c2f33; /* Darker footer background */
+            color: #b9bbbe; /* Lighter grey text for footer */
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            border-top: 1px solid #23272a; /* Darker border */
+        }
+        .footer a {
+            color: #5865f2;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="{{murchat_icon_base64}}" alt="MurCHAT Logo">
+            <h1>MurCHAT</h1>
+        </div>
+        <div class="content">
+            <p>Здравствуйте, {{username}}!</p>
+            <p>Благодарим вас за регистрацию в MurCHAT. Для завершения регистрации, пожалуйста, используйте следующий код подтверждения:</p>
+            <span class="verification-code">{{code}}</span>
+            <p>Этот код действителен в течение 10 минут. Если вы не запрашивали этот код, просто проигнорируйте это письмо.</p>
+            <p>С уважением,<br>Команда MurCHAT</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2023 MurCHAT. Все права защищены.</p>
+            <p>По всем вопросам обращайтесь по <a href="mailto:mursuportstop@gmail.com">mursuportstop@gmail.com</a></p>
+        </div>
+    </div>
+</body>
+</html>
