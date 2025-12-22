@@ -270,8 +270,29 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
       {!effectiveChannelId ? (
           <div className="chat-input-disabled">Выберите собеседника</div>
       ) : (
-          <div className="chat-input">
+          <div className="chat-input" onClick={(e) => e.stopPropagation()}>
+            {replyTo && (
+                <div className="reply-preview">
+                    <div className="reply-bar" />
+                    <div className="reply-content">
+                        Ответ <span className="reply-author">@{replyTo.author}</span>: {replyTo.content.substring(0, 50)}{replyTo.content.length > 50 ? '...' : ''}
+                    </div>
+                    <button className="reply-close" onClick={() => setReplyTo(null)}>×</button>
+                </div>
+            )}
+            
             <div className="chat-input-row">
+                <button className="attach-button" onClick={() => fileInputRef.current?.click()}>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: 'none' }} 
+                        onChange={(e) => handleFiles(e.target.files)}
+                        multiple 
+                    />
+                    +
+                </button>
+
                 <textarea
                   ref={messageInputRef}
                   placeholder={`Написать ${isDm ? channelName : '#' + channelName}`}
@@ -284,7 +305,45 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                   className="chat-textarea"
                   rows={1}
                 />
+
+                <div className="input-actions">
+                    <button className="action-button emoji-button" onClick={() => setShowPicker(!showPicker)}>
+                        😊
+                    </button>
+                    <button className="action-button mic-button" onClick={() => setShowAudioRecorder(true)}>
+                        🎤
+                    </button>
+                </div>
+
+                {showPicker && (
+                    <div className="expression-picker-popup">
+                        <ExpressionPicker onSelect={(item) => {
+                            if (item.type === 'emoji') {
+                                setMessageInput(prev => prev + item.data);
+                            } else {
+                                handleSendMessage([{ url: item.data, filename: 'attachment', contentType: 'image/gif', size: 0, id: crypto.randomUUID() }]);
+                            }
+                        }} />
+                    </div>
+                )}
             </div>
+
+            {showAudioRecorder && (
+                <div className="audio-recorder-overlay">
+                    <AudioRecorder 
+                        onComplete={(audioData) => {
+                            webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, {
+                                channelId: effectiveChannelId,
+                                content: '',
+                                author: username,
+                                audioData: audioData
+                            });
+                            setShowAudioRecorder(false);
+                        }}
+                        onCancel={() => setShowAudioRecorder(false)}
+                    />
+                </div>
+            )}
           </div>
       )}
     </div>
