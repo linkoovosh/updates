@@ -92,7 +92,8 @@ export class AudioProcessor {
     }
 
     setVadThreshold(threshold: number) {
-        this.vadThreshold = 0.002 + (threshold / 100) * 0.078; 
+        // Lowered base threshold from 0.002 to 0.001 and range to be more forgiving
+        this.vadThreshold = 0.001 + (threshold / 100) * 0.049; 
     }
 
     async processStream(stream: MediaStream): Promise<MediaStream> {
@@ -154,7 +155,8 @@ export class AudioProcessor {
         const zcr = crossings / buffer.length;
         const normalizedScore = bestCorrelation / energy;
 
-        return normalizedScore > 0.3 && zcr < 0.4;
+        // Relaxed constraints: normalizedScore 0.3 -> 0.15, zcr 0.4 -> 0.6
+        return normalizedScore > 0.15 && zcr < 0.6;
     }
 }
 

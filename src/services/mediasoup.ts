@@ -24,6 +24,7 @@ class MediasoupService {
     private selfUserId: string | null = null; // NEW
     private signal: (type: string, payload: any) => void = () => {};
     private pendingProduceCallbacks: Map<string, (params: { id: string }) => void> = new Map();
+    private pendingConnectCallbacks: Map<string, { callback: () => void, errback: (error: Error) => void }> = new Map(); // NEW
     private pendingConsumers: any[] = []; // NEW: Queue for notifications before recvTransport is ready
     
     private onBrowserStreamCallback: ((stream: MediaStream) => void) | null = null;
@@ -126,8 +127,8 @@ class MediasoupService {
             this.sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
                 console.log('[SFU] SendTransport connecting...');
                 try {
+                    this.pendingConnectCallbacks.set(this.sendTransport!.id, { callback, errback });
                     this.signal(C2S_MSG_TYPE.MS_CONNECT_TRANSPORT, { transportId: this.sendTransport!.id, dtlsParameters });
-                    callback();
                 } catch (error: any) {
                     console.error('[SFU] SendTransport connect error:', error);
                     errback(error);
@@ -169,8 +170,8 @@ class MediasoupService {
             this.recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
                 console.log('[SFU] RecvTransport connecting...');
                 try {
+                    this.pendingConnectCallbacks.set(this.recvTransport!.id, { callback, errback });
                     this.signal(C2S_MSG_TYPE.MS_CONNECT_TRANSPORT, { transportId: this.recvTransport!.id, dtlsParameters });
-                    callback();
                 } catch (error: any) {
                     console.error('[SFU] RecvTransport connect error:', error);
                     errback(error);
@@ -206,6 +207,15 @@ class MediasoupService {
         if (callback) {
             callback({ id });
             this.pendingProduceCallbacks.delete(sourceKey);
+        }
+    }
+
+    onTransportConnected({ transportId }: any) {
+        console.log(`[SFU] Transport connected on server: ${transportId}`);
+        const cb = this.pendingConnectCallbacks.get(transportId);
+        if (cb) {
+            cb.callback();
+            this.pendingConnectCallbacks.delete(transportId);
         }
     }
 

@@ -878,6 +878,9 @@ class WebSocketService {
             case S2C_MSG_TYPE.MS_WEBRTC_TRANSPORT_CREATED:
                 mediasoupService.onWebRtcTransportCreated(message.payload);
                 break;
+            case S2C_MSG_TYPE.MS_TRANSPORT_CONNECTED:
+                mediasoupService.onTransportConnected(message.payload);
+                break;
             case S2C_MSG_TYPE.MS_PRODUCER_CREATED:
                 mediasoupService.onProducerCreated(message.payload);
                 break;
