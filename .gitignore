@@ -6,7 +6,7 @@ release/
 *.tar.gz
 .idea/
 .vscode/
-build/
+# build/  <-- УБРАЛ ЭТО, чтобы скрипты инсталлера попали в Git
 murchat/node_modules/
 server/node_modules/
 server/dist/
