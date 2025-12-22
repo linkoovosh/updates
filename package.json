@@ -4,7 +4,8 @@
   "scripts": {
     "server-start": "cd server && npm start",
     "client-dev": "cd murchat && npm run dev",
-    "dev": "npm run server-start & npm run client-dev"
+    "dev": "npm run server-start & npm run client-dev",
+    "dist": "cd murchat && npm install && npm run dist"
   },
   "dependencies": {
     "@types/uuid": "^10.0.0",

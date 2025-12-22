@@ -22,8 +22,10 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        # Мы уже в корне проекта, cd не нужен
-        run: npm install
+        run: |
+          npm install
+          cd murchat
+          npm install
 
       - name: Build & Publish
         env:
