@@ -1,6 +1,7 @@
 import * as mediasoupClient from 'mediasoup-client';
 import { C2S_MSG_TYPE, S2C_MSG_TYPE } from '@common/types';
 import { webRTCService } from './webrtc';
+import { audioProcessor } from './AudioProcessor';
 import { playScreenshareStart } from '../utils/soundUtils';
 
 class MediasoupService {
@@ -8,6 +9,7 @@ class MediasoupService {
     sendTransport: mediasoupClient.types.Transport | null = null;
     recvTransport: mediasoupClient.types.Transport | null = null;
     audioProducer: mediasoupClient.types.Producer | null = null;
+    videoProducer: mediasoupClient.types.Producer | null = null; // NEW
     screenProducer: mediasoupClient.types.Producer | null = null;
     screenAudioProducer: mediasoupClient.types.Producer | null = null;
     browserProducer: mediasoupClient.types.Producer | null = null;
@@ -16,7 +18,8 @@ class MediasoupService {
     producerToUser: Map<string, string> = new Map();
     producerAppData: Map<string, any> = new Map();
     
-    private micStream: MediaStream | null = null; // Store mic stream for fallback
+    private rawMicStream: MediaStream | null = null; // NEW: Raw stream from getUserMedia
+    private processedMicStream: MediaStream | null = null; // NEW: Stream from AudioProcessor
     channelId: string | null = null;
     private selfUserId: string | null = null; // NEW
     private signal: (type: string, payload: any) => void = () => {};
@@ -75,6 +78,19 @@ class MediasoupService {
         });
     }
 
+    private handleTransportFailure() {
+        if (this._closed || !this.channelId) return;
+        console.warn("[SFU] Critical transport failure detected. Restarting Mediasoup session in 3 seconds...");
+        const savedChannelId = this.channelId;
+        this.leave();
+        setTimeout(() => {
+            if (savedChannelId) {
+                console.log("[SFU] Re-joining channel after failure...");
+                this.joinChannel(savedChannelId);
+            }
+        }, 3000);
+    }
+
     async joinChannel(channelId: string) {
         console.log(`[SFU] joinChannel called for ${channelId}`);
         this._closed = false;
@@ -120,6 +136,7 @@ class MediasoupService {
             this.sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
                 console.log(`[SFU] SendTransport producing ${kind}...`);
                 try {
+                    if (this._closed) throw new Error("SFU is closed");
                     this.signal(C2S_MSG_TYPE.MS_PRODUCE, { 
                         transportId: this.sendTransport!.id, 
                         kind, 
@@ -130,8 +147,17 @@ class MediasoupService {
                     const source = appData?.source || 'mic';
                     this.pendingProduceCallbacks.set(source, callback);
                 } catch (error: any) {
-                    console.error('[SFU] SendTransport produce error:', error);
+                    console.error(`[SFU] SendTransport produce error (${kind}):`, error);
                     errback(error);
+                }
+            });
+
+            this.sendTransport.on('connectionstatechange', (state) => {
+                console.log(`[SFU] SendTransport state: ${state}`);
+                this.emit('connectionStateChange', state);
+                if (state === 'failed') {
+                    console.error('[SFU] SendTransport FAILED. Attempting full re-join...');
+                    this.handleTransportFailure();
                 }
             });
             
@@ -139,6 +165,7 @@ class MediasoupService {
 
         } else if (!this.recvTransport) {
             this.recvTransport = this.device!.createRecvTransport(params);
+            
             this.recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
                 console.log('[SFU] RecvTransport connecting...');
                 try {
@@ -149,6 +176,16 @@ class MediasoupService {
                     errback(error);
                 }
             });
+
+            this.recvTransport.on('connectionstatechange', (state) => {
+                console.log(`[SFU] RecvTransport state: ${state}`);
+                this.emit('connectionStateChange', state);
+                if (state === 'failed') {
+                    console.error('[SFU] RecvTransport FAILED. Attempting full re-join...');
+                    this.handleTransportFailure();
+                }
+            });
+
             console.log('[SFU] RecvTransport ready. Requesting existing producers...');
             this.signal(C2S_MSG_TYPE.MS_GET_EXISTING_PRODUCERS, { channelId: this.channelId });
 
@@ -195,24 +232,111 @@ class MediasoupService {
                 deviceId = settings.inputDeviceId;
             }
 
-            console.log(`[SFU] Starting audio with device: ${deviceId || 'default'}`);
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: deviceId ? { deviceId: { exact: deviceId } } : true 
-            });
-            
-            this.micStream = stream; // Save for fallback
+                                    console.log(`[SFU] Starting audio with device: ${deviceId || 'default'}`);
 
-            if (this.selfUserId) {
-                this.emit('newStream', { userId: this.selfUserId, stream, appData: { source: 'mic' } });
-            }
+                                    const rawStream = await navigator.mediaDevices.getUserMedia({ 
 
-            webRTCService.setLocalStream(stream); 
-            
-            const track = stream.getAudioTracks()[0];
-            this.audioProducer = await this.sendTransport!.produce({ 
-                track, 
-                codecOptions: {
-                    opusStereo: true,
+                                        audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+
+                                    });
+
+                                    
+
+                                                this.rawMicStream = rawStream;
+
+                                    
+
+                                    
+
+                                    
+
+                                                // Apply MurClear AI Processor
+
+                                    
+
+                                                const processedStream = await audioProcessor.processStream(rawStream);
+
+                                    
+
+                                                this.processedMicStream = processedStream; 
+
+                                    
+
+                                    
+
+                                    
+
+                                                            if (this.selfUserId) {
+
+                                    
+
+                                    
+
+                                    
+
+                                                                this.emit('newStream', { userId: this.selfUserId, stream: processedStream, appData: { source: 'mic' } });
+
+                                    
+
+                                    
+
+                                    
+
+                                                            }
+
+                                    
+
+                                    
+
+                                    
+
+                                                
+
+                                    
+
+                                    
+
+                                    
+
+                                                            // Visualization uses RAW stream for instant feedback
+
+                                    
+
+                                    
+
+                                    
+
+                                                            webRTCService.setLocalStream(rawStream); 
+
+                                    
+
+                                    
+
+                                    
+
+                                                            
+
+                                    
+
+                                    
+
+                                    
+
+                                                            const track = processedStream.getAudioTracks()[0];
+
+                                    if (!track || track.readyState === 'ended') {
+
+                                        throw new Error("Track is null or already ended before produce");
+
+                                    }
+
+                        
+
+                                    this.audioProducer = await this.sendTransport!.produce({ 
+
+                                        track, 
+
+                                        codecOptions: {                    opusStereo: true,
                     opusDtx: true,
                     opusFec: true
                 },
@@ -241,6 +365,90 @@ class MediasoupService {
         });
     }
 
+    async waitForChannel(): Promise<boolean> {
+        if (this.channelId) return true;
+        
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                if (this.channelId) {
+                    clearInterval(interval);
+                    resolve(true);
+                } else if (attempts > 50) { // 5 seconds
+                    clearInterval(interval);
+                    resolve(false);
+                }
+            }, 100);
+        });
+    }
+
+    async startVideo() {
+        if (this.videoProducer && !this.videoProducer.closed) {
+            console.warn("Video producer already exists");
+            return;
+        }
+
+        if (!this.sendTransport) {
+            const ready = await this.waitForTransport();
+            if (!ready) return;
+        }
+
+        try {
+            const savedSettings = localStorage.getItem('murchat-settings');
+            let deviceId = undefined;
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                deviceId = settings.videoDeviceId;
+            }
+
+            console.log(`[SFU] Starting video with device: ${deviceId || 'default'}`);
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: deviceId ? { 
+                    deviceId: { exact: deviceId },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                } : { 
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                } 
+            });
+            
+            const track = stream.getVideoTracks()[0];
+            
+            if (this.selfUserId) {
+                this.emit('newStream', { userId: this.selfUserId, stream, appData: { source: 'webcam' } });
+            }
+
+            this.videoProducer = await this.sendTransport!.produce({ 
+                track, 
+                appData: { source: 'webcam' } 
+            });
+
+            track.onended = () => {
+                this.stopVideo();
+            };
+
+        } catch (e) {
+            console.error("SFU Video Produce error:", e);
+            throw e;
+        }
+    }
+
+    stopVideo() {
+        console.log("[SFU] stopVideo called");
+        if (this.videoProducer) {
+            this.videoProducer.close();
+            this.signal(C2S_MSG_TYPE.MS_CLOSE_PRODUCER, { producerId: this.videoProducer.id });
+            this.videoProducer = null;
+        }
+        
+        // Notify UI to clear local video
+        if (this.selfUserId) {
+            this.emit('streamClosed', { userId: this.selfUserId, appData: { source: 'webcam' } });
+        }
+    }
+
     async startScreenShare(sourceId: string, options: { resolution: string, fps: number } = { resolution: '1080p', fps: 30 }) {
         if (this.screenProducer) {
             console.warn("Already sharing screen");
@@ -248,8 +456,12 @@ class MediasoupService {
         }
 
         if (!this.channelId) {
-            console.error("SFU: Cannot start screen share - Not in a channel.");
-            return;
+            console.log("SFU: Waiting for channelId before starting screen share...");
+            const channelReady = await this.waitForChannel();
+            if (!channelReady) {
+                console.error("SFU: Cannot start screen share - Not in a channel (timeout).");
+                return;
+            }
         }
 
         if (!this.sendTransport) {
@@ -348,9 +560,9 @@ class MediasoupService {
         }
         
         // Restore mic stream for UI
-        if (this.micStream && this.selfUserId) {
-            webRTCService.setLocalStream(this.micStream);
-            this.emit('newStream', { userId: this.selfUserId, stream: this.micStream, appData: { source: 'mic' } });
+        if (this.processedMicStream && this.selfUserId) {
+            webRTCService.setLocalStream(this.processedMicStream);
+            this.emit('newStream', { userId: this.selfUserId, stream: this.processedMicStream, appData: { source: 'mic' } });
         }
 
         if (this.onScreenShareStopCallback) {
@@ -423,9 +635,9 @@ class MediasoupService {
         }
 
         // Restore mic stream for UI
-        if (this.micStream && this.selfUserId) {
-            webRTCService.setLocalStream(this.micStream);
-            this.emit('newStream', { userId: this.selfUserId, stream: this.micStream, appData: { source: 'mic' } });
+        if (this.processedMicStream && this.selfUserId) {
+            webRTCService.setLocalStream(this.processedMicStream);
+            this.emit('newStream', { userId: this.selfUserId, stream: this.processedMicStream, appData: { source: 'mic' } });
         }
     }
 
@@ -526,6 +738,7 @@ class MediasoupService {
         // 1. Close Producers explicitly first
         try {
             if (this.audioProducer && !this.audioProducer.closed) this.audioProducer.close();
+            if (this.videoProducer && !this.videoProducer.closed) this.videoProducer.close(); // NEW
             if (this.screenProducer && !this.screenProducer.closed) this.screenProducer.close();
             if (this.screenAudioProducer && !this.screenAudioProducer.closed) this.screenAudioProducer.close();
             if (this.browserProducer && !this.browserProducer.closed) this.browserProducer.close();
@@ -555,6 +768,7 @@ class MediasoupService {
         this.sendTransport = null;
         this.recvTransport = null;
         this.audioProducer = null;
+        this.videoProducer = null; // NEW
         this.screenProducer = null;
         this.screenAudioProducer = null;
         this.browserProducer = null;
@@ -564,10 +778,13 @@ class MediasoupService {
         this.producerToUser.clear();
         this.producerAppData.clear();
         
-        if (this.micStream) {
-            this.micStream.getTracks().forEach(t => t.stop());
-            this.micStream = null;
+        // ONLY stop the raw microphone tracks. 
+        // DO NOT stop processedMicStream tracks because they belong to the global AudioContext destination.
+        if (this.rawMicStream) {
+            this.rawMicStream.getTracks().forEach(t => t.stop());
+            this.rawMicStream = null;
         }
+        this.processedMicStream = null;
 
         this.device = null; // Also reset device to be safe
     }

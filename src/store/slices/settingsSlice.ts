@@ -49,25 +49,26 @@ export interface SettingsState {
   notifyOnMention: boolean;
   notifyOnDm: boolean;
   playUserJoinLeaveSounds: boolean;
+  // Advanced Audio
+  aiNoiseSuppression: boolean; // MurClear AI
 }
 
 const initialState: SettingsState = {
-  // Appearance
-  theme: 'dark', // Force dark for best glass effect
+  theme: 'dark',
   uiScale: 1,
   font: 'Inter',
   fontSize: 16,
-  uiRoundness: 'large', // More rounded
+  uiRoundness: 'large',
   animationsEnabled: true,
-  blurIntensity: 0.6, 
-  enableTransparency: true, 
-  glassMaterial: 'liquid-ios', 
-  appOpacity: 0.85, 
+  blurIntensity: 1,
+  enableTransparency: true,
+  glassMaterial: 'liquid-ios',
+  appOpacity: 0.9,
   accentColor: '#4D7CFF', // Default Blue
+  
   isTerminalVisible: false,
-  catModeEnabled: true,
 
-  // Voice & Video
+  // Audio/Video Defaults
   inputDeviceId: null,
   outputDeviceId: null,
   videoDeviceId: null,
@@ -75,13 +76,10 @@ const initialState: SettingsState = {
   echoCancellation: true,
   pushToTalk: false,
   inputVolume: 100,
-  vadThreshold: 5,
-  
-  // Screen Share
-  screenShareResolution: '1080p',
-  screenShareFps: 30,
+  vadThreshold: 5, // %
+  aiNoiseSuppression: false, // MurClear Default Off
 
-  // Privacy & Security
+  // Privacy
   pmPrivacy: 'all',
   friendRequestPrivacy: 'all',
 
@@ -136,7 +134,9 @@ const settingsSlice = createSlice({
     setNotifyOnMention: (state, action: PayloadAction<boolean>) => { state.notifyOnMention = action.payload; },
     setNotifyOnDm: (state, action: PayloadAction<boolean>) => { state.notifyOnDm = action.payload; },
     setPlayUserJoinLeaveSounds: (state, action: PayloadAction<boolean>) => { state.playUserJoinLeaveSounds = action.payload; },
-    
+    setAiNoiseSuppression: (state, action: PayloadAction<boolean>) => {
+        state.aiNoiseSuppression = action.payload;
+    },
     // --- General ---
     loadSettings: (state, action: PayloadAction<Partial<SettingsState>>) => {
       return { ...state, ...action.payload };
@@ -154,8 +154,12 @@ export const {
   // Privacy & Security
   setPmPrivacy, setFriendRequestPrivacy,
   // Notifications
-  setEnableDesktopNotifications, setEnableSoundNotifications, setNotifyOnMention, setNotifyOnDm, setPlayUserJoinLeaveSounds,
-  // General
-  loadSettings
+  setEnableDesktopNotifications,
+  setEnableSoundNotifications,
+  setNotifyOnMention,
+  setNotifyOnDm,
+  setPlayUserJoinLeaveSounds,
+  setAiNoiseSuppression,
+  loadSettings,
 } = settingsSlice.actions;
 export default settingsSlice.reducer;

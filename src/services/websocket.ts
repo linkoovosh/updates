@@ -166,6 +166,24 @@ class WebSocketService {
         }
     });
 
+    mediasoupService.on('connectionStateChange', (state: string) => {
+        if (!this.dispatch || !this.userId) return;
+        
+        switch (state) {
+            case 'connecting':
+                this.dispatch(updateVoiceState({ userId: this.userId, partialState: { isConnecting: true, isDisconnected: false } }));
+                break;
+            case 'connected':
+                this.dispatch(updateVoiceState({ userId: this.userId, partialState: { isConnecting: false, isDisconnected: false } }));
+                break;
+            case 'failed':
+            case 'disconnected':
+            case 'closed':
+                this.dispatch(updateVoiceState({ userId: this.userId, partialState: { isConnecting: false, isDisconnected: true } }));
+                break;
+        }
+    });
+
     webRTCService.onConnectionStateChange((state, userId) => {
       if (!this.dispatch) return;
 
@@ -636,7 +654,21 @@ class WebSocketService {
                 const payload = message.payload as InitialStatePayload;
                 this.dispatch(setServers(payload.servers));
                 this.dispatch(setChannels(payload.channels)); // Dispatches to uiSlice
-                this.dispatch(setVoiceStates(payload.voiceStates)); // Initialize voiceStates in uiSlice
+                
+                // Initialize voiceStates in voiceSlice
+                if (payload.voiceStates) {
+                    const members = Object.values(payload.voiceStates).map(vs => ({
+                        userId: vs.userId,
+                        username: vs.username,
+                        avatar: vs.userAvatar || undefined
+                    }));
+                    // Find which channel I am in, if any
+                    const myId = this.userId;
+                    const myState = myId ? payload.voiceStates[myId] : null;
+                    if (myState) {
+                        this.dispatch(setVoiceChannel({ channelId: myState.channelId, members }));
+                    }
+                }
               }
               break;
 
@@ -855,9 +887,11 @@ class WebSocketService {
             case S2C_MSG_TYPE.MS_NEW_PEER_PRODUCER:
                 {
                     const payload = message.payload as any;
-                    // Auto-update UI state if this is a screen share
+                    // Auto-update UI state if this is a screen share or webcam
                     if (payload.appData?.source === 'screen') {
                         this.dispatch(updateVoiceState({ userId: payload.userId, partialState: { isScreenSharing: true } }));
+                    } else if (payload.appData?.source === 'webcam') {
+                        this.dispatch(updateVoiceState({ userId: payload.userId, partialState: { isVideoEnabled: true } }));
                     }
                     mediasoupService.onNewPeerProducer(payload);
                 }
@@ -865,10 +899,10 @@ class WebSocketService {
             case S2C_MSG_TYPE.MS_PRODUCER_CLOSED:
                 {
                     const payload = message.payload as any;
-                    // Check if it was a screen share by looking at producer metadata if possible, 
-                    // but since we don't have it here easily, MediasoupService will handle the close.
-                    // We'll rely on the global S2C_VOICE_STATE_UPDATE for the isScreenSharing flag mostly,
-                    // but this is a good backup.
+                    // We don't know the source here easily, but MediasoupService will close it.
+                    // We'll rely on global state or appData from the producer if we had it.
+                    // For now, let's just let Mediasoup handle it and the UI will sync via other messages
+                    // OR we can explicitly clear states if we find who owned this producer.
                     mediasoupService.onProducerClosed(payload);
                 }
                 break;

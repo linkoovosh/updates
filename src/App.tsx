@@ -20,6 +20,7 @@ import UpdateNotifier from './components/Layout/UpdateNotifier';
 import { changelog } from './changelog';
 import { logService } from './services/LogService';
 import { playHoverSound } from './utils/soundUtils';
+import { audioProcessor } from './services/AudioProcessor';
 
 // Initialize logging immediately
 logService.init();
@@ -254,6 +255,9 @@ function App() {
     } else {
         root.classList.remove('cat-mode');
     }
+    
+    // Apply Audio Processor Settings
+    audioProcessor.setAiEnabled(settings.aiNoiseSuppression);
 
     const themeColors = getComputedStyle(root);
     root.style.setProperty('--bg-primary-rgb', hexToRgb(themeColors.getPropertyValue('--bg-primary').trim()));

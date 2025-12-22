@@ -17,6 +17,7 @@ const GlobeIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="n
 // New Phone Off Icon
 const PhoneOffIcon = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"></line></svg>);
 const VideoIcon = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>);
+const VideoOffIcon = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"></line></svg>);
 
 interface CallControlsProps {
     onToggleScreenShare: () => void;
@@ -73,9 +74,22 @@ const CallControls: React.FC<CallControlsProps> = ({ onToggleScreenShare, isScre
         }
     };
 
-    // Camera placeholder for now
-    const handleToggleCamera = () => {
-        alert("Видеокамера будет доступна в следующем обновлении!");
+    const handleToggleCamera = async () => {
+        if (!selfId || !selfState) return;
+
+        const isCurrentlyOn = selfState.isVideoEnabled;
+        try {
+            if (isCurrentlyOn) {
+                mediasoupService.stopVideo();
+                dispatch(updateVoiceState({ userId: selfId, partialState: { isVideoEnabled: false } }));
+            } else {
+                await mediasoupService.startVideo();
+                dispatch(updateVoiceState({ userId: selfId, partialState: { isVideoEnabled: true } }));
+            }
+        } catch (error) {
+            console.error("Failed to toggle camera:", error);
+            alert("Не удалось запустить камеру. Проверьте разрешения или подключение устройства.");
+        }
     };
 
     return (
@@ -90,11 +104,11 @@ const CallControls: React.FC<CallControlsProps> = ({ onToggleScreenShare, isScre
                 </button>
                 
                 <button 
-                    className="call-control-btn" 
+                    className={`call-control-btn ${selfState?.isVideoEnabled ? 'active-green' : ''}`} 
                     onClick={handleToggleCamera}
-                    title="Камера"
+                    title={selfState?.isVideoEnabled ? "Выключить камеру" : "Включить камеру"}
                 >
-                    <VideoIcon />
+                    {selfState?.isVideoEnabled ? <VideoIcon /> : <VideoOffIcon />}
                 </button>
 
                 <button 

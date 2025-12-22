@@ -64,6 +64,7 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const allChannels = useSelector((state: RootState) => state.ui.channels);
   const servers = useSelector((state: RootState) => state.server.servers);
   const users = useSelector((state: RootState) => state.auth.users);
+  const vadThreshold = useSelector((state: RootState) => state.settings.vadThreshold); // NEW
 
   // Permissions
   const userPerms = usePermissions(selectedServerId);
@@ -249,36 +250,37 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 </div>
                 {channelMembers.length > 0 && (
                   <div className="voice-channel-members">
-                    {channelMembers.map(memberId => {
-                      const state = voiceStates[memberId];
-                      if (!state) return null;
-                      const isSpeaking = state.volume > 0.005;
-                      const visualVolume = Math.max(5, state.volume * 100); 
-
-                      const user = users[memberId];
-                      const displayName = state.username || (user ? user.username : memberId.substring(0, 8) + '...');
-                      const avatarUrl = state.avatar || user?.avatar;
-
-                      return (
-                        <div key={memberId} className={`voice-member ${isSpeaking ? 'speaking' : ''} ${state.isConnecting ? 'connecting' : ''} ${state.isDisconnected ? 'disconnected' : ''}`} onClick={() => dispatch(setUserProfileForId(memberId))}>
-                          <div 
-                              className="member-avatar" 
-                              style={{ 
-                                  backgroundColor: avatarUrl ? 'transparent' : generateAvatarColor(memberId),
-                                  backgroundImage: avatarUrl ? `url(${avatarUrl})` : 'none',
-                                  backgroundSize: 'cover',
-                                  border: isSpeaking ? '2px solid #A56BFF' : '2px solid transparent',
-                                  boxShadow: isSpeaking ? `0 0 ${visualVolume}px ${visualVolume / 3}px rgba(165, 107, 255, 0.8)` : 'none' 
-                              }}
-                          >
-                            {!avatarUrl && getInitials(displayName)}
-                            {state.isMuted && <span className="voice-state-icon" style={{ fontSize: '12px' }}>🔇</span>}
-                            {state.isDeafened && <span className="voice-state-icon" style={{ fontSize: '12px' }}>🎧</span>}
-                          </div>
-                          <span className="member-name">{displayName}</span>
-                        </div>
-                      );
-                    })}
+                                        {channelMembers.map(memberId => {
+                                          const state = voiceStates[memberId];
+                                          if (!state) return null;
+                                          
+                                          const normalizedThreshold = (vadThreshold / 100) * 0.5;
+                                          const isSpeaking = state.volume > normalizedThreshold && !state.isMuted;
+                                          const user = users[memberId];
+                                          const displayName = state.username || (user ? user.username : memberId.substring(0, 8) + '...');
+                                          const avatarUrl = state.avatar || user?.avatar;
+                                          const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
+                    
+                                          return (
+                                            <div key={memberId} className={`voice-member ${isSpeaking ? 'speaking' : ''} ${state.isConnecting ? 'connecting' : ''} ${state.isDisconnected ? 'disconnected' : ''}`} onClick={() => dispatch(setUserProfileForId(memberId))}>
+                                              <div className="member-avatar-wrapper">
+                                                <div 
+                                                    className="member-avatar" 
+                                                    style={{ backgroundColor: generateAvatarColor(memberId) }}
+                                                >
+                                                  {hasAvatar ? (
+                                                    <img src={avatarUrl} alt={displayName} />
+                                                  ) : (
+                                                    getInitials(displayName)
+                                                  )}
+                                                </div>
+                                                {state.isMuted && <span className="voice-state-icon" title="Микрофон выключен">🔇</span>}
+                                                {state.isDeafened && <span className="voice-state-icon" title="Звук выключен">🎧</span>}
+                                              </div>
+                                              <span className="member-name">{displayName}</span>
+                                            </div>
+                                          );
+                                        })}
                   </div>
                 )}
               </div>

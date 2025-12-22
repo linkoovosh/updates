@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { webRTCService } from '../services/webrtc';
 import { mediasoupService } from '../services/mediasoup'; 
 import webSocketService from '../services/websocket';
-import { updateVoiceState } from '../store/slices/uiSlice'; // CHANGED: Using uiSlice
+import { updateVoiceState } from '../store/slices/voiceSlice';
 import type { AppDispatch, RootState } from '../store';
 
 interface RemoteAudioTrack {
@@ -25,7 +25,7 @@ const VoiceManager: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
 
   const authUserId = useSelector((state: RootState) => state.auth.userId); 
-  const voiceStates = useSelector((state: RootState) => state.ui.voiceStates); // CHANGED: state.ui
+  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates);
   const selfVoiceState = authUserId ? voiceStates[authUserId] : undefined;
   const isDeafened = selfVoiceState?.isDeafened || false;
 
@@ -94,8 +94,10 @@ const VoiceManager: React.FC = () => {
         existingNode.source.disconnect();
       }
       
-      // IMPORTANT: Using stream directly without .clone() for better compatibility
-      const source = audioContext.createMediaStreamSource(stream);
+      // IMPORTANT: Use a CLONE for the visualizer to prevent Web Audio from hijacking 
+      // the stream from the <audio> element (common Chrome bug).
+      const visualizerStream = stream.clone();
+      const source = audioContext.createMediaStreamSource(visualizerStream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.4;
@@ -103,6 +105,7 @@ const VoiceManager: React.FC = () => {
       
       const nodeMap = { source, analyser };
       (nodeMap as any).originalStream = stream; // Tag it to avoid double-processing
+      (nodeMap as any).visualizerStream = visualizerStream; // Keep reference to stop later
       audioNodesRef.current.set(userId, nodeMap);
     };
 
@@ -122,15 +125,21 @@ const VoiceManager: React.FC = () => {
             const existing = audioNodesRef.current.get(myUserId);
             if ((existing as any).originalStream === stream) return;
             existing?.source.disconnect();
+            // Stop tracks of the old clone
+            if ((existing as any).visualizerStream) {
+                (existing as any).visualizerStream.getTracks().forEach((t: any) => t.stop());
+            }
         }
         
-        const source = audioContextRef.current.createMediaStreamSource(stream);
+        const visualizerStream = stream.clone();
+        const source = audioContextRef.current.createMediaStreamSource(visualizerStream);
         const analyser = audioContextRef.current.createAnalyser();
         analyser.fftSize = 512;
         source.connect(analyser);
         
         const nodeMap = { source, analyser };
         (nodeMap as any).originalStream = stream;
+        (nodeMap as any).visualizerStream = visualizerStream;
         audioNodesRef.current.set(myUserId, nodeMap);
     };
 
@@ -186,27 +195,40 @@ const VoiceManager: React.FC = () => {
 
   // Main analysis loop
   const silenceCountersRef = React.useRef<Map<string, number>>(new Map());
+  const heartbeatCounterRef = React.useRef(0);
 
   React.useEffect(() => {
     const analyze = () => {
+      heartbeatCounterRef.current++;
+      
       audioNodesRef.current.forEach((nodes, userId) => {
         const userState = voiceStatesRef.current[userId];
         
-        // If muted, force volume 0
         if (userState?.isMuted) {
             dispatch(updateVoiceState({ userId, partialState: { volume: 0 } }));
             return;
         }
 
+        // Use Time Domain Data for better peak/rms calculation
         const dataArray = new Uint8Array(nodes.analyser.frequencyBinCount);
-        nodes.analyser.getByteFrequencyData(dataArray);
+        nodes.analyser.getByteTimeDomainData(dataArray);
         
         let sum = 0;
-        for (const amplitude of dataArray) {
+        for (let i = 0; i < dataArray.length; i++) {
+          const amplitude = (dataArray[i] - 128) / 128;
           sum += amplitude * amplitude;
         }
         const rms = Math.sqrt(sum / dataArray.length);
-        const volume = Math.min(1, rms / 64); 
+        
+        // Subtract noise floor (approx 0.005) and scale. 
+        // Anything below 0.005 RMS will now result in 0 volume.
+        const cleanedRms = Math.max(0, rms - 0.005);
+        const volume = Math.min(1, cleanedRms * 6); 
+
+        if (userId === authUserIdRef.current && heartbeatCounterRef.current % 300 === 0) {
+            const rawValue = dataArray[0]; // Sample value to see if it's changing
+            console.log(`[VoiceManager] Heartbeat: Local volume=${volume.toFixed(4)}, CleanRMS=${cleanedRms.toFixed(4)}, RawRMS=${rms.toFixed(4)}, AudioContext=${audioContextRef.current?.state}`);
+        }
         
         // --- Silence Detection (Remote Only) ---
         if (userId !== authUserIdRef.current && volume < 0.005) {

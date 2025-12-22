@@ -12,6 +12,7 @@ export interface VoiceState {
   avatar?: string; 
   channelId: string;
   isScreenSharing: boolean;
+  isVideoEnabled: boolean; // NEW
 }
 
 export interface CallState {
@@ -63,6 +64,7 @@ const createDefaultVoiceState = (channelId: string, username?: string, avatar?: 
     avatar: avatar,
     channelId: channelId,
     isScreenSharing: false,
+    isVideoEnabled: false, // NEW
 });
 
 const voiceSlice = createSlice({

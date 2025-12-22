@@ -9,7 +9,7 @@ import {
     setAppOpacity, setAccentColor, setEnableTransparency, setGlassMaterial, setCatModeEnabled,
     setInputDeviceId, setOutputDeviceId, setVideoDeviceId,
     setNoiseSuppression, setEchoCancellation, setPushToTalk,
-    setInputVolume, setVadThreshold,
+    setInputVolume, setVadThreshold, setAiNoiseSuppression,
     setScreenShareResolution, setScreenShareFps,
     setPmPrivacy, setFriendRequestPrivacy,
     setEnableDesktopNotifications, setEnableSoundNotifications,
@@ -20,6 +20,7 @@ import { C2S_MSG_TYPE } from "@common/types";
 import type { UpdateProfilePayload } from "@common/types";
 import webSocketService from "../../services/websocket";
 import { webRTCService } from '../../services/webrtc';
+import { audioProcessor } from '../../services/AudioProcessor';
 import { generateAvatarColor, getInitials } from '../../utils/avatarUtils';
 import ImageCropperModal from '../ImageCropper/ImageCropperModal';
 import ChangePasswordModal from './ChangePasswordModal'; 
@@ -731,7 +732,23 @@ const VoiceVideoSettings: React.FC = () => {
             <h3 className="section-title">Обработка голоса</h3>
             <div className="settings-grid">
                 <div className="setting-item">
-                    <label>Шумоподавление</label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#A56BFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CrownIcon /> MurClear AI
+                        </span> 
+                        Шумоподавление
+                    </label>
+                    <input 
+                        type="checkbox" 
+                        checked={settings.aiNoiseSuppression} 
+                        onChange={(e) => {
+                            dispatch(setAiNoiseSuppression(e.target.checked));
+                            audioProcessor.setAiEnabled(e.target.checked);
+                        }} 
+                    />
+                </div>
+                <div className="setting-item">
+                    <label>Стандартное шумоподавление</label>
                     <input type="checkbox" checked={settings.noiseSuppression} onChange={(e) => dispatch(setNoiseSuppression(e.target.checked))} />
                 </div>
                 <div className="setting-item">

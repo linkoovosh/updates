@@ -144,7 +144,9 @@ const VoiceStage: React.FC = () => {
     // Layout Logic
     const isBrowserActive = sharedBrowser?.isActive;
     const screenSharerId = participants.find(id => voiceStates[id]?.isScreenSharing);
-    const activeFocusId = manualFocusId || screenSharerId || (isBrowserActive ? BROWSER_ID : null);
+    const cameraUserId = participants.find(id => voiceStates[id]?.isVideoEnabled); // NEW
+    
+    const activeFocusId = manualFocusId || screenSharerId || cameraUserId || (isBrowserActive ? BROWSER_ID : null);
     const isFocusedLayout = !!activeFocusId;
 
     const gridClass = isFocusedLayout 

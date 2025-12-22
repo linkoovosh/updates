@@ -21,11 +21,11 @@ const PopOutIcon = () => (
 );
 
 const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelected }) => {
-  const users = useSelector((state: RootState) => state.auth.users); // Other users cache
-  const currentUser = useSelector((state: RootState) => state.auth); // My profile
+  const users = useSelector((state: RootState) => state.auth.users);
+  const currentUser = useSelector((state: RootState) => state.auth);
   
-  // Resolve user data: Check if it's me, otherwise look in cache
   const isLocal = userId === currentUser.userId;
+  // CRITICAL FIX: Ensure we get banner from auth slice if it's the local user
   const user = isLocal ? currentUser : (users ? users[userId] : undefined);
   
   const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); 
@@ -36,30 +36,42 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
   const [volume, setVolume] = React.useState(1);
   const [hasAudio, setHasAudio] = React.useState(false);
 
-  const isSpeaking = voiceState ? voiceState.volume > 0.05 : false; 
-  const isMuted = voiceState?.isMuted;
+  const { screenShareResolution, screenShareFps, vadThreshold } = useSelector((state: RootState) => state.settings);
   
-  // Prioritize voiceState data, then user data
-  const username = voiceState?.username || user?.username || userId.substring(0, 8);
-  const avatar = voiceState?.avatar || user?.avatar;
-  const profileBanner = user?.profile_banner; 
-  
-  const selfId = currentUser.userId;
+  const selfId = webSocketService.getUserId();
   const selfVoiceState = selfId && voiceStates ? voiceStates[selfId] : undefined;
   const isDeafened = selfVoiceState?.isDeafened || false;
 
   const hasVideo = stream && stream.getVideoTracks().length > 0;
 
+  // Sync with processor sensitivity (Map 0-100 threshold to 0-0.5 range)
+  const normalizedThreshold = (vadThreshold / 100) * 0.5;
+  const isSpeaking = voiceState ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
+  const isMuted = voiceState?.isMuted;
+  
+  const username = voiceState?.username || user?.username || userId.substring(0, 8);
+  const avatar = voiceState?.avatar || user?.avatar;
+  const profileBanner = isLocal ? currentUser.profile_banner : user?.profile_banner; 
+  const hasAvatar = !!avatar && avatar !== 'null' && avatar !== 'undefined';
+
   React.useEffect(() => {
     if (videoRef.current && stream && hasVideo) {
-      console.log(`[VideoTile] Setting stream for ${username}: ID=${stream.id}, Tracks=${stream.getTracks().length}`);
+      // Check if tracks are still active
+      const tracks = stream.getTracks();
+      if (tracks.every(t => t.readyState === 'ended')) return;
+
+      console.log(`[VideoTile] Setting stream for ${username}: ID=${stream.id}, Tracks=${tracks.length}`);
       videoRef.current.srcObject = stream;
       
-      // Explicitly call play() because changing srcObject doesn't always trigger autoPlay
-      videoRef.current.play().catch(e => {
-          const err = e as Error;
-          console.error(`[VideoTile] Play failed for ${username}: ${err.name} - ${err.message}`);
-      });
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+          playPromise.catch(e => {
+              const err = e as Error;
+              if (err.name !== 'AbortError') {
+                  console.error(`[VideoTile] Play failed for ${username}: ${err.name} - ${err.message}`);
+              }
+          });
+      }
       
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length > 0) {
@@ -134,12 +146,15 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
            <div 
                 className="tile-avatar"
                 style={{ 
-                    backgroundColor: avatar ? 'transparent' : generateAvatarColor(username),
-                    backgroundImage: avatar ? `url(${avatar})` : 'none',
+                    backgroundColor: generateAvatarColor(username),
                     zIndex: 2 // Keep avatar above banner
                 }}
             >
-                {!avatar && getInitials(username)}
+                {hasAvatar ? (
+                    <img src={avatar} alt={username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                    getInitials(username)
+                )}
             </div>
         </div>
       )}

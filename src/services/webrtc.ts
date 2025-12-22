@@ -1,4 +1,4 @@
-// src/services/webrtc.ts
+import { audioProcessor } from './AudioProcessor';
 
 type ConnectionStateCallback = (state: RTCIceConnectionState, userId: string) => void;
 type LocalStreamCallback = (stream: MediaStream) => void;
@@ -10,16 +10,11 @@ class WebRTCService {
   private localStream: MediaStream | null = null;
   private bufferedIceCandidates: Map<string, RTCIceCandidate[]> = new Map(); // NEW: Buffer for ICE candidates
   
-  // Web Audio API nodes
+  // Legacy VAD internals (Moved to AudioProcessor, but we need volume for UI)
   private audioContext: AudioContext | null = null;
-  private sourceNode: MediaStreamAudioSourceNode | null = null;
-  private gainNode: GainNode | null = null;
   private analyserNode: AnalyserNode | null = null;
-  private destinationNode: MediaStreamAudioDestinationNode | null = null;
+  private sourceNode: MediaStreamAudioSourceNode | null = null;
   private vadInterval: number | null = null;
-
-  private currentVolume: number = 100; // 0-200
-  private currentThreshold: number = 5; // 0-100
 
   private onTrackCallbacks: Set<(stream: MediaStream, userId: string, metadata?: any) => void> = new Set();
   private onTrackRemovedCallbacks: Set<RemoteTrackRemovedCallback> = new Set();
@@ -38,69 +33,53 @@ class WebRTCService {
 
   // 1. Get local media stream with processing
   public async startLocalStream(audioConstraints?: MediaTrackConstraints, volume: number = 100, threshold: number = 10): Promise<MediaStream> {
-    this.currentVolume = volume;
-    this.currentThreshold = threshold;
-
-    // Always stop previous stream to ensure fresh AudioContext and tracks.
-    // Reusing streams causes issues with "dead" tracks or suspended AudioContexts on subsequent calls.
-    if (this.localStream) {
-        console.log('WebRTCService: Stopping old local stream before creating new one.');
-        this.stopLocalStream();
-    }
+    // Stop old tracks but KEEP context
+    this.stopLocalStream();
     
-    console.log('Requesting new media stream with constraints:', audioConstraints);
+    // Update Processor Settings
+    audioProcessor.setVadThreshold(threshold);
+    
+    console.log('[WebRTC] Requesting new media stream...');
 
     const constraints = {
-      audio: audioConstraints || true,
+      audio: {
+          ...audioConstraints,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          // @ts-ignore
+          googNoiseSuppression: true,
+          googExperimentalNoiseSuppression: true,
+      },
       video: false,
     };
 
     try {
         const rawStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('[WebRTC] Raw stream acquired:', rawStream.id);
         
-        // Debug: Inspect captured tracks
-        const tracks = rawStream.getTracks();
-        if (tracks.length > 0) {
-             const t = tracks[0];
-             console.log(`[WebRTC] Captured ${tracks.length} tracks. First track: "${t.label}" (Enabled: ${t.enabled}, Muted: ${t.muted}, ReadyState: ${t.readyState}, ID: ${t.id})`);
-        } else {
-             console.error("[WebRTC] Captured stream has NO tracks!");
-        }
+        // Pass through MurClear AI Processor
+        const processedStream = await audioProcessor.processStream(rawStream);
+        this.localStream = processedStream;
 
-        // Initialize Web Audio Context
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // --- UI Visualization Only ---
+        if (!this.audioContext) {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            this.audioContext = new AudioContextClass();
+        }
         
-        // CRITICAL FIX: Ensure Context is running
         if (this.audioContext.state === 'suspended') {
             await this.audioContext.resume();
-            console.log('[WebRTC] AudioContext resumed manually. State:', this.audioContext.state);
         }
 
-        this.sourceNode = this.audioContext.createMediaStreamSource(rawStream);
-        this.gainNode = this.audioContext.createGain();
+        this.sourceNode = this.audioContext.createMediaStreamSource(processedStream);
         this.analyserNode = this.audioContext.createAnalyser();
-        this.destinationNode = this.audioContext.createMediaStreamDestination();
-
-        // Configure Analyser
-        this.analyserNode.fftSize = 512;
-        this.analyserNode.smoothingTimeConstant = 0.4;
-
-        // Connect Graph: Source -> Analyser (for VAD) -> Gain (Volume/Gate) -> Destination
         this.sourceNode.connect(this.analyserNode);
-        this.analyserNode.connect(this.gainNode);
-        this.gainNode.connect(this.destinationNode);
-
-        // Start VAD Loop
-        this.startVadLoop();
-
-        // The processed stream is what we send to peers
-        this.localStream = this.destinationNode.stream;
+        this.analyserNode.fftSize = 512;
         
-        // We need to keep the raw tracks alive too
-        const originalTracks = rawStream.getAudioTracks();
-        (this.localStream as any).originalTracks = originalTracks; 
+        this.startVisualizationLoop();
 
-        console.log(`WebRTCService: Local stream processed. Notifying ${this.onLocalStreamCallbacks.size} listeners.`);
+        console.log(`WebRTCService: Stream processed. Notifying listeners.`);
         this.onLocalStreamCallbacks.forEach(cb => cb(this.localStream!));
 
         return this.localStream;
@@ -111,43 +90,21 @@ class WebRTCService {
     }
   }
 
-  private startVadLoop() {
-      if (this.vadInterval) window.clearInterval(this.vadInterval);
-      
+  private startVisualizationLoop() {
+      if (this.vadInterval) clearInterval(this.vadInterval);
       const dataArray = new Uint8Array(this.analyserNode!.frequencyBinCount);
 
       this.vadInterval = window.setInterval(() => {
-          if (!this.analyserNode || !this.gainNode) return;
-
+          if (!this.analyserNode) return;
           this.analyserNode.getByteFrequencyData(dataArray);
           
-          // Calculate average volume
           let sum = 0;
-          for(let i = 0; i < dataArray.length; i++) {
-              sum += dataArray[i];
-          }
+          for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
           const average = sum / dataArray.length;
-          
-          // Normalize 0-255 to 0-100 for threshold comparison
           const normalizedVolume = (average / 255) * 100;
           
-          // Emit volume for UI
           this.onAudioLevelCallbacks.forEach(cb => cb(normalizedVolume));
-          
-          // Apply simple VAD Gate
-          const targetGain = (this.currentVolume / 100);
-
-          if (normalizedVolume > this.currentThreshold) {
-              // Open Gate (Smooth transition)
-              this.gainNode.gain.setTargetAtTime(targetGain, this.audioContext!.currentTime, 0.05);
-          } else {
-              // Close Gate (Mute) - DISABLED FOR DEBUGGING
-              // this.gainNode.gain.setTargetAtTime(0, this.audioContext!.currentTime, 0.1);
-              // Keep gate open but maybe slightly lower? No, let's keep it FULL OPEN to verify mic.
-              this.gainNode.gain.setTargetAtTime(targetGain, this.audioContext!.currentTime, 0.05);
-          }
-
-      }, 50); // Check every 50ms
+      }, 50);
   }
   
   public onAudioLevel(callback: AudioLevelCallback) {
@@ -156,9 +113,9 @@ class WebRTCService {
   }
 
   public updateAudioSettings(volume: number, threshold: number) {
-      this.currentVolume = volume;
-      this.currentThreshold = threshold;
-      // console.log(`Updated Audio Settings: Vol=${volume}, Thresh=${threshold}`);
+      // Update Processor VAD
+      audioProcessor.setVadThreshold(threshold);
+      // Volume is handled UI-side or via Gain if implemented later
   }
 
   public muteLocalStream(muted: boolean) {
@@ -166,14 +123,6 @@ class WebRTCService {
           this.localStream.getAudioTracks().forEach(track => {
               track.enabled = !muted;
           });
-      }
-      // Also update Web Audio API gain if needed (double safety)
-      if (this.gainNode && this.audioContext) {
-          if (muted) {
-              this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-          } else {
-              this.gainNode.gain.setValueAtTime(this.currentVolume / 100, this.audioContext.currentTime);
-          }
       }
   }
 
@@ -183,15 +132,30 @@ class WebRTCService {
           this.vadInterval = null;
       }
       if (this.localStream) {
-          this.localStream.getTracks().forEach(track => track.stop());
-          if ((this.localStream as any).originalTracks) {
-              (this.localStream as any).originalTracks.forEach((t: MediaStreamTrack) => t.stop());
+          // IMPORTANT: Check if this stream is the global processor output.
+          // If it is, we DON'T stop its tracks, we just nullify the reference.
+          if (this.localStream === audioProcessor.outputStream) {
+              console.log('[WebRTC] Detaching from global processor stream (keeping tracks alive)');
+          } else {
+              this.localStream.getTracks().forEach(track => {
+                  track.stop();
+                  console.log(`[WebRTC] Stopped track: ${track.label}`);
+              });
+              
+              if ((this.localStream as any).originalTracks) {
+                  (this.localStream as any).originalTracks.forEach((t: MediaStreamTrack) => {
+                      t.stop();
+                      console.log(`[WebRTC] Stopped original track: ${t.label}`);
+                  });
+              }
           }
           this.localStream = null;
       }
-      if (this.audioContext) {
-          this.audioContext.close();
-          this.audioContext = null;
+      // Note: We keep this.audioContext ALIVE to avoid expensive re-initialization 
+      // and potential hardware access issues. We only disconnect nodes.
+      if (this.sourceNode) {
+          this.sourceNode.disconnect();
+          this.sourceNode = null;
       }
   }
 
