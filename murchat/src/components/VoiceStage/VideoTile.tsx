@@ -13,7 +13,7 @@ interface VideoTileProps {
 }
 
 const MicOffIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ background: '#ed4245', borderRadius: '50%', padding: '2px', color: 'white' }}><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ background: '#ed4245', borderRadius: '50%', padding: '2px', color: 'white' }}><line x1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" x19" x2="12" y2="23"></line><line x1="8" y2="23" x2="16" y2="23"></line></svg>
 );
 
 const PopOutIcon = () => (
@@ -25,26 +25,18 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
   const currentUser = useSelector((state: RootState) => state.auth);
   
   const isLocal = userId === currentUser.userId;
-  // CRITICAL FIX: Ensure we get banner from auth slice if it's the local user
   const user = isLocal ? currentUser : (users ? users[userId] : undefined);
   
   const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); 
   const voiceState = voiceStates ? voiceStates[userId] : undefined;
   
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  
   const [volume, setVolume] = React.useState(1);
   const [hasAudio, setHasAudio] = React.useState(false);
 
-  const { screenShareResolution, screenShareFps, vadThreshold } = useSelector((state: RootState) => state.settings);
+  const { vadThreshold } = useSelector((state: RootState) => state.settings);
   
-  const selfId = webSocketService.getUserId();
-  const selfVoiceState = selfId && voiceStates ? voiceStates[selfId] : undefined;
-  const isDeafened = selfVoiceState?.isDeafened || false;
-
   const hasVideo = stream && stream.getVideoTracks().length > 0;
-
-  // Sync with processor sensitivity (Map 0-100 threshold to 0-0.5 range)
   const normalizedThreshold = (vadThreshold / 100) * 0.5;
   const isSpeaking = voiceState ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
   const isMuted = voiceState?.isMuted;
@@ -56,56 +48,26 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
 
   React.useEffect(() => {
     if (videoRef.current && stream && hasVideo) {
-      // Check if tracks are still active
       const tracks = stream.getTracks();
       if (tracks.every(t => t.readyState === 'ended')) return;
-
-      console.log(`[VideoTile] Setting stream for ${username}: ID=${stream.id}, Tracks=${tracks.length}`);
       videoRef.current.srcObject = stream;
-      
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-          playPromise.catch(e => {
-              const err = e as Error;
-              if (err.name !== 'AbortError') {
-                  console.error(`[VideoTile] Play failed for ${username}: ${err.name} - ${err.message}`);
-              }
-          });
-      }
-      
+      videoRef.current.play().catch(() => {});
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length > 0) {
           setHasAudio(true);
-          // Mute if local OR if deafened
-          videoRef.current.muted = isLocal || isDeafened;
-          if (!isLocal && !isDeafened) {
-              videoRef.current.volume = volume;
-          }
+          videoRef.current.muted = isLocal;
+          if (!isLocal) videoRef.current.volume = volume;
       } else {
           setHasAudio(false);
           videoRef.current.muted = true;
       }
     }
-  }, [stream, isLocal, isDeafened, hasVideo]);
-
-  // Update volume when slider changes
-  React.useEffect(() => {
-      if (videoRef.current && !isLocal && hasAudio && hasVideo) {
-          videoRef.current.volume = isDeafened ? 0 : volume;
-          videoRef.current.muted = isDeafened;
-      }
-  }, [volume, isLocal, hasAudio, isDeafened, hasVideo]);
+  }, [stream, isLocal, hasVideo]);
 
   const handlePopOut = (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (videoRef.current && document.pictureInPictureEnabled) {
-          if (document.pictureInPictureElement === videoRef.current) {
-              document.exitPictureInPicture();
-          } else {
-              videoRef.current.requestPictureInPicture().catch(err => console.error("PiP failed:", err));
-          }
-      } else {
-          alert("Ваш браузер не поддерживает функцию 'Картинка в картинке' или видео еще не загружено.");
+      if (videoRef.current?.requestPictureInPicture) {
+          videoRef.current.requestPictureInPicture().catch(() => {});
       }
   };
 
@@ -119,12 +81,12 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
             ref={videoRef} 
             autoPlay 
             playsInline 
-            muted={isLocal || isDeafened}
+            muted={isLocal}
             className="tile-video" 
         />
       ) : (
         <div className="tile-avatar-container">
-           {/* Animated Banner Background - Always mounted for smoothness */}
+           {/* GIF Banner FIX: Always mounted, hidden by opacity, scaled up when talking */}
            {profileBanner && (
                <div 
                    className="tile-banner-bg"
@@ -134,10 +96,12 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
                        backgroundImage: `url(${profileBanner})`,
                        backgroundSize: 'cover',
                        backgroundPosition: 'center',
-                       opacity: isSpeaking ? 0.6 : 0, // Fade in/out instead of mount/unmount
-                       filter: 'blur(2px)', 
+                       backgroundRepeat: 'no-repeat',
+                       opacity: isSpeaking ? 0.75 : 0, 
+                       filter: 'blur(3px)', 
+                       transform: isSpeaking ? 'scale(1.1)' : 'scale(1)',
+                       transition: 'opacity 0.4s ease, transform 0.4s ease',
                        zIndex: 0,
-                       transition: 'opacity 0.3s ease',
                        pointerEvents: 'none'
                    }}
                />
@@ -147,7 +111,9 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
                 className="tile-avatar"
                 style={{ 
                     backgroundColor: generateAvatarColor(username),
-                    zIndex: 2 // Keep avatar above banner
+                    zIndex: 2,
+                    boxShadow: isSpeaking ? '0 0 20px var(--accent-blue)' : 'none',
+                    transition: 'box-shadow 0.3s ease'
                 }}
             >
                 {hasAvatar ? (
@@ -167,20 +133,18 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {stream && hasAudio && !isLocal && (
-                <div className="tile-volume-control" onClick={e => e.stopPropagation()} title={`Громкость: ${Math.round(volume * 100)}%`}>
+                <div className="tile-volume-control" onClick={e => e.stopPropagation()}>
                     <input 
                         type="range" 
-                        min="0" 
-                        max="1" 
-                        step="0.05" 
+                        min="0" max="1" step="0.05" 
                         value={volume} 
                         onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        style={{ width: '60px', height: '4px', accentColor: 'var(--accent-primary)' }}
+                        style={{ width: '60px' }}
                     />
                 </div>
             )}
             {stream && (
-                <button className="tile-btn" onClick={handlePopOut} title="Открыть в отдельном окне">
+                <button className="tile-btn" onClick={handlePopOut}>
                     <PopOutIcon />
                 </button>
             )}

@@ -14,7 +14,7 @@ interface RemoteAudioTrack {
 interface AudioNodeMap {
   source: MediaStreamAudioSourceNode;
   analyser: AnalyserNode;
-  streamClone: MediaStream;
+  streamClone: MediaStream; // Clone for analysis ONLY
 }
 
 const VoiceManager: React.FC = () => {
@@ -37,6 +37,7 @@ const VoiceManager: React.FC = () => {
   React.useEffect(() => { authUserIdRef.current = authUserId; }, [authUserId]);
   React.useEffect(() => { voiceStatesRef.current = voiceStates; }, [voiceStates]);
 
+  // Initialize AudioContext
   React.useEffect(() => {
     audioContextRef.current = getAudioContext();
   }, []);
@@ -45,7 +46,7 @@ const VoiceManager: React.FC = () => {
     const currentSelfId = authUserIdRef.current;
     const isLocal = userId === currentSelfId;
 
-    console.log(`[VoiceManager] handleTrack: userId=${userId}, isLocal=${isLocal}, source=${metadata?.source || 'mic'}`);
+    console.log(`[VoiceManager] handleTrack: userId=${userId}, isLocal=${isLocal}`);
 
     if (stream.getAudioTracks().length === 0) return;
 
@@ -63,6 +64,9 @@ const VoiceManager: React.FC = () => {
       });
     }
 
+    // --- Visualizer Logic (Clone Strategy) ---
+    // We clone the stream so the original stream can be played by the <audio> element
+    // WITHOUT being hijacked by Web Audio API.
     if (!audioContextRef.current) return;
     const ctx = audioContextRef.current;
     await resumeAudioContext();
@@ -74,12 +78,12 @@ const VoiceManager: React.FC = () => {
         audioNodesRef.current.delete(userId);
     }
 
-    const streamClone = stream.clone();
+    const streamClone = stream.clone(); // CLONE for analysis
     const source = ctx.createMediaStreamSource(streamClone);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 512;
     analyser.smoothingTimeConstant = 0.4;
-    source.connect(analyser);
+    source.connect(analyser); // Connect to analyser ONLY, not destination
 
     audioNodesRef.current.set(userId, { source, analyser, streamClone });
   };
@@ -133,78 +137,56 @@ const VoiceManager: React.FC = () => {
     return () => { if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current); };
   }, [dispatch]);
 
+  // --- PLAYBACK LOGIC (Standard HTML5 Audio) ---
   React.useEffect(() => {
     remoteAudioTracks.forEach(({ userId, stream }) => {
       const audioEl = audioRefs.current.get(userId);
       const userState = voiceStates[userId];
+      
       if (audioEl) {
+          // 1. Assign Stream
           if (audioEl.srcObject !== stream) {
+            console.log(`[VoiceManager] Assigning ORIGINAL stream to <audio> for ${userId}`);
             audioEl.srcObject = stream;
             audioEl.play().catch(e => console.warn("Audio play error:", e));
           }
+
+          // 2. Set Output Device (Sink ID) - This works on <audio> elements!
           if (outputDeviceId && (audioEl as any).setSinkId) {
               if ((audioEl as any).sinkId !== outputDeviceId) {
+                  console.log(`[VoiceManager] Setting sinkId to ${outputDeviceId} for ${userId}`);
                   (audioEl as any).setSinkId(outputDeviceId).catch((e: any) => console.error("setSinkId error:", e));
               }
           }
+          
+          // 3. Control Volume / Mute
           if (userState) {
               const vol = (userState.localVolume ?? 100) / 100;
-              audioEl.volume = isDeafened ? 0 : vol;
-              audioEl.muted = userState.isMuted || isDeafened;
+              // Only update if changed to prevent thrashing
+              if (Math.abs(audioEl.volume - vol) > 0.01) audioEl.volume = isDeafened ? 0 : vol;
+              
+              const shouldMute = userState.isMuted || isDeafened;
+              if (audioEl.muted !== shouldMute) audioEl.muted = shouldMute;
           }
       }
     });
   }, [remoteAudioTracks, voiceStates, isDeafened, outputDeviceId]);
 
-  // Debug function to force audio playback
-  const forceAudioRepair = async () => {
-      console.log("[DEBUG] FORCING AUDIO REPAIR...");
-      await resumeAudioContext();
-      audioRefs.current.forEach((el, id) => {
-          console.log(`[DEBUG] Resuming audio for ${id}. Current volume: ${el.volume}, Muted: ${el.muted}`);
-          el.play().catch(e => console.error("Force play failed", e));
-      });
-      alert(`Debug: ${remoteAudioTracks.length} remote tracks active. Context: ${audioContextRef.current?.state}`);
-  };
-
   return (
-    <>
-      <div style={{ display: 'none' }}>
-        {remoteAudioTracks.map(({ userId }) => (
-          <audio
-            key={userId}
-            ref={el => { 
-                if (el) audioRefs.current.set(userId, el);
-                else audioRefs.current.delete(userId);
-            }}
-            autoPlay
-            playsInline
-          />
-        ))}
-      </div>
-      
-      {/* Hidden/Floating Debug Button */}
-      {remoteAudioTracks.length > 0 && (
-          <button 
-            onClick={forceAudioRepair}
-            style={{
-                position: 'fixed',
-                bottom: '80px',
-                right: '20px',
-                zIndex: 9999,
-                padding: '10px',
-                background: 'rgba(255,0,0,0.5)',
-                color: 'white',
-                borderRadius: '5px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '10px'
-            }}
-          >
-            FIX AUDIO
-          </button>
-      )}
-    </>
+    <div style={{ display: 'none' }}>
+      {remoteAudioTracks.map(({ userId }) => (
+        <audio
+          key={userId}
+          ref={el => { 
+              if (el) audioRefs.current.set(userId, el);
+              else audioRefs.current.delete(userId);
+          }}
+          autoPlay
+          playsInline
+          controls={false} // Hidden control
+        />
+      ))}
+    </div>
   );
 };
 

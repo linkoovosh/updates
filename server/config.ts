@@ -73,9 +73,9 @@ export const config = {
       minimumAvailableOutgoingBitrate: 600000,
       maxSctpMessageSize: 262144,
       maxIncomingBitrate: 1500000,
-      enableUdp: false, // DISABLE UDP: Too unstable, causes DTLS failures.
-      enableTcp: true,  // FORCE TCP: Guaranteed delivery.
-      preferUdp: false, 
+      enableUdp: true,  // RE-ENABLE UDP: Essential for real-time media
+      enableTcp: true,
+      preferUdp: true,  // PREFER UDP: Lower latency, better stability for audio
       initialAvailableOutgoingBitrate: 600000 
     }
   }

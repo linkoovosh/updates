@@ -1,7 +1,7 @@
 {
   "name": "murchat",
   "private": true,
-  "version": "0.0.95",
+  "version": "0.0.100",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -59,13 +59,14 @@
     },
     "nsis": {
       "oneClick": false,
-      "perMachine": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
       "installerIcon": "public/murchat.ico",
       "uninstallerIcon": "public/murchat.ico",
       "installerHeaderIcon": "public/murchat.ico",
+      "installerSidebar": "public/home_open.png",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "MurCHAT",

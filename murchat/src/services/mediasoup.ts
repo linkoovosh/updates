@@ -165,7 +165,15 @@ class MediasoupService {
         try {
             const savedSettings = localStorage.getItem('murchat-settings');
             const deviceId = savedSettings ? JSON.parse(savedSettings).inputDeviceId : undefined;
-            const rawStream = await navigator.mediaDevices.getUserMedia({ audio: deviceId ? { deviceId: { exact: deviceId } } : true });
+            const rawStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { 
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    channelCount: 1, // FORCE MONO to fix "left ear only" issue
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                } 
+            });
             this.rawMicStream = rawStream;
             const processedStream = await audioProcessor.processStream(rawStream);
             this.processedMicStream = processedStream; 
