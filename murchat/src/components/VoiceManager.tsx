@@ -15,6 +15,7 @@ interface RemoteAudioTrack {
 interface AudioNodeMap {
   source: MediaStreamAudioSourceNode;
   analyser: AnalyserNode;
+  gain: GainNode; // Control volume via Web Audio
 }
 
 const VoiceManager: React.FC = () => {
@@ -27,7 +28,9 @@ const VoiceManager: React.FC = () => {
 
   const authUserId = useSelector((state: RootState) => state.auth.userId); 
   const voiceStates = useSelector((state: RootState) => state.voice.voiceStates);
+  // Get outputDeviceId from the first selector
   const outputDeviceId = useSelector((state: RootState) => state.settings.outputDeviceId);
+  
   const selfVoiceState = authUserId ? voiceStates[authUserId] : undefined;
   const isDeafened = selfVoiceState?.isDeafened || false;
 
@@ -75,74 +78,62 @@ const VoiceManager: React.FC = () => {
         });
       }
 
-      // --- Visualizer Logic (Always connect for speaking indicator) ---
+      // --- Web Audio API Routing (Playback + Visualizer) ---
       if (!audioContextRef.current) return;
       const audioContext = audioContextRef.current;
 
       await resumeAudioContext();
 
       const existingNode = audioNodesRef.current.get(userId);
-      // Only re-create if the stream object actually changed
       if (existingNode && (existingNode as any).originalStream === stream) {
           return;
       }
 
       if (existingNode) {
         existingNode.source.disconnect();
+        existingNode.gain.disconnect();
       }
       
-      // IMPORTANT: Use a CLONE for the visualizer to prevent Web Audio from hijacking 
-      // the stream from the <audio> element (common Chrome bug).
-      const visualizerStream = stream.clone();
-      const source = audioContext.createMediaStreamSource(visualizerStream);
+      // Use the stream directly. 
+      // Note: connecting to 'destination' effectively plays it.
+      const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
+      const gain = audioContext.createGain();
+      
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.4;
+      
+      // Routing: Source -> Gain -> Destination (Speakers)
+      //          Source -> Analyser (Visuals)
+      source.connect(gain);
       source.connect(analyser);
       
-      const nodeMap = { source, analyser };
-      (nodeMap as any).originalStream = stream; // Tag it to avoid double-processing
-      (nodeMap as any).visualizerStream = visualizerStream; // Keep reference to stop later
+      // If it's a remote user, connect to speakers.
+      // If it's local user, DO NOT connect to speakers (self-loop/echo), just analyser.
+      if (!isLocal) {
+          gain.connect(audioContext.destination);
+      } else {
+          // Local user: only visuals, mute playback
+          gain.gain.value = 0; 
+      }
+      
+      const nodeMap = { source, analyser, gain };
+      (nodeMap as any).originalStream = stream;
       audioNodesRef.current.set(userId, nodeMap);
     };
 
     const handleLocalStream = async (stream: MediaStream) => {
-        const myUserId = authUserIdRef.current;
-        console.log(`[VoiceManager] handleLocalStream (visualizer only): ${myUserId}`);
-        
-        if (!myUserId || !audioContextRef.current) return;
-        if (stream.getAudioTracks().length === 0) return;
-        
-        // Resume context if suspended (browser policy)
-        await resumeAudioContext();
-        
-        if (audioNodesRef.current.has(myUserId)) {
-            const existing = audioNodesRef.current.get(myUserId);
-            if ((existing as any).originalStream === stream) return;
-            existing?.source.disconnect();
-            // Stop tracks of the old clone
-            if ((existing as any).visualizerStream) {
-                (existing as any).visualizerStream.getTracks().forEach((t: any) => t.stop());
-            }
-        }
-        
-        const visualizerStream = stream.clone();
-        const source = audioContextRef.current.createMediaStreamSource(visualizerStream);
-        const analyser = audioContextRef.current.createAnalyser();
-        analyser.fftSize = 512;
-        source.connect(analyser);
-        
-        const nodeMap = { source, analyser };
-        (nodeMap as any).originalStream = stream;
-        (nodeMap as any).visualizerStream = visualizerStream;
-        audioNodesRef.current.set(myUserId, nodeMap);
+        // Reuse general handler, it handles isLocal logic
+        handleTrack(stream, authUserIdRef.current || 'local', { source: 'mic' });
     };
 
     const handleConnectionState = (state: RTCIceConnectionState, userId: string) => {
         if (state === 'disconnected' || state === 'closed' || state === 'failed') {
             setRemoteAudioTracks(prev => prev.filter(t => t.userId !== userId));
             if (audioNodesRef.current.has(userId)) {
-                audioNodesRef.current.get(userId)?.source.disconnect();
+                const nodes = audioNodesRef.current.get(userId);
+                nodes?.source.disconnect();
+                nodes?.gain.disconnect();
                 audioNodesRef.current.delete(userId);
             }
         }
@@ -152,7 +143,9 @@ const VoiceManager: React.FC = () => {
         if (!metadata || metadata.source === 'mic') {
              setRemoteAudioTracks(prev => prev.filter(t => t.userId !== userId));
              if (audioNodesRef.current.has(userId)) {
-                 audioNodesRef.current.get(userId)?.source.disconnect();
+                 const nodes = audioNodesRef.current.get(userId);
+                 nodes?.source.disconnect();
+                 nodes?.gain.disconnect();
                  audioNodesRef.current.delete(userId);
              }
         }
@@ -198,13 +191,9 @@ const VoiceManager: React.FC = () => {
       
       audioNodesRef.current.forEach((nodes, userId) => {
         const userState = voiceStatesRef.current[userId];
+        const isLocal = userId === authUserIdRef.current;
         
-        if (userState?.isMuted) {
-            dispatch(updateVoiceState({ userId, partialState: { volume: 0 } }));
-            return;
-        }
-
-        // Use Time Domain Data for better peak/rms calculation
+        // 1. Calculate Visuals (RMS)
         const dataArray = new Uint8Array(nodes.analyser.frequencyBinCount);
         nodes.analyser.getByteTimeDomainData(dataArray);
         
@@ -214,29 +203,28 @@ const VoiceManager: React.FC = () => {
           sum += amplitude * amplitude;
         }
         const rms = Math.sqrt(sum / dataArray.length);
-        
-        // Subtract noise floor (approx 0.005) and scale. 
-        // Anything below 0.005 RMS will now result in 0 volume.
-        const cleanedRms = Math.max(0, rms - 0.005);
-        const volume = Math.min(1, cleanedRms * 6); 
+        const cleanedRms = Math.max(0, rms - 0.002); // Lower noise floor for visuals
+        const visualVolume = Math.min(1, cleanedRms * 6); 
+
+        // 2. Control Playback Volume (GainNode)
+        if (nodes.gain) {
+            let playbackVolume = 1.0;
+            
+            if (isLocal || (userState?.isMuted) || isDeafened) {
+                playbackVolume = 0;
+            } else if (userState?.localVolume !== undefined) {
+                playbackVolume = userState.localVolume / 100;
+            }
+            
+            // Smooth volume transition
+            nodes.gain.gain.setTargetAtTime(playbackVolume, audioContextRef.current!.currentTime, 0.1);
+        }
 
         if (userId === authUserIdRef.current && heartbeatCounterRef.current % 300 === 0) {
-            const rawValue = dataArray[0]; // Sample value to see if it's changing
-            console.log(`[VoiceManager] Heartbeat: Local volume=${volume.toFixed(4)}, CleanRMS=${cleanedRms.toFixed(4)}, RawRMS=${rms.toFixed(4)}, AudioContext=${audioContextRef.current?.state}`);
+            console.log(`[VoiceManager] Heartbeat: Local volume=${visualVolume.toFixed(4)}, CleanRMS=${cleanedRms.toFixed(4)}, RawRMS=${rms.toFixed(4)}, AudioContext=${audioContextRef.current?.state}`);
         }
         
-        // --- Silence Detection (Remote Only) ---
-        if (userId !== authUserIdRef.current && volume < 0.005) {
-            const count = (silenceCountersRef.current.get(userId) || 0) + 1;
-            silenceCountersRef.current.set(userId, count);
-            if (count === 300) { // Approx 5-6 seconds at 60fps
-                console.warn(`[VoiceManager] User ${userId} is sending a COMPLETELY SILENT stream. Potential permission/hardware issue on their end.`);
-            }
-        } else {
-            silenceCountersRef.current.set(userId, 0);
-        }
-        
-        dispatch(updateVoiceState({ userId, partialState: { volume } }));
+        dispatch(updateVoiceState({ userId, partialState: { volume: visualVolume } }));
       });
       animationFrameRef.current = requestAnimationFrame(analyze);
     };
@@ -247,31 +235,32 @@ const VoiceManager: React.FC = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      audioNodesRef.current.forEach(nodes => nodes.source.disconnect());
+      audioNodesRef.current.forEach(nodes => {
+          nodes.source.disconnect();
+          nodes.gain.disconnect();
+      });
       audioNodesRef.current.clear();
     };
   }, [dispatch]);
 
   const { inputDeviceId, vadThreshold } = useSelector((state: RootState) => state.settings);
 
-  // Apply volume changes and OUTPUT DEVICE to Audio Elements
+  // HTML Audio Elements (Fallback + SinkID)
+  // We MUTE these because we are playing audio via WebAudio API above.
+  // But we keep them because 'setSinkId' works best on HTMLAudioElements in Electron/Chrome.
   React.useEffect(() => {
     remoteAudioTracks.forEach(({ userId, stream }) => {
       const audioEl = audioRefs.current.get(userId);
-      const userState = voiceStates[userId];
       
       if (audioEl) {
-          // Robust stream assignment
+          // Ensure it's playing (even if muted) to keep the stream alive
           if (audioEl.srcObject !== stream) {
-            console.log(`[VoiceManager] FORCING stream assignment for ${userId}`);
             audioEl.srcObject = stream;
-            audioEl.volume = 0; // Start at 0 to avoid pops
-            audioEl.play()
-                .then(() => console.log(`[VoiceManager] Playback started for ${userId}`))
-                .catch(error => console.error(`[VoiceManager] Playback FAILED for ${userId}:`, error));
+            audioEl.muted = true; // IMPORTANT: Mute to avoid echo/double audio
+            audioEl.play().catch(e => console.error("AudioEl play error", e));
           }
 
-          // Set Output Device (Sink ID)
+          // Apply Output Device preference
           if (outputDeviceId && (audioEl as any).setSinkId) {
               if ((audioEl as any).sinkId !== outputDeviceId) {
                   console.log(`[VoiceManager] Setting output device for ${userId} to ${outputDeviceId}`);
@@ -279,23 +268,9 @@ const VoiceManager: React.FC = () => {
                       .catch((e: any) => console.error("Failed to set sinkId:", e));
               }
           }
-          
-          if (userState) {
-              const targetVolume = isDeafened ? 0 : Math.min(1, (userState.localVolume ?? 100) / 100);
-              // Use a small threshold to avoid constant updates
-              if (Math.abs(audioEl.volume - targetVolume) > 0.01) {
-                  audioEl.volume = targetVolume;
-                  // Debug log once when volume changes significantly
-                  if (Math.random() < 0.05) console.log(`[VoiceManager] Audio element volume for ${userId}: ${audioEl.volume}, Muted: ${audioEl.muted}`);
-              }
-              const shouldBeMuted = userState.isMuted || isDeafened;
-              if (audioEl.muted !== shouldBeMuted) {
-                  audioEl.muted = shouldBeMuted;
-              }
-          }
       }
     });
-  }, [remoteAudioTracks, voiceStates, isDeafened, outputDeviceId]); // Added outputDeviceId dependency
+  }, [remoteAudioTracks, outputDeviceId]); // Added outputDeviceId dependency
 
   // "Watchdog" effect to ensure audio keeps playing
   React.useEffect(() => {
