@@ -672,4 +672,4 @@
 :root.cat-mode .chat-header {
     background-color: transparent !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
+}`n/* --- Attachments Style --- */`n.message-attachments { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }`n.chat-img-attachment { max-width: 400px; max-height: 300px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.1); transition: transform 0.2s; }`n.chat-img-attachment:hover { transform: scale(1.02); }`n.file-attachment-card { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: var(--text-normal); font-size: 13px; }`n.file-attachment-card a { color: var(--accent-blue); text-decoration: none; font-weight: bold; }

@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setSelectedChannelId, openServerSettings } from '../../store/slices/serverSlice';
 import { setVoiceChannel, clearVoiceChannel, updateVoiceState } from '../../store/slices/voiceSlice';
+import { clearUnreadCount } from '../../store/slices/chatSlice';
 import { setUserProfileForId } from '../../store/slices/authSlice';
 import { setShowAccessDenied } from '../../store/slices/uiSlice'; // NEW
 import { generateAvatarColor, getInitials } from '../../utils/avatarUtils';

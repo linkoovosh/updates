@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './ChatView.css';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { addMessage, deleteMessage, updateMessage, addDmMessage } from '../../store/slices/chatSlice';
+import { addMessage, deleteMessage, updateMessage, addDmMessage, clearUnreadCount } from '../../store/slices/chatSlice';
 import { setUserProfileForId } from "../../store/slices/authSlice";
 import webSocketService from "../../services/websocket";
 import { C2S_MSG_TYPE } from "../../../common/types";
@@ -11,8 +11,6 @@ import { generateAvatarColor, getInitials } from "../../utils/avatarUtils";
 import AudioRecorder from '../AudioRecorder/AudioRecorder';
 import VoiceMessagePlayer from '../VoiceMessagePlayer/VoiceMessagePlayer';
 import MarkdownRenderer from '../MarkdownRenderer/MarkdownRenderer';
-import MessageContextMenu from './MessageContextMenu';
-import UserContextMenu from '../Members/UserContextMenu';
 import ExpressionPicker from './ExpressionPicker';
 import { getConversationId } from '../../services/db';
 import { PaperclipIcon, SmileIcon, MicIcon } from '../UI/Icons';
@@ -33,29 +31,19 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const currentUserAvatar = useSelector((state: RootState) => state.auth.avatar);
   const serverMembers = useSelector((state: RootState) => state.server.serverMembers);
   const currentServerRoles = useSelector((state: RootState) => state.server.currentServerRoles);
-  const allTypingUsers = useSelector((state: RootState) => state.chat.typingUsers);
   
   const isDm = selectedServerId === null && !!activeDmConversationId;
   const effectiveChannelId = isDm ? activeDmConversationId : selectedChannelId;
 
-  const typingUsers = useMemo(() => {
-      return allTypingUsers[effectiveChannelId || ''] || [];
-  }, [allTypingUsers, effectiveChannelId]);
-  
   const [messageInput, setMessageInput] = useState('');
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: any | null } | null>(null);
-  const [replyTo, setReplyTo] = useState<any | null>(null);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize
   useEffect(() => {
     if (messageInputRef.current) {
       messageInputRef.current.style.height = 'auto';
@@ -125,44 +113,34 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const handleSendMessage = (attachments?: Attachment[]) => {
     const content = messageInput.trim();
     if ((content || (attachments && attachments.length > 0)) && effectiveChannelId && userId) {
-      const tempId = `temp-${Date.now()}`;
-      
       if (isDm) {
           webSocketService.sendDm(effectiveChannelId, content, attachments); 
       } else {
-          // IMPORTANT FIX: Correctly pass attachments to WebSocket
           webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, {
               channelId: effectiveChannelId,
               content: content,
               author: username,
-              attachments: attachments,
-              replyToId: replyTo?.id
+              attachments: attachments
           });
-          
-          // Optimistic update
           dispatch(addMessage({
-              id: tempId,
+              id: `temp-${Date.now()}`,
               channelId: effectiveChannelId,
               content: content,
               author: username || 'Me',
               authorId: userId,
               timestamp: Date.now(),
               authorAvatar: currentUserAvatar || undefined,
-              attachments: attachments,
-              replyToId: replyTo?.id
+              attachments: attachments
           }));
       }
       setMessageInput('');
-      setReplyTo(null);
       messageInputRef.current?.focus();
     }
   };
 
   const handleFiles = async (files: FileList | null) => {
       if (!files || files.length === 0) return;
-      setIsUploading(true);
       const newAttachments: Attachment[] = [];
-
       for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const reader = new FileReader();
@@ -170,27 +148,13 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
               reader.onload = () => resolve(reader.result as string);
               reader.readAsDataURL(file);
           });
-          newAttachments.push({
-              id: crypto.randomUUID(),
-              url: base64,
-              filename: file.name,
-              contentType: file.type,
-              size: file.size
-          });
+          newAttachments.push({ id: crypto.randomUUID(), url: base64, filename: file.name, contentType: file.type, size: file.size });
       }
       handleSendMessage(newAttachments);
-      setIsUploading(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
   };
 
   return (
-    <div className={`chat-view ${className || ''}`} onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFiles(e.dataTransfer.files); }}>
+    <div className={`chat-view ${className || ''}`} onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()} onClick={() => setShowPicker(false)}>
       <div className="chat-header">
         <h2>{isDm ? `@ ${channelName}` : `# ${channelName || 'Выберите канал'}`}</h2>
       </div>
@@ -214,18 +178,20 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                 <div key={msg.id} className="message-item-content">
                     {msg.content && <MarkdownRenderer content={msg.content} />}
                     {msg.audioData && <VoiceMessagePlayer src={msg.audioData} />}
-                    {msg.attachments?.map((att: Attachment) => (
-                        <div key={att.id} className="attachment-preview">
-                            {att.contentType.startsWith('image/') ? (
-                                <img src={att.url} alt={att.filename} className="chat-img-attachment" onClick={() => window.open(att.url)} />
-                            ) : (
-                                <div className="file-attachment-card">
-                                    <span>📄 {att.filename}</span>
-                                    <a href={att.url} download={att.filename}>Скачать</a>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                    <div className="message-attachments">
+                        {msg.attachments?.map((att: Attachment) => (
+                            <div key={att.id} className="attachment-preview">
+                                {att.contentType.startsWith('image/') ? (
+                                    <img src={att.url} alt={att.filename} className="chat-img-attachment" onClick={() => window.open(att.url)} />
+                                ) : (
+                                    <div className="file-attachment-card">
+                                        <span>📄 {att.filename}</span>
+                                        <a href={att.url} download={att.filename}>Скачать</a>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
               ))}
             </div>
@@ -234,13 +200,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="chat-input-area">
-        {replyTo && (
-            <div className="reply-preview">
-                <span>Ответ @{replyTo.author}</span>
-                <button onClick={() => setReplyTo(null)}>×</button>
-            </div>
-        )}
+      <div className="chat-input-area" onClick={e => e.stopPropagation()}>
         <div className="chat-input-row">
             <button className="attach-button" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={(e) => handleFiles(e.target.files)} multiple />
@@ -251,13 +211,16 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                 className="chat-textarea"
                 placeholder="Напишите сообщение..."
                 value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onChange={(e) => {
+                    setMessageInput(e.target.value);
+                    if (effectiveChannelId) webSocketService.sendTypingStart(effectiveChannelId);
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                 rows={1}
             />
             <div className="input-actions">
-                <button className="action-button" onClick={() => setShowPicker(!showPicker)}><SmileIcon /></button>
-                <button className="action-button" onClick={() => setShowAudioRecorder(true)}><MicIcon /></button>
+                <button className="action-button emoji-button" onClick={(e) => { e.stopPropagation(); setShowPicker(!showPicker); }}><SmileIcon /></button>
+                <button className="action-button mic-button" onClick={() => setShowAudioRecorder(true)}><MicIcon /></button>
             </div>
         </div>
         
@@ -284,7 +247,6 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
             </div>
         )}
       </div>
-      {isDragging && <div className="drag-drop-overlay">Отпустите, чтобы отправить файлы 📥</div>}
     </div>
   );
 };

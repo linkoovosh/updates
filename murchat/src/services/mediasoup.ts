@@ -107,31 +107,46 @@ class MediasoupService {
     async onWebRtcTransportCreated(params: any) {
         if (!this.sendTransport) {
             this.sendTransport = this.device!.createSendTransport(params);
+            
             this.sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+                console.log("[SFU] Send transport connecting...");
                 this.pendingConnectCallbacks.set(this.sendTransport!.id, { callback, errback });
                 this.signal(C2S_MSG_TYPE.MS_CONNECT_TRANSPORT, { transportId: this.sendTransport!.id, dtlsParameters });
             });
-            this.sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
+
+            this.sendTransport.on('produce', async (args, callback, errback) => {
                 try {
+                    const { kind, rtpParameters, appData } = args;
+                    console.log(`[SFU] Producing ${kind}...`);
                     this.signal(C2S_MSG_TYPE.MS_PRODUCE, { transportId: this.sendTransport!.id, kind, rtpParameters, appData, channelId: this.channelId });
                     this.pendingProduceCallbacks.set(appData?.source || 'mic', callback);
-                } catch (error: any) { errback(error); }
+                } catch (error: any) { 
+                    if (typeof errback === 'function') errback(error); 
+                }
             });
+
             this.sendTransport.on('connectionstatechange', (state) => {
+                console.log(`[SFU] Send transport state: ${state}`);
                 if (state === 'failed') this.handleTransportFailure();
                 this.emit('connectionStateChange', state);
             });
+
             this.startAudio();
         } else if (!this.recvTransport) {
             this.recvTransport = this.device!.createRecvTransport(params);
+            
             this.recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+                console.log("[SFU] Recv transport connecting...");
                 this.pendingConnectCallbacks.set(this.recvTransport!.id, { callback, errback });
                 this.signal(C2S_MSG_TYPE.MS_CONNECT_TRANSPORT, { transportId: this.recvTransport!.id, dtlsParameters });
             });
+
             this.recvTransport.on('connectionstatechange', (state) => {
+                console.log(`[SFU] Recv transport state: ${state}`);
                 if (state === 'failed') this.handleTransportFailure();
                 this.emit('connectionStateChange', state);
             });
+
             this.signal(C2S_MSG_TYPE.MS_GET_EXISTING_PRODUCERS, { channelId: this.channelId });
             if (this.pendingConsumers.length > 0) {
                 const queue = [...this.pendingConsumers];
