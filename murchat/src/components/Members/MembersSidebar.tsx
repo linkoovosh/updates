@@ -34,7 +34,6 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
       if (!isOnline) {
         groups['offline'].members.push(member);
       } else {
-        // Find highest role that has members displayed separately
         const memberRoles = member.roles || [];
         const highestRole = sortedRoles.find(r => memberRoles.includes(r.id));
         
@@ -49,8 +48,6 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
     return Object.values(groups).filter(g => g.members.length > 0);
   }, [members, roles]);
 
-  let globalIndex = 0; // For global staggered animation delay
-
   return (
     <div className={`members-sidebar glass-panel ${className || ''}`}>
       <div className="members-header">Участники — {members.length}</div>
@@ -63,13 +60,11 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
             {group.members.map((member) => {
               const avatarUrl = member.avatar;
               const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
-              const delay = Math.min(globalIndex++ * 0.04, 1.5);
 
               return (
                 <div 
                   key={member.id} 
                   className="member-item" 
-                  style={{ animationDelay: `${delay}s` }}
                   onClick={() => dispatch(setUserProfileForId(member.id))}
                 >
                   <div className="member-avatar-wrapper">
