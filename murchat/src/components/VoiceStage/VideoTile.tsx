@@ -23,33 +23,31 @@ const PopOutIcon = () => (
 const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelected }) => {
   const users = useSelector((state: RootState) => state.auth.users);
   const currentUser = useSelector((state: RootState) => state.auth);
-  
+  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); 
+  const { vadThreshold } = useSelector((state: RootState) => state.settings);
+
   const isLocal = userId === currentUser.userId;
   const user = isLocal ? currentUser : (users ? users[userId] : undefined);
-  
-  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); 
   const voiceState = voiceStates ? voiceStates[userId] : undefined;
   
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [volume, setVolume] = React.useState(1);
   const [hasAudio, setHasAudio] = React.useState(false);
 
-  const { vadThreshold } = useSelector((state: RootState) => state.settings);
-  
   const hasVideo = stream && stream.getVideoTracks().length > 0;
+  
+  // Speak detection logic
   const normalizedThreshold = (vadThreshold / 100) * 0.5;
   const isSpeaking = voiceState ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
   const isMuted = voiceState?.isMuted;
   
   const username = voiceState?.username || user?.username || (userId && userId.length > 8 ? userId.substring(0, 8) : 'Unknown');
   const avatar = voiceState?.avatar || user?.avatar;
-  const profileBanner = isLocal ? currentUser?.profile_banner : user?.profile_banner; 
+  const profileBanner = user?.profile_banner; // Now correctly gets from users cache too
   const hasAvatar = !!avatar && avatar !== 'null' && avatar !== 'undefined';
 
   React.useEffect(() => {
     if (videoRef.current && stream && hasVideo) {
-      const tracks = stream.getTracks();
-      if (tracks.every(t => t.readyState === 'ended')) return;
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(() => {});
       const audioTracks = stream.getAudioTracks();
@@ -86,21 +84,21 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
         />
       ) : (
         <div className="tile-avatar-container">
-           {/* GIF Banner FIX: Always mounted, hidden by opacity, scaled up when talking */}
+           {/* GIF Banner FIX: Always show but dim/blur when not speaking. This ensures GIF keeps playing. */}
            {profileBanner && (
                <div 
                    className="tile-banner-bg"
                    style={{
                        position: 'absolute',
-                       top: 0, left: 0, right: 0, bottom: 0,
+                       inset: 0,
                        backgroundImage: `url(${profileBanner})`,
                        backgroundSize: 'cover',
                        backgroundPosition: 'center',
                        backgroundRepeat: 'no-repeat',
-                       opacity: isSpeaking ? 0.75 : 0, 
-                       filter: 'blur(3px)', 
+                       opacity: isSpeaking ? 0.8 : 0.3, 
+                       filter: isSpeaking ? 'blur(0px)' : 'blur(10px) brightness(0.5)', 
                        transform: isSpeaking ? 'scale(1.1)' : 'scale(1)',
-                       transition: 'opacity 0.4s ease, transform 0.4s ease',
+                       transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                        zIndex: 0,
                        pointerEvents: 'none'
                    }}
@@ -112,8 +110,9 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
                 style={{ 
                     backgroundColor: generateAvatarColor(username),
                     zIndex: 2,
-                    boxShadow: isSpeaking ? '0 0 20px var(--accent-blue)' : 'none',
-                    transition: 'box-shadow 0.3s ease'
+                    border: isSpeaking ? '2px solid var(--accent-blue)' : '2px solid transparent',
+                    boxShadow: isSpeaking ? '0 0 20px rgba(var(--accent-blue-rgb), 0.5)' : 'none',
+                    transition: 'all 0.3s ease'
                 }}
             >
                 {hasAvatar ? (

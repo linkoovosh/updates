@@ -1,6 +1,6 @@
 {
   "name": "murchat-monorepo",
-  "version": "0.0.95",
+  "version": "0.1.2",
   "scripts": {
     "server-start": "cd server && npm start",
     "client-dev": "cd murchat && npm run dev",
