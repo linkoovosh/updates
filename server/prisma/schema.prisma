@@ -4,10 +4,10 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../database.sqlite" // Point to the DB in server folder
+  url      = env("DATABASE_URL") 
 }
 
-// User Model (from schema.user.prisma)
+// User Model
 model User {
   id               String  @id
   username         String
@@ -23,12 +23,12 @@ model User {
   isVerified       Boolean @default(false)
   verificationCode String?
   isPublic         Boolean @default(true)
-  serverMembers    ServerMember[] // Add this line
+  serverMembers    ServerMember[]
 
   @@map("users")
 }
 
-// Server Model (from schema.content.prisma)
+// Server Model
 model Server {
   id                String   @id
   name              String
@@ -42,6 +42,8 @@ model Server {
   isPublic          Boolean  @default(false)
   createdAt         BigInt?
   members           ServerMember[]
+  channels          Channel[]
+  roles             Role[]
   bans              ServerBan[]
 
   @@map("servers")
@@ -61,7 +63,7 @@ model ServerBan {
   @@map("server_bans")
 }
 
-// Channel Model (from schema.content.prisma)
+// Channel Model
 model Channel {
   id        String  @id
   serverId  String
@@ -69,23 +71,28 @@ model Channel {
   type      String
   position  Int     @default(0)
   isPrivate Boolean @default(false)
+  slowMode  Int     @default(0) // Message cooldown in seconds (NEW)
+  
+  server    Server  @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
   @@map("channels")
 }
 
-// ServerMember Model (from schema.content.prisma)
+// ServerMember Model
 model ServerMember {
   userId   String
   serverId String
   joinedAt BigInt?
-  server   Server   @relation(fields: [serverId], references: [id])
-  user     User     @relation(fields: [userId], references: [id])
+  isMuted  Boolean @default(false) // Mute server notifications (NEW)
+  
+  server   Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, serverId])
   @@map("server_members")
 }
 
-// Role Model (from schema.content.prisma)
+// Role Model
 model Role {
   id          String  @id
   serverId    String
@@ -93,22 +100,24 @@ model Role {
   color       String?
   permissions String?
   position    Int?
+  
+  server      Server  @relation(fields: [serverId], references: [id], onDelete: Cascade)
   userRoles   UserRole[]
 
   @@map("roles")
 }
 
-// UserRole Model (from schema.content.prisma)
+// UserRole Model
 model UserRole {
   userId String
   roleId String
-  role   Role   @relation(fields: [roleId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
   @@map("user_roles")
 }
 
-// Invite Model (from schema.content.prisma)
+// Invite Model
 model Invite {
   id            String  @id
   code          String  @unique
@@ -119,13 +128,13 @@ model Invite {
   uses          Int     @default(0)
   expiresAt     BigInt?
   defaultRoleId String?
-  temporary     Int     @default(0) // Boolean as Int
+  temporary     Int     @default(0) 
   createdAt     BigInt?
 
   @@map("invites")
 }
 
-// Friend Model (from schema.content.prisma)
+// Friend Model
 model Friend {
   user1Id   String
   user2Id   String
@@ -136,20 +145,20 @@ model Friend {
   @@map("friends")
 }
 
-// DirectMessage Model (from schema.content.prisma)
+// DirectMessage Model
 model DirectMessage {
   id          String  @id
   senderId    String
   recipientId String
   content     String
   timestamp   BigInt
-  read        Int     @default(0) // Boolean
-  attachments String? // JSON string
+  read        Int     @default(0)
+  attachments String? 
 
   @@map("direct_messages")
 }
 
-// ChannelMessage Model (from schema.content.prisma)
+// ChannelMessage Model
 model ChannelMessage {
   id           String  @id
   channelId    String
@@ -158,13 +167,13 @@ model ChannelMessage {
   authorAvatar String?
   content      String
   timestamp    BigInt
-  attachments  String? // JSON string
+  attachments  String? 
   audioData    String?
 
   @@map("channel_messages")
 }
 
-// UserReadState Model (from schema.content.prisma)
+// UserReadState Model
 model UserReadState {
   userId            String
   channelId         String
@@ -181,7 +190,7 @@ model Theme {
   name       String
   authorId   String
   authorName String
-  config     String  // JSON string
+  config     String  
   isPublic   Boolean @default(true)
   createdAt  BigInt
 

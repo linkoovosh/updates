@@ -110,6 +110,7 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const handleTextChannelClick = (channel: Channel) => {
     if (!checkAccess(channel)) return;
     dispatch(setSelectedChannelId(channel.id));
+    dispatch(clearUnreadCount(channel.id)); // NEW: Clear counts on click
     webSocketService.getChannelMessages(channel.id); // Request messages for the new channel
   };
 

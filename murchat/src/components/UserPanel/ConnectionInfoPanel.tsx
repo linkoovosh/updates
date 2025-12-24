@@ -4,7 +4,7 @@ import type { RootState } from '../../store';
 import './ConnectionInfoPanel.css';
 
 const ConnectionInfoPanel: React.FC = () => {
-    const activeVoiceChannelId = useSelector((state: RootState) => state.ui.activeVoiceChannelId);
+    const activeVoiceChannelId = useSelector((state: RootState) => state.voice.activeVoiceChannelId);
     const ping = useSelector((state: RootState) => state.ui.ping);
     const channels = useSelector((state: RootState) => state.ui.channels);
     

@@ -26,20 +26,32 @@ import {
     DmHistoryResponsePayload // NEW
 } from '../../murchat/common/types.js';
 
-export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSocketMessage<unknown>, userId: string, currentUser: any): Promise<boolean> {
-    // const db = getDb();
+// Track last message timestamp per user per channel for slowmode
+const lastMessageTimestamps: Map<string, number> = new Map();
 
-    // --- Message Handling ---
+export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSocketMessage<unknown>, userId: string, currentUser: any): Promise<boolean> {
     if (parsedMessage.type === C2S_MSG_TYPE.SEND_MESSAGE) {
         const payload = parsedMessage.payload as SendMessagePayload;
         const targetChannel = await prisma.channel.findUnique({ where: { id: payload.channelId } });
 
-        if (!targetChannel) {
-            console.warn(`Attempted to send message to non-existent channel: ${payload.channelId}`);
-            return true;
-        }
+        if (!targetChannel) return true;
 
-        const newMessage: ChannelMessage = { // Изменено с Message
+        // --- SLOW MODE CHECK ---
+        if (targetChannel.slowMode > 0) {
+            const slowModeKey = `${userId}:${payload.channelId}`;
+            const lastTime = lastMessageTimestamps.get(slowModeKey) || 0;
+            const now = Date.now();
+            const diff = (now - lastTime) / 1000;
+
+            if (diff < targetChannel.slowMode) {
+                console.warn(`User ${userId} is on slowmode cooldown in channel ${payload.channelId} (${diff.toFixed(1)}/${targetChannel.slowMode}s)`);
+                return true; // Silent reject or we could send an error back
+            }
+            lastMessageTimestamps.set(slowModeKey, now);
+        }
+        // ------------------------
+
+        const newMessage: ChannelMessage = { 
             id: uuidv4(),
             channelId: payload.channelId,
             author: currentUser ? currentUser.username : 'Unknown',

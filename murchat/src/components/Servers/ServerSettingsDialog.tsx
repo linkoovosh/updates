@@ -11,7 +11,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSIONS, hasPermission } from '../../../common/permissions';
 import { 
     InfoIcon, ShieldIcon, UserIcon, MailIcon, LockIcon, TrashIcon, CheckIcon 
-} from '../UI/Icons'; // IMPORT ICONS
+} from '../UI/Icons'; 
 import './ServerSettingsDialog.css';
 
 const PUBLIC_SERVER_ID_CLIENT = 'public-default-server'; 
@@ -24,11 +24,8 @@ interface ServerSettingsDialogProps {
 type SettingsTab = 'overview' | 'roles' | 'members' | 'invites' | 'safety';
 
 const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, onClose }) => {
-  console.log('--- SERVER SETTINGS RENDERED: VERSION 2.2 (PERMISSIONS) ---');
-  
   const dispatch = useDispatch();
   
-  // Stable selectors to prevent re-render loops
   const servers = useSelector((state: RootState) => state.server.servers);
   const allChannels = useSelector((state: RootState) => state.ui.channels);
   const currentUser = useSelector((state: RootState) => state.auth.userId);
@@ -50,7 +47,6 @@ const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, o
   const [systemChannelId, setSystemChannelId] = useState<string | null>(null);
   const [verificationLevel, setVerificationLevel] = useState<number>(0);
 
-  // Sync state only when server object actually changes
   useEffect(() => {
       if (server) {
           setServerName(server.name || '');
@@ -69,8 +65,7 @@ const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, o
   const isOwner = currentUser === server.ownerId;
   const canManageServer = isOwner || hasPermission(perms, PERMISSIONS.MANAGE_SERVER);
   const canManageRoles = isOwner || hasPermission(perms, PERMISSIONS.MANAGE_ROLES);
-  // Member management usually requires KICK/BAN or general management
-  const canManageMembers = isOwner || hasPermission(perms, PERMISSIONS.KICK_MEMBERS) || hasPermission(perms, PERMISSIONS.BAN_MEMBERS) || hasPermission(perms, PERMISSIONS.MANAGE_ROLES); 
+  const canManageMembers = isOwner || hasPermission(perms, PERMISSIONS.KICK_MEMBERS) || hasPermission(perms, PERMISSIONS.BAN_MEMBERS);
   const canCreateInvite = isOwner || hasPermission(perms, PERMISSIONS.CREATE_INVITE);
   const isPublicDefaultServer = serverId === PUBLIC_SERVER_ID_CLIENT;
 
@@ -85,47 +80,37 @@ const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, o
               verificationLevel: verificationLevel,
               banner: serverBanner || undefined
           };
-          console.log('[ServerSettingsDialog] Saving overview. Payload:', payload);
           webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_SERVER, payload);
           onClose();
       }
   };
 
-  const uploadFile = async (file: File): Promise<string | null> => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const token = localStorage.getItem('authToken');
-      try {
-          const response = await fetch('https://89.221.20.26:22822/upload', {
-              method: 'POST',
-              headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-              body: formData,
-          });
-          if (!response.ok) throw new Error('Upload failed');
-          const data = await response.json();
-          return data.url.startsWith('http') ? data.url : `https://89.221.20.26:22822${data.url}`;
-      } catch (error) {
-          console.error('File upload error:', error);
-          return null;
-      }
+  const fileToBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+      });
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'default' | 'active' | 'banner') => {
       if (e.target.files && e.target.files[0]) {
-          const url = await uploadFile(e.target.files[0]);
-          if (url) {
-              if (type === 'banner') {
-                  setServerBanner(url);
-              } else {
-                  const payload: UpdateServerProfilePayload = {
-                      serverId: serverId,
-                      avatar_default: type === 'default' ? url : undefined,
-                      avatar_active: type === 'active' ? url : undefined
-                  };
-                  webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_SERVER_PROFILE, payload);
-                  if (type === 'default') setDefaultAvatar(url);
-                  else setActiveAvatar(url);
-              }
+          const file = e.target.files[0];
+          // Use Base64 for avatars to ensure GIF compatibility and immediate application
+          const base64 = await fileToBase64(file);
+          
+          if (type === 'banner') {
+              setServerBanner(base64);
+          } else {
+              const payload: UpdateServerProfilePayload = {
+                  serverId: serverId,
+                  avatar_default: type === 'default' ? base64 : undefined,
+                  avatar_active: type === 'active' ? base64 : undefined
+              };
+              webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_SERVER_PROFILE, payload);
+              if (type === 'default') setDefaultAvatar(base64);
+              else setActiveAvatar(base64);
           }
       }
   };
@@ -172,7 +157,7 @@ const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, o
             
             {isOwner && (
                  <div className="settings-tab-item danger" onClick={() => {
-                     if (!isPublicDefaultServer && confirm(`Удалить сервер "{server.name}"?`)) {
+                     if (!isPublicDefaultServer && confirm(`Удалить сервер "${server.name}"?`)) {
                          webSocketService.sendMessage(C2S_MSG_TYPE.DELETE_SERVER, { serverId: server.id });
                          onClose();
                      }
@@ -192,32 +177,40 @@ const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, o
                              style={{ backgroundImage: serverBanner ? `url(${serverBanner})` : 'none', cursor: canManageServer ? 'pointer' : 'default' }}
                              onClick={() => canManageServer && document.getElementById('banner-upload')?.click()}
                         >
-                            {!serverBanner && <span>{canManageServer ? 'Нажмите, чтобы загрузить баннер сервера (16:9)' : 'Баннер не установлен'}</span>}
-                            <input id="banner-upload" type="file" hidden accept="image/*" onChange={(e) => handleAvatarUpload(e, 'banner')} disabled={!canManageServer} />
+                            {!serverBanner && <span>{canManageServer ? 'Нажмите, чтобы загрузить баннер сервера (16:9, поддерживает GIF)' : 'Баннер не установлен'}</span>}
+                            <input id="banner-upload" type="file" hidden accept="image/*,image/gif" onChange={(e) => handleAvatarUpload(e, 'banner')} disabled={!canManageServer} />
                         </div>
 
                         <div className="avatar-upload-area" style={{ marginTop: '20px' }}>
                             <div className="avatar-section">
-                                <label className="settings-label">Активная иконка</label>
-                                <div className="avatar-preview" style={{ backgroundImage: activeAvatar ? `url(${activeAvatar})` : 'none' }}>
+                                <label className="settings-label">Активная иконка (GIF)</label>
+                                <div className="avatar-preview" style={{ 
+                                    backgroundImage: activeAvatar ? `url(${activeAvatar})` : 'none',
+                                    borderRadius: '16px',
+                                    backgroundSize: 'cover'
+                                }}>
                                     {!activeAvatar && 'A'}
                                 </div>
-                                <div className="avatar-actions">
+                                <div className="avatar-actions" style={{ marginTop: '10px' }}>
                                     <label className={`btn-upload small ${!canManageServer ? 'disabled' : ''}`}>
                                         Изменить
-                                        <input type="file" hidden accept="image/*" onChange={(e) => handleAvatarUpload(e, 'active')} disabled={!canManageServer} />
+                                        <input type="file" hidden accept="image/*,image/gif" onChange={(e) => handleAvatarUpload(e, 'active')} disabled={!canManageServer} />
                                     </label>
                                 </div>
                             </div>
                             <div className="avatar-section">
                                 <label className="settings-label">По умолчанию</label>
-                                <div className="avatar-preview" style={{ backgroundImage: defaultAvatar ? `url(${defaultAvatar})` : 'none' }}>
+                                <div className="avatar-preview" style={{ 
+                                    backgroundImage: defaultAvatar ? `url(${defaultAvatar})` : 'none',
+                                    borderRadius: '16px',
+                                    backgroundSize: 'cover'
+                                }}>
                                     {!defaultAvatar && 'D'}
-                                </div>
-                                <div className="avatar-actions">
+                                }</div>
+                                <div className="avatar-actions" style={{ marginTop: '10px' }}>
                                     <label className={`btn-upload small ${!canManageServer ? 'disabled' : ''}`}>
                                         Изменить
-                                        <input type="file" hidden accept="image/*" onChange={(e) => handleAvatarUpload(e, 'default')} disabled={!canManageServer} />
+                                        <input type="file" hidden accept="image/*,image/gif" onChange={(e) => handleAvatarUpload(e, 'default')} disabled={!canManageServer} />
                                     </label>
                                 </div>
                             </div>

@@ -661,6 +661,38 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
         return true;
     }
 
+    else if (parsedMessage.type === C2S_MSG_TYPE.UPDATE_SERVER_PROFILE) {
+        const payload = parsedMessage.payload as UpdateServerProfilePayload;
+        const perms = await getMemberPermissions(payload.serverId, userId);
+
+        if (hasPermission(perms, PERMISSIONS.MANAGE_SERVER)) {
+            const dataToUpdate: any = {};
+            if (payload.avatar_default !== undefined) dataToUpdate.avatar_default = payload.avatar_default;
+            if (payload.avatar_active !== undefined) dataToUpdate.avatar_active = payload.avatar_active;
+
+            if (Object.keys(dataToUpdate).length > 0) {
+                await prisma.server.update({
+                    where: { id: payload.serverId },
+                    data: dataToUpdate
+                });
+                
+                const updatedServer = await prisma.server.findUnique({ where: { id: payload.serverId } });
+                if (updatedServer) {
+                    const msg: WebSocketMessage<ServerUpdatedPayload> = {
+                        type: S2C_MSG_TYPE.SERVER_UPDATED,
+                        payload: { server: updatedServer }
+                    };
+                    clients.forEach((uid, clientWs) => {
+                        if (clientWs.readyState === WebSocket.OPEN) {
+                            clientWs.send(JSON.stringify(msg));
+                        }
+                    });
+                }
+            }
+        }
+        return true;
+    }
+
     else if (parsedMessage.type === C2S_MSG_TYPE.CREATE_CHANNEL) {
         const payload = parsedMessage.payload as CreateChannelPayload;
         const perms = await getMemberPermissions(payload.serverId, userId);

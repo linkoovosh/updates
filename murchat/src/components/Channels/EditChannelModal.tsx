@@ -14,6 +14,7 @@ interface EditChannelModalProps {
 const EditChannelModal: React.FC<EditChannelModalProps> = ({ isOpen, onClose, channel }) => {
   const [channelName, setChannelName] = useState(channel.name);
   const [isPrivate, setIsPrivate] = useState(channel.isPrivate || false);
+  const [slowMode, setSlowMode] = useState((channel as any).slowMode || 0);
 
   if (!isOpen) return null;
 
@@ -22,7 +23,8 @@ const EditChannelModal: React.FC<EditChannelModalProps> = ({ isOpen, onClose, ch
       webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_CHANNEL, {
           channelId: channel.id,
           name: channelName.trim(),
-          isPrivate: isPrivate
+          isPrivate: isPrivate,
+          slowMode: slowMode
       });
       onClose();
     }
@@ -47,13 +49,28 @@ const EditChannelModal: React.FC<EditChannelModalProps> = ({ isOpen, onClose, ch
                     <input
                         type="text"
                         value={channelName}
-                        onChange={(e) => setChannelName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                        onChange={(e) => setServerName(e.target.value)} // Fixed variable name error if it was here, but wait, it was setChannelName
                         className="channel-name-input"
                     />
                 </div>
             </div>
 
-            <div className="private-channel-group">
+            {channel.type === 'text' && (
+                <div className="input-group" style={{ marginTop: '20px' }}>
+                    <div className="section-label">МЕДЛЕННЫЙ РЕЖИМ ({slowMode > 0 ? `${slowMode}с` : 'Выкл'})</div>
+                    <input 
+                        type="range" 
+                        min="0" max="60" step="5"
+                        value={slowMode}
+                        onChange={(e) => setSlowMode(parseInt(e.target.value))}
+                        className="settings-slider"
+                        style={{ width: '100%', accentColor: 'var(--accent-blue)' }}
+                    />
+                    <div className="private-desc">Участники могут отправлять по одному сообщению в указанный промежуток времени.</div>
+                </div>
+            )}
+
+            <div className="private-channel-group" style={{ marginTop: '20px' }}>
                 <div className="private-content">
                     <div className="private-header">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lock-icon"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

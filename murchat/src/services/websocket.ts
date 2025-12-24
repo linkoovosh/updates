@@ -598,38 +598,37 @@ class WebSocketService {
               {
                 const payload = message.payload as NewMessagePayload;
                 const receivedMessage = payload.message;
+                const state = this.getState();
 
-                if (payload.message.id === 'server-welcome' && payload.message.content.includes('Your ID is')) {
-                   // Legacy
-                }
-
+                // 1. Add message to store
                 this.dispatch(addMessage(receivedMessage));
-                console.log('Received NEW_MESSAGE:', receivedMessage);
-                if (receivedMessage.audioData) {
-                    console.log('Received NEW_MESSAGE with audioData:', receivedMessage.audioData.length, 'Type:', receivedMessage.audioData.substring(0, receivedMessage.audioData.indexOf(';')));
-                }
                 
-                if (receivedMessage.author !== auth.username) {
-                  const mentionRegex = new RegExp(`@${auth.username}`, 'i');
+                // 2. Increment unread count if channel is not active
+                const isCurrentChannel = state.server.selectedChannelId === receivedMessage.channelId;
+                const isCurrentDm = state.chat.activeDmConversationId === receivedMessage.authorId;
+                
+                if (!isCurrentChannel && !isCurrentDm) {
+                    this.dispatch(incrementUnreadCount(receivedMessage.channelId));
+                }
+
+                console.log('Received NEW_MESSAGE:', receivedMessage);
+                
+                if (receivedMessage.authorId !== this.userId) {
+                  const mentionRegex = new RegExp(`@${state.auth.username}`, 'i');
                   const isMention = mentionRegex.test(receivedMessage.content);
-                  const isDm = true; 
+                  
+                  // Check if server/user is muted before notifying
+                  const isMuted = false; // TODO: Implement server mute check
 
                   let shouldNotify = false;
-                  let notificationTitle = '';
+                  if (state.settings.notifyOnMention && isMention) shouldNotify = true;
+                  else if (state.settings.notifyOnDm && !isMention) shouldNotify = true;
 
-                  if (settings.notifyOnMention && isMention) {
-                    shouldNotify = true;
-                    notificationTitle = `New Mention from ${receivedMessage.author}`;
-                  } else if (settings.notifyOnDm && isDm && !isMention) {
-                    shouldNotify = true;
-                    notificationTitle = `New Message from ${receivedMessage.author}`;
-                  }
-
-                  if (shouldNotify) {
-                    if (settings.enableDesktopNotifications) {
-                      showNotification(notificationTitle, receivedMessage.content);
+                  if (shouldNotify && !isMuted) {
+                    if (state.settings.enableDesktopNotifications) {
+                      showNotification(`Сообщение от ${receivedMessage.author}`, receivedMessage.content);
                     }
-                    if (settings.enableSoundNotifications) {
+                    if (state.settings.enableSoundNotifications) {
                       playChatNotify(); 
                     }
                   }
