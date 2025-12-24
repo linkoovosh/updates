@@ -73,9 +73,9 @@ export const config = {
       minimumAvailableOutgoingBitrate: 600000,
       maxSctpMessageSize: 262144,
       maxIncomingBitrate: 1500000,
-      enableUdp: true,
-      enableTcp: true,
-      preferUdp: true, // Back to UDP preference for lower latency
+      enableUdp: false, // DISABLE UDP: Too unstable, causes DTLS failures.
+      enableTcp: true,  // FORCE TCP: Guaranteed delivery.
+      preferUdp: false, 
       initialAvailableOutgoingBitrate: 600000 
     }
   }
