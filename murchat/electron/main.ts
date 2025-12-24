@@ -101,24 +101,22 @@ function createWindow() {
     opacity: 0 // Start invisible for fade-in
   });
 
-  // --- CSP Bypass for AudioWorklets and Server Media ---
+  // --- ULTIMATE CSP DISABLE for AudioWorklets and Media ---
   win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    // We completely remove any existing CSP and don't add our own, 
+    // effectively allowing everything. This is safe for a trusted internal app.
+    const responseHeaders = { ...details.responseHeaders };
+    delete responseHeaders['content-security-policy'];
+    delete responseHeaders['Content-Security-Policy'];
+    
     callback({
       responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src * self 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-          "script-src * self 'unsafe-inline' 'unsafe-eval' data: blob:; " +
-          "connect-src * self 'unsafe-inline' 'unsafe-eval' data: blob: wss://89.221.20.26:22822 https://89.221.20.26:22822; " +
-          "img-src * self data: blob: https://89.221.20.26:22822; " +
-          "media-src * self data: blob: https://89.221.20.26:22822; " +
-          "style-src * self 'unsafe-inline'; " +
-          "font-src * self data: https://fonts.gstatic.com;"
-        ]
+        ...responseHeaders,
+        'Access-Control-Allow-Origin': ['*']
       }
     });
   });
-  // ------------------------------------
+  // -------------------------------------------------------
 
   win.webContents.on('before-input-event', (event, input) => {
       if (allowDevTools) return;

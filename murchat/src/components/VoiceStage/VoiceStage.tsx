@@ -27,11 +27,11 @@ const VoiceStage: React.FC = () => {
 
     // FIXED PARTICIPANTS LOGIC
     const participants = React.useMemo(() => {
-        if (activeVoiceChannelId) {
+        if (activeVoiceChannelId && voiceStates) {
             // Server Voice Channel
             return Object.keys(voiceStates).filter(id => {
                 const state = voiceStates[id];
-                return state.channelId === activeVoiceChannelId;
+                return state && state.channelId === activeVoiceChannelId;
             });
         } else if (callState.isInCall || callState.isRinging) {
             // Private DM Call
