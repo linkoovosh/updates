@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { User } from '@common/types';
 
 export interface VoiceState {
   userId: string;
@@ -21,6 +22,10 @@ interface VoiceSliceState {
       url: string | null;
       ownerId: string | null;
   };
+  // 1-on-1 Calls
+  incomingCall: User | null;
+  outgoingCall: User | null;
+  isCallConnected: boolean;
 }
 
 const initialState: VoiceSliceState = {
@@ -31,7 +36,10 @@ const initialState: VoiceSliceState = {
       producerId: null,
       url: null,
       ownerId: null
-  }
+  },
+  incomingCall: null,
+  outgoingCall: null,
+  isCallConnected: false
 };
 
 const voiceSlice = createSlice({
@@ -45,10 +53,29 @@ const voiceSlice = createSlice({
       state.activeVoiceChannelId = null;
       state.voiceStates = {};
     },
+    // Compatibility with websocket.ts
+    addVoiceChannelMember: (state, action: PayloadAction<{ channelId: string; userId: string; username?: string; avatar?: string }>) => {
+        const { userId, channelId, username, avatar } = action.payload;
+        if (!state.voiceStates[userId]) {
+            state.voiceStates[userId] = {
+                userId,
+                channelId,
+                username: username || '',
+                avatar: avatar || '',
+                isMuted: false,
+                isDeafened: false,
+                volume: 0
+            };
+        }
+    },
+    removeVoiceChannelMember: (state, action: PayloadAction<{ userId: string }>) => {
+        if (state.voiceStates[action.payload.userId]) {
+            delete state.voiceStates[action.payload.userId];
+        }
+    },
     updateVoiceState: (state, action: PayloadAction<{ userId: string; newState: Partial<VoiceState> }>) => {
       const { userId, newState } = action.payload;
       
-      // If channelId is explicitly null, remove the user
       if (newState.channelId === null) {
           if (state.voiceStates[userId]) delete state.voiceStates[userId];
           return;
@@ -72,14 +99,34 @@ const voiceSlice = createSlice({
     setSharedBrowser: (state, action: PayloadAction<{ isActive: boolean; producerId: string | null; url: string | null; ownerId: string | null }>) => {
       state.sharedBrowser = action.payload;
     },
+    setIncomingCall: (state, action: PayloadAction<User | null>) => {
+      state.incomingCall = action.payload;
+    },
+    setOutgoingCall: (state, action: PayloadAction<User | null>) => {
+      state.outgoingCall = action.payload;
+    },
+    setCallConnected: (state, action: PayloadAction<boolean>) => {
+      state.isCallConnected = action.payload;
+    },
+    endCall: (state) => {
+      state.incomingCall = null;
+      state.outgoingCall = null;
+      state.isCallConnected = false;
+    }
   },
 });
 
 export const { 
     setVoiceChannel, 
     clearVoiceChannel, 
+    addVoiceChannelMember,
+    removeVoiceChannelMember,
     updateVoiceState,
-    setSharedBrowser
+    setSharedBrowser,
+    setIncomingCall,
+    setOutgoingCall,
+    setCallConnected,
+    endCall
 } = voiceSlice.actions;
 
 export default voiceSlice.reducer;
