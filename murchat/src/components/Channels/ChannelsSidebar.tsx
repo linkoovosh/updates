@@ -251,12 +251,13 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 {channelMembers.length > 0 && (
                   <div className="voice-channel-members">
                                         {channelMembers.map(memberId => {
-                                          const state = voiceStates[memberId];
-                                          if (!state) return null;
+                                          // Safety check: ensure voice state exists
+                                          if (!voiceStates || !voiceStates[memberId]) return null;
                                           
+                                          const state = voiceStates[memberId];
                                           const normalizedThreshold = (vadThreshold / 100) * 0.5;
                                           const isSpeaking = state.volume > normalizedThreshold && !state.isMuted;
-                                          const user = users[memberId];
+                                          const user = users ? users[memberId] : undefined;
                                           const displayName = state.username || (user ? user.username : memberId.substring(0, 8) + '...');
                                           const avatarUrl = state.avatar || user?.avatar;
                                           const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
