@@ -1,20 +1,28 @@
 !macro customHeader
-  ; Custom header styling removed to fix build error
+  ; Custom header logic
 !macroend
 
 !macro customInit
-  ; 1. Force kill the running application to release file locks
-  nsExec::Exec 'taskkill /F /IM "MurCHAT.exe"'
-  Sleep 1000
-
-  ; 2. Check for the uninstaller in the default installation directory
-  IfFileExists "$LOCALAPPDATA\Programs\murchat\Uninstall MurCHAT.exe" 0 +3
-    nsExec::Exec '"$LOCALAPPDATA\Programs\murchat\Uninstall MurCHAT.exe" /S'
-    Sleep 2000
+  ; Clear potential blockages before UI shows
+  nsExec::Exec 'taskkill /F /IM "MurCHAT.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "murchat.exe" /T'
+  Sleep 500
 !macroend
 
-; This will be executed when the UI is created
-!macro customPageCallbacks
-  ; We can try to skin the window here if needed using specific NSIS plugins, 
-  ; but for now let's stick to standard modern UI with custom bitmaps.
+!macro preInstall
+  ; This runs right before files are copied. Crucial to kill it HERE again.
+  DetailPrint "Завершение работы MurCHAT..."
+  nsExec::Exec 'taskkill /F /IM "MurCHAT.exe" /T'
+  nsExec::Exec 'taskkill /F /IM "murchat.exe" /T'
+  
+  ; Wait a bit for processes to actually die
+  Sleep 1500
+  
+  ; Delete old exe if possible to verify lock is gone
+  Delete "$INSTDIR\MurCHAT.exe"
+  Delete "$INSTDIR\murchat.exe"
+!macroend
+
+!macro customInstall
+  ; Logic after files are installed
 !macroend
