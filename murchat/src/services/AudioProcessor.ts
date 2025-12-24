@@ -57,8 +57,6 @@ class AudioProcessor {
 
         this.initPromise = (async () => {
             console.log('[MurClear AI] Loading inline worklet...');
-            
-            // Create context with explicit mono destination
             this.audioContext = new AudioContext({ sampleRate: 48000 });
             
             try {
@@ -69,7 +67,7 @@ class AudioProcessor {
                 this.processorNode = new AudioWorkletNode(this.audioContext, 'murclear-worklet', {
                     numberOfInputs: 1,
                     numberOfOutputs: 1,
-                    outputChannelCount: [1] // FORCE MONO OUTPUT
+                    outputChannelCount: [1] 
                 });
                 
                 this.processorNode.port.postMessage({ type: 'setEnabled', value: this.isAiEnabled });

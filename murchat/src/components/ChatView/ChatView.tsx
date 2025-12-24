@@ -114,6 +114,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
     const content = messageInput.trim();
     if ((content || (attachments && attachments.length > 0)) && effectiveChannelId && userId) {
       if (isDm) {
+          // websocketService.sendDm already handles optimistic update for DMs internally!
           webSocketService.sendDm(effectiveChannelId, content, attachments); 
       } else {
           webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, {
@@ -122,6 +123,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
               author: username,
               attachments: attachments
           });
+          
           dispatch(addMessage({
               id: `temp-${Date.now()}`,
               channelId: effectiveChannelId,
@@ -225,9 +227,12 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
         </div>
         
         {showPicker && (
-            <div className="expression-picker-popup">
+            <div className="expression-picker-popup" onClick={e => e.stopPropagation()}>
                 <ExpressionPicker 
-                    onEmojiSelect={(emoji) => setMessageInput(prev => prev + emoji)}
+                    onEmojiSelect={(emoji) => {
+                        setMessageInput(prev => prev + emoji);
+                        messageInputRef.current?.focus();
+                    }}
                     onGifSelect={(url) => { handleSendMessage([{ url, filename: 'gif.gif', contentType: 'image/gif', size: 0, id: crypto.randomUUID() }]); setShowPicker(false); }}
                     onStickerSelect={(url) => { handleSendMessage([{ url, filename: 'sticker.png', contentType: 'image/png', size: 0, id: crypto.randomUUID() }]); setShowPicker(false); }}
                     onClose={() => setShowPicker(false)}
@@ -247,6 +252,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
             </div>
         )}
       </div>
+      {isDragging && <div className="drag-drop-overlay">Отпустите, чтобы отправить файлы 📥</div>}
     </div>
   );
 };

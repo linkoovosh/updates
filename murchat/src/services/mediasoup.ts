@@ -109,24 +109,21 @@ class MediasoupService {
             this.sendTransport = this.device!.createSendTransport(params);
             
             this.sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-                console.log("[SFU] Send transport connecting...");
                 this.pendingConnectCallbacks.set(this.sendTransport!.id, { callback, errback });
                 this.signal(C2S_MSG_TYPE.MS_CONNECT_TRANSPORT, { transportId: this.sendTransport!.id, dtlsParameters });
             });
 
-            this.sendTransport.on('produce', async (args, callback, errback) => {
-                try {
-                    const { kind, rtpParameters, appData } = args;
-                    console.log(`[SFU] Producing ${kind}...`);
-                    this.signal(C2S_MSG_TYPE.MS_PRODUCE, { transportId: this.sendTransport!.id, kind, rtpParameters, appData, channelId: this.channelId });
-                    this.pendingProduceCallbacks.set(appData?.source || 'mic', callback);
-                } catch (error: any) { 
-                    if (typeof errback === 'function') errback(error); 
-                }
+            this.sendTransport.on('produce', (args, callback, errback) => {
+                const { kind, rtpParameters, appData } = args;
+                this.signal(C2S_MSG_TYPE.MS_PRODUCE, { 
+                    transportId: this.sendTransport!.id, 
+                    kind, rtpParameters, appData, 
+                    channelId: this.channelId 
+                });
+                this.pendingProduceCallbacks.set(appData?.source || 'mic', callback);
             });
 
             this.sendTransport.on('connectionstatechange', (state) => {
-                console.log(`[SFU] Send transport state: ${state}`);
                 if (state === 'failed') this.handleTransportFailure();
                 this.emit('connectionStateChange', state);
             });
@@ -136,13 +133,11 @@ class MediasoupService {
             this.recvTransport = this.device!.createRecvTransport(params);
             
             this.recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-                console.log("[SFU] Recv transport connecting...");
                 this.pendingConnectCallbacks.set(this.recvTransport!.id, { callback, errback });
                 this.signal(C2S_MSG_TYPE.MS_CONNECT_TRANSPORT, { transportId: this.recvTransport!.id, dtlsParameters });
             });
 
             this.recvTransport.on('connectionstatechange', (state) => {
-                console.log(`[SFU] Recv transport state: ${state}`);
                 if (state === 'failed') this.handleTransportFailure();
                 this.emit('connectionStateChange', state);
             });
@@ -158,7 +153,7 @@ class MediasoupService {
     
     onProducerCreated({ id, source }: any) {
         const callback = this.pendingProduceCallbacks.get(source || 'mic');
-        if (callback) {
+        if (callback && typeof callback === 'function') {
             callback({ id });
             this.pendingProduceCallbacks.delete(source || 'mic');
         }
@@ -166,7 +161,7 @@ class MediasoupService {
 
     onTransportConnected({ transportId }: any) {
         const cb = this.pendingConnectCallbacks.get(transportId);
-        if (cb) {
+        if (cb && cb.callback && typeof cb.callback === 'function') {
             cb.callback();
             this.pendingConnectCallbacks.delete(transportId);
         }
@@ -183,7 +178,7 @@ class MediasoupService {
             const rawStream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { 
                     deviceId: deviceId ? { exact: deviceId } : undefined,
-                    channelCount: 1, // FORCE MONO to fix "left ear only" issue
+                    channelCount: 1,
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true
@@ -251,24 +246,8 @@ class MediasoupService {
             let width = 1920, height = 1080;
             if (options.resolution === '720p') { width = 1280; height = 720; }
             const stream = await navigator.mediaDevices.getUserMedia({
-                audio: { 
-                    mandatory: { 
-                        chromeMediaSource: 'desktop',
-                        systemAudio: 'exclude' // Experimental: try to exclude self from system capture
-                    } 
-                } as any,
-                video: { 
-                    mandatory: { 
-                        chromeMediaSource: 'desktop', 
-                        chromeMediaSourceId: sourceId, 
-                        minWidth: width, 
-                        maxWidth: width, 
-                        minHeight: height, 
-                        maxHeight: height, 
-                        minFrameRate: options.fps, 
-                        maxFrameRate: options.fps 
-                    } 
-                } as any
+                audio: { mandatory: { chromeMediaSource: 'desktop', systemAudio: 'exclude' } } as any,
+                video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, minWidth: width, maxWidth: width, minHeight: height, maxHeight: height, minFrameRate: options.fps, maxFrameRate: options.fps } } as any
             });
             const track = stream.getVideoTracks()[0];
             const audioTrack = stream.getAudioTracks()[0];
@@ -393,19 +372,16 @@ class MediasoupService {
         [this.audioProducer, this.videoProducer, this.screenProducer, this.screenAudioProducer, this.browserProducer, this.browserAudioProducer].forEach(p => { if (p && !p.closed) p.close(); });
         this.consumers.forEach(c => { if (!c.closed) c.close(); });
         this.consumers.clear();
-    // Close transports
-    try {
-      if (this.sendTransport) {
-        this.sendTransport.close();
-        this.sendTransport = null;
-      }
-      if (this.recvTransport) {
-        this.recvTransport.close();
-        this.recvTransport = null;
-      }
-    } catch (e) {
-      // Ignore queue stopped errors during cleanup
-    }
+        try {
+          if (this.sendTransport) {
+            this.sendTransport.close();
+            this.sendTransport = null;
+          }
+          if (this.recvTransport) {
+            this.recvTransport.close();
+            this.recvTransport = null;
+          }
+        } catch (e) {}
         this.audioProducer = null; this.videoProducer = null;
         this.screenProducer = null; this.screenAudioProducer = null;
         this.browserProducer = null; this.browserAudioProducer = null;
