@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Logging
 log.transports.file.level = "info";
 autoUpdater.logger = log;
-autoUpdater.autoDownload = true;
+autoUpdater.autoDownload = true; // MUST BE TRUE for automatic flow
 
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
@@ -26,6 +26,12 @@ let isQuitting = false;
 let allowDevTools = false;
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+
+function sendStatusToWindow(text: string) {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('update-message', text);
+  }
+}
 
 function createTray() {
   try {
@@ -202,6 +208,11 @@ if (!gotTheLock) {
     if (win) { if (win.isMinimized()) win.restore(); if (!win.isVisible()) win.show(); win.focus(); }
   });
 
+  app.on('activate', () => {
+    if (win === null) createWindow();
+    else win.show();
+  });
+
   app.whenReady().then(async () => {
     const settingsPath = path.join(app.getPath('userData'), 'settings.json');
     try {
@@ -213,22 +224,7 @@ if (!gotTheLock) {
     createTray();
     createWindow();
 
-    setTimeout(() => { checkUpdate(); }, 5000);
-
-    ipcMain.on('install-update', () => { autoUpdater.quitAndInstall(); });
-    ipcMain.on('check-for-updates-manual', () => { autoUpdater.checkForUpdates(); });
-    ipcMain.on('app-ready-to-quit', () => { isCleanExit = true; app.quit(); });
-    ipcMain.on('window-minimize', () => win?.minimize());
-    ipcMain.on('window-maximize', () => { if (win?.isMaximized()) win?.unmaximize(); else win?.maximize(); });
-    ipcMain.on('window-close', () => win?.close());
-    
-    ipcMain.handle('save-settings', async (_, settings) => {
-        try { await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2)); return { success: true }; } catch (e) { return { success: false }; }
-    });
-    ipcMain.handle('load-settings', async () => {
-        try { const data = await fs.readFile(settingsPath, 'utf-8'); return JSON.parse(data); } catch (e) { return null; }
-    });
-
+    // Register all IPC handlers
     ipcMain.handle('upload-client-log', async (_, data) => {
         return new Promise((resolve, reject) => {
             const postData = JSON.stringify(data);
@@ -262,14 +258,69 @@ if (!gotTheLock) {
         } catch (e) { return null; }
     });
 
+    ipcMain.handle('save-settings', async (_, settings) => {
+        try { await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2)); return { success: true }; } catch (e) { return { success: false }; }
+    });
+
+    ipcMain.handle('load-settings', async () => {
+        try { const data = await fs.readFile(settingsPath, 'utf-8'); return JSON.parse(data); } catch (e) { return null; }
+    });
+
+    ipcMain.on('install-update', () => { 
+        console.log("[AutoUpdater] Installing update...");
+        autoUpdater.quitAndInstall(); 
+    });
+    
+    ipcMain.on('check-for-updates-manual', () => { autoUpdater.checkForUpdates(); });
+    ipcMain.on('app-ready-to-quit', () => { isCleanExit = true; app.quit(); });
+    ipcMain.on('window-minimize', () => win?.minimize());
+    ipcMain.on('window-maximize', () => { if (win?.isMaximized()) win?.unmaximize(); else win?.maximize(); });
+    ipcMain.on('window-close', () => win?.close());
     ipcMain.on('copy-to-clipboard', (_, text) => { if (text) clipboard.writeText(text); });
+
+    console.log("[Main] All IPC handlers registered.");
+
+    setTimeout(() => { checkUpdate(); }, 5000);
   });
 }
 
 function checkUpdate() {
-  autoUpdater.on('update-available', (info) => { win?.webContents.send('update-available', info); });
-  autoUpdater.on('download-progress', (progressObj) => { win?.webContents.send('update-download-progress', progressObj); });
-  autoUpdater.on('update-downloaded', (info) => { win?.webContents.send('update-ready', info); });
+  autoUpdater.on('checking-for-update', () => { 
+    console.log("[AutoUpdater] Checking for updates...");
+    sendStatusToWindow('Проверка обновлений...'); 
+  });
+  
+  autoUpdater.on('update-available', (info) => { 
+    console.log("[AutoUpdater] Update available:", info.version);
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('update-available', info);
+    }
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    console.log("[AutoUpdater] No updates available.");
+    sendStatusToWindow('MurCHAT актуален.');
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => { 
+    console.log(`[AutoUpdater] Downloading: ${Math.round(progressObj.percent)}%`);
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('update-download-progress', progressObj);
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => { 
+    console.log("[AutoUpdater] Update downloaded and ready.");
+    if (win && !win.isDestroyed()) {
+        win.webContents.send('update-ready', info);
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error("[AutoUpdater] Error:", err);
+    sendStatusToWindow('Ошибка обновления.');
+  });
+  
   autoUpdater.checkForUpdatesAndNotify();
   setInterval(() => { autoUpdater.checkForUpdatesAndNotify(); }, 600000);
 }
