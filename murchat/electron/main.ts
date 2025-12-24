@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Logging
 log.transports.file.level = "info";
 autoUpdater.logger = log;
-autoUpdater.autoDownload = true; // IMPORTANT: ENABLE AUTO DOWNLOAD
+autoUpdater.autoDownload = true;
 
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
@@ -228,17 +228,48 @@ if (!gotTheLock) {
     ipcMain.handle('load-settings', async () => {
         try { const data = await fs.readFile(settingsPath, 'utf-8'); return JSON.parse(data); } catch (e) { return null; }
     });
+
+    ipcMain.handle('upload-client-log', async (_, data) => {
+        return new Promise((resolve, reject) => {
+            const postData = JSON.stringify(data);
+            const options = {
+                hostname: '89.221.20.26', port: 22822, path: '/api/upload-log', method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+                rejectUnauthorized: false
+            };
+            const req = https.request(options, (res) => {
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) resolve({ success: true });
+                else reject(new Error(`Server returned status: ${res.statusCode}`));
+            });
+            req.on('error', (e) => reject(e));
+            req.write(postData); req.end();
+        });
+    });
+
+    ipcMain.handle('get-screen-sources', async () => {
+      try {
+          const sources = await desktopCapturer.getSources({ types: ['window', 'screen'], fetchWindowIcons: true });
+          return sources.map(source => ({ id: source.id, name: source.name, thumbnail: source.thumbnail.toDataURL() }));
+      } catch (e) { return []; }
+    });
+
+    ipcMain.handle('get-current-window-source-id', async () => {
+        if (!win) return null;
+        try {
+            const sources = await desktopCapturer.getSources({ types: ['window'] });
+            const mySource = sources.find(s => s.name === 'MurCHAT' || s.name.includes('MurCHAT'));
+            return mySource ? mySource.id : null;
+        } catch (e) { return null; }
+    });
+
+    ipcMain.on('copy-to-clipboard', (_, text) => { if (text) clipboard.writeText(text); });
   });
 }
-
-function sendStatusToWindow(text: string) { win?.webContents.send('update-message', text); }
 
 function checkUpdate() {
   autoUpdater.on('update-available', (info) => { win?.webContents.send('update-available', info); });
   autoUpdater.on('download-progress', (progressObj) => { win?.webContents.send('update-download-progress', progressObj); });
   autoUpdater.on('update-downloaded', (info) => { win?.webContents.send('update-ready', info); });
-  
   autoUpdater.checkForUpdatesAndNotify();
-  // Check every 10 minutes instead of every 10 seconds
   setInterval(() => { autoUpdater.checkForUpdatesAndNotify(); }, 600000);
 }
