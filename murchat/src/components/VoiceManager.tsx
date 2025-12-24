@@ -27,6 +27,7 @@ const VoiceManager: React.FC = () => {
 
   const authUserId = useSelector((state: RootState) => state.auth.userId); 
   const voiceStates = useSelector((state: RootState) => state.voice.voiceStates);
+  const outputDeviceId = useSelector((state: RootState) => state.settings.outputDeviceId);
   const selfVoiceState = authUserId ? voiceStates[authUserId] : undefined;
   const isDeafened = selfVoiceState?.isDeafened || false;
 
@@ -251,7 +252,9 @@ const VoiceManager: React.FC = () => {
     };
   }, [dispatch]);
 
-  // Apply volume changes to Audio Elements
+  const { inputDeviceId, outputDeviceId, vadThreshold } = useSelector((state: RootState) => state.settings);
+
+  // Apply volume changes and OUTPUT DEVICE to Audio Elements
   React.useEffect(() => {
     remoteAudioTracks.forEach(({ userId, stream }) => {
       const audioEl = audioRefs.current.get(userId);
@@ -265,11 +268,16 @@ const VoiceManager: React.FC = () => {
             audioEl.volume = 0; // Start at 0 to avoid pops
             audioEl.play()
                 .then(() => console.log(`[VoiceManager] Playback started for ${userId}`))
-                .catch(error => {
-                    if (error.name !== 'NotAllowedError') {
-                        console.error(`[VoiceManager] Playback FAILED for ${userId}:`, error);
-                    }
-                });
+                .catch(error => console.error(`[VoiceManager] Playback FAILED for ${userId}:`, error));
+          }
+
+          // Set Output Device (Sink ID)
+          if (outputDeviceId && (audioEl as any).setSinkId) {
+              if ((audioEl as any).sinkId !== outputDeviceId) {
+                  console.log(`[VoiceManager] Setting output device for ${userId} to ${outputDeviceId}`);
+                  (audioEl as any).setSinkId(outputDeviceId)
+                      .catch((e: any) => console.error("Failed to set sinkId:", e));
+              }
           }
           
           if (userState) {
@@ -277,6 +285,8 @@ const VoiceManager: React.FC = () => {
               // Use a small threshold to avoid constant updates
               if (Math.abs(audioEl.volume - targetVolume) > 0.01) {
                   audioEl.volume = targetVolume;
+                  // Debug log once when volume changes significantly
+                  if (Math.random() < 0.05) console.log(`[VoiceManager] Audio element volume for ${userId}: ${audioEl.volume}, Muted: ${audioEl.muted}`);
               }
               const shouldBeMuted = userState.isMuted || isDeafened;
               if (audioEl.muted !== shouldBeMuted) {
@@ -285,7 +295,7 @@ const VoiceManager: React.FC = () => {
           }
       }
     });
-  }, [remoteAudioTracks, voiceStates, isDeafened]);
+  }, [remoteAudioTracks, voiceStates, isDeafened, outputDeviceId]); // Added outputDeviceId dependency
 
   // "Watchdog" effect to ensure audio keeps playing
   React.useEffect(() => {

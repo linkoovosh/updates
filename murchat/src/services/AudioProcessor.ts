@@ -167,7 +167,12 @@ export class AudioProcessor {
     }
 
     async processStream(stream: MediaStream): Promise<MediaStream> {
-        await this.init(); 
+        // Ensure initialization is COMPLETE before proceeding
+        if (this.initPromise) {
+            await this.initPromise;
+        } else {
+            await this.init();
+        }
 
         if (!this.audioContext || !this.processorNode) {
             console.error('[MurClear AI] Worklet not ready, falling back to raw stream.');

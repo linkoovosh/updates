@@ -12,7 +12,7 @@ export const config = {
     // Mediasoup Worker settings.
     worker: {
       rtcMinPort: 40000,
-      rtcMaxPort: 40500,
+      rtcMaxPort: 40030, // Restricted to match router forwarding
       logLevel: 'warn',
       logTags: [
         'info',
@@ -70,7 +70,6 @@ export const config = {
           announcedIp: '127.0.0.1'
         }
       ],
-      initialAvailableOutgoingBitrate: 1000000,
       minimumAvailableOutgoingBitrate: 600000,
       maxSctpMessageSize: 262144,
       maxIncomingBitrate: 1500000,
