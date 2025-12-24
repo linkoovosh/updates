@@ -21,15 +21,18 @@ const PopOutIcon = () => (
 );
 
 const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelected }) => {
-  const usersCache = useSelector((state: RootState) => state.auth.users);
+  const usersCache = useSelector((state: RootState) => state.auth.users) || {};
   const currentUser = useSelector((state: RootState) => state.auth);
-  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); 
+  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates) || {}; 
   const { vadThreshold } = useSelector((state: RootState) => state.settings);
 
+  // Safety: If no userId provided, don't crash
+  if (!userId) return null;
+
   const isLocal = userId === currentUser.userId;
-  // Get full user data from cache or current user
-  const user = isLocal ? currentUser : usersCache[userId];
-  const voiceState = voiceStates ? voiceStates[userId] : undefined;
+  // Get full user data from cache or current user safely
+  const user = isLocal ? currentUser : (usersCache[userId] || {});
+  const voiceState = voiceStates[userId];
   
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [volume, setVolume] = React.useState(1);
@@ -41,7 +44,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
   const isSpeaking = voiceState ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
   const isMuted = voiceState?.isMuted;
   
-  const username = voiceState?.username || user?.username || (userId && userId.length > 8 ? userId.substring(0, 8) : 'Unknown');
+  const username = voiceState?.username || user?.username || userId.substring(0, 8);
   const avatar = voiceState?.avatar || user?.avatar;
   const profileBanner = user?.profile_banner; 
   const hasAvatar = !!avatar && avatar !== 'null' && avatar !== 'undefined';

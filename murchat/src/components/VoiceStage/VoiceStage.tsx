@@ -51,7 +51,7 @@ const VoiceStage: React.FC = () => {
         setStreams({});
     }, [activeVoiceChannelId]);
     
-    // Check both Redux state AND local producer existence for instant feedback
+    // Check both Redux state AND local producer existence safely
     const isLocalScreenSharingActive = !!mediasoupService.screenProducer && !mediasoupService.screenProducer.closed;
     const isScreenSharing = (selfId && voiceStates && voiceStates[selfId] ? !!voiceStates[selfId].isScreenSharing : false) || isLocalScreenSharingActive;
     
@@ -66,7 +66,7 @@ const VoiceStage: React.FC = () => {
     const channelName = React.useMemo(() => {
         if (activeVoiceChannelId) {
             return channels.find(c => c.id === activeVoiceChannelId)?.name || 'Голосовой канал';
-        } else if (callState.isInCall || callState.isRinging) {
+        } else if (callState && (callState.isInCall || callState.isRinging)) {
             return `Звонок: ${callState.otherUserData?.username || 'Собеседник'}`;
         }
         return 'Голосовой чат';
@@ -75,6 +75,7 @@ const VoiceStage: React.FC = () => {
     // Effects for Mediasoup
     React.useEffect(() => {
         const handleNewStream = ({ userId, stream, appData }: { userId: string; stream: MediaStream; appData?: any }) => {
+            if (!userId) return; // Safety
             const hasVideo = stream.getVideoTracks().length > 0;
             const isScreen = appData?.source === 'screen' || appData?.source === 'browser';
             
@@ -82,18 +83,13 @@ const VoiceStage: React.FC = () => {
             
             setStreams(prev => {
                 const existingStream = prev[userId];
-                // Wrap in new MediaStream to ensure React detects the change and re-runs effects
                 const newStreamObj = new MediaStream(stream.getTracks());
 
-                // FORCE replace if the new stream is a screen share
                 if (isScreen) {
-                    console.log(`[VoiceStage] New stream is SCREEN SHARE for ${userId}. Forcing replacement.`);
                     return { ...prev, [userId]: newStreamObj };
                 }
 
-                // If we already have a stream with video, don't let an audio-only stream overwrite it
                 if (existingStream && existingStream.getVideoTracks().length > 0 && !hasVideo) {
-                    console.log(`[VoiceStage] Keeping existing video stream for ${userId}, ignoring new audio-only stream.`);
                     return prev;
                 }
                 
@@ -101,10 +97,8 @@ const VoiceStage: React.FC = () => {
             });
         };
 
-        const handleStreamClosed = ({ userId, appData }: { userId: string; appData?: any }) => {
-            console.log(`[VoiceStage] Stream closed for ${userId}, source: ${appData?.source}`);
-            // Only remove if it was the main stream or we have no more producers
-            // For now, simple removal is fine, Mediasoup will resync if needed
+        const handleStreamClosed = ({ userId }: { userId: string; appData?: any }) => {
+            if (!userId) return;
             setStreams(prev => {
                 const newStreams = { ...prev };
                 delete newStreams[userId];
@@ -115,23 +109,12 @@ const VoiceStage: React.FC = () => {
         mediasoupService.on('newStream', handleNewStream);
         mediasoupService.on('streamClosed', handleStreamClosed);
 
-        // --- Handle Local Stream ---
         const handleLocalStream = (stream: MediaStream) => {
-            console.log(`[VoiceStage] Handling local stream`);
             if (selfId) {
                 setStreams(prev => ({ ...prev, [selfId]: stream }));
             }
         };
         const unsubscribeLocal = webRTCService.onLocalStream(handleLocalStream);
-
-        // Load existing streams
-        const currentStreams: Record<string, MediaStream> = {};
-        mediasoupService.consumers.forEach((consumer, userId) => {
-            if (consumer.track.kind === 'video') {
-                currentStreams[userId] = new MediaStream([consumer.track]);
-            }
-        });
-        setStreams(currentStreams);
 
         return () => {
             mediasoupService.off('newStream', handleNewStream);
@@ -143,10 +126,10 @@ const VoiceStage: React.FC = () => {
     // Layout Logic
     const isBrowserActive = sharedBrowser?.isActive;
     const screenSharerId = participants.find(id => voiceStates && voiceStates[id]?.isScreenSharing);
-    const cameraUserId = participants.find(id => voiceStates && voiceStates[id]?.isVideoEnabled); // NEW
+    const cameraUserId = participants.find(id => voiceStates && voiceStates[id]?.isVideoEnabled);
     
     const activeFocusId = manualFocusId || screenSharerId || cameraUserId || (isBrowserActive ? BROWSER_ID : null);
-    const isFocusedLayout = !!activeFocusId;
+    const isFocusedLayout = !!activeFocusId && (activeFocusId === BROWSER_ID || participants.includes(activeFocusId));
 
     const gridClass = isFocusedLayout 
         ? 'layout-focused' 
