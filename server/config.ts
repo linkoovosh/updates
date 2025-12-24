@@ -75,7 +75,7 @@ export const config = {
       maxIncomingBitrate: 1500000,
       enableUdp: true,
       enableTcp: true,
-      preferUdp: false, // Disabling UDP preference effectively prioritizes TCP
+      preferUdp: true, // Back to UDP preference for lower latency
       initialAvailableOutgoingBitrate: 600000 
     }
   }
