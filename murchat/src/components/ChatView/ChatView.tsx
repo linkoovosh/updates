@@ -15,6 +15,7 @@ import MessageContextMenu from './MessageContextMenu';
 import UserContextMenu from '../Members/UserContextMenu';
 import ExpressionPicker from './ExpressionPicker';
 import { getConversationId } from '../../services/db';
+import { PaperclipIcon, SmileIcon, MicIcon } from '../UI/Icons';
 
 const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const dispatch: AppDispatch = useDispatch();
@@ -290,7 +291,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                         onChange={(e) => handleFiles(e.target.files)}
                         multiple 
                     />
-                    +
+                    <PaperclipIcon />
                 </button>
 
                 <textarea
@@ -308,22 +309,41 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
 
                 <div className="input-actions">
                     <button className="action-button emoji-button" onClick={() => setShowPicker(!showPicker)}>
-                        😊
+                        <SmileIcon />
                     </button>
                     <button className="action-button mic-button" onClick={() => setShowAudioRecorder(true)}>
-                        🎤
+                        <MicIcon />
                     </button>
                 </div>
 
                 {showPicker && (
                     <div className="expression-picker-popup">
-                        <ExpressionPicker onSelect={(item) => {
-                            if (item.type === 'emoji') {
-                                setMessageInput(prev => prev + item.data);
-                            } else {
-                                handleSendMessage([{ url: item.data, filename: 'attachment', contentType: 'image/gif', size: 0, id: crypto.randomUUID() }]);
-                            }
-                        }} />
+                        <ExpressionPicker 
+                            onEmojiSelect={(emoji) => {
+                                setMessageInput(prev => prev + emoji);
+                            }}
+                            onGifSelect={(url) => {
+                                handleSendMessage([{ 
+                                    url, 
+                                    filename: 'gif', 
+                                    contentType: 'image/gif', 
+                                    size: 0, 
+                                    id: crypto.randomUUID() 
+                                }]);
+                                setShowPicker(false);
+                            }}
+                            onStickerSelect={(url) => {
+                                handleSendMessage([{ 
+                                    url, 
+                                    filename: 'sticker', 
+                                    contentType: 'image/png', 
+                                    size: 0, 
+                                    id: crypto.randomUUID() 
+                                }]);
+                                setShowPicker(false);
+                            }}
+                            onClose={() => setShowPicker(false)}
+                        />
                     </div>
                 )}
             </div>

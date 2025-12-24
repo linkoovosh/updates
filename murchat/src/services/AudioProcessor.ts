@@ -1,104 +1,74 @@
+import { getAudioContext } from '../utils/audioContext';
+
+// MurClear AI 3.0 - AudioWorklet Implementation
 export class AudioProcessor {
     private audioContext: AudioContext | null = null;
     private sourceNode: MediaStreamAudioSourceNode | null = null;
     private destinationNode: MediaStreamAudioDestinationNode | null = null;
-    private processorNode: ScriptProcessorNode | null = null;
-    private outputGain: GainNode | null = null; // NEW: Stable output gate
+    private processorNode: AudioWorkletNode | null = null;
     
-    // Settings
-    private vadThreshold: number = 0.005; // Base volume threshold
+    // Settings Cache
+    private vadThreshold: number = 0.005;
     private isAiEnabled: boolean = false;
     
-    // VAD State
-    private isActive: boolean = false;
-    private holdCounter: number = 0;
-    private readonly HOLD_FRAMES = 20; // ~400ms
-
-    // Smoothing
-    private currentGain: number = 0;
-
     // Public Stream (Stable)
     public outputStream: MediaStream;
+    private initPromise: Promise<void> | null = null;
 
     constructor() {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-            this.audioContext = new AudioContextClass();
-            this.destinationNode = this.audioContext.createMediaStreamDestination();
-            this.outputStream = this.destinationNode.stream;
-            
-            // Create a permanent gate
-            this.outputGain = this.audioContext.createGain();
-            this.outputGain.connect(this.destinationNode);
-
-            this.processorNode = this.audioContext.createScriptProcessor(2048, 1, 1);
-            this.processorNode.connect(this.outputGain);
-            
-            this.setupProcessor();
-        } else {
-            this.outputStream = new MediaStream();
-        }
+        this.audioContext = getAudioContext();
+        this.destinationNode = this.audioContext.createMediaStreamDestination();
+        this.outputStream = this.destinationNode.stream;
+        this.init();
     }
 
-    private setupProcessor() {
-        if (!this.processorNode) return;
+    private async init() {
+        if (this.initPromise) return this.initPromise;
 
-        this.processorNode.onaudioprocess = (event) => {
-            const input = event.inputBuffer.getChannelData(0);
-            const output = event.outputBuffer.getChannelData(0);
-            
-            if (this.audioContext && this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
+        this.initPromise = (async () => {
+            if (!this.audioContext) return;
+
+            try {
+                // Vite helper to load the worklet as a module URL
+                const workletUrl = new URL('./MurClearWorklet.ts', import.meta.url);
+                await this.audioContext.audioWorklet.addModule(workletUrl);
+                
+                this.processorNode = new AudioWorkletNode(this.audioContext, 'mur-clear-processor');
+                this.processorNode.connect(this.destinationNode!);
+                
+                // Sync initial settings
+                this.processorNode.port.postMessage({ type: 'setAiEnabled', value: this.isAiEnabled });
+                this.processorNode.port.postMessage({ type: 'setVadThreshold', value: this.vadThreshold });
+                
+                console.log('[MurClear AI] AudioWorklet initialized successfully.');
+            } catch (e) {
+                console.error('[MurClear AI] Failed to load AudioWorklet:', e);
             }
+        })();
 
-            if (!this.isAiEnabled) {
-                output.set(input);
-                return;
-            }
-
-            let sum = 0;
-            for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
-            const rms = Math.sqrt(sum / input.length);
-
-            let isVoice = false;
-            // Sensitivity check
-            if (rms > this.vadThreshold) {
-                isVoice = this.detectHumanVoice(input, this.audioContext!.sampleRate);
-            }
-
-            if (isVoice) {
-                this.isActive = true;
-                this.holdCounter = this.HOLD_FRAMES;
-            } else if (this.isActive) {
-                this.holdCounter--;
-                if (this.holdCounter <= 0) this.isActive = false;
-            }
-
-            const targetGain = this.isActive ? 1.0 : 0.0;
-            const smoothingFactor = this.isActive ? 0.5 : 0.1; 
-            
-            for (let i = 0; i < output.length; i++) {
-                this.currentGain = (this.currentGain * (1 - smoothingFactor)) + (targetGain * smoothingFactor);
-                output[i] = input[i] * this.currentGain;
-            }
-        };
+        return this.initPromise;
     }
 
     setAiEnabled(enabled: boolean) {
         this.isAiEnabled = enabled;
-        this.currentGain = enabled ? 0 : 1;
-        this.isActive = !enabled;
+        if (this.processorNode) {
+            this.processorNode.port.postMessage({ type: 'setAiEnabled', value: enabled });
+        }
         console.log(`[MurClear AI] State: ${enabled ? 'ON' : 'OFF'}`);
     }
 
     setVadThreshold(threshold: number) {
-        // Lowered base threshold from 0.002 to 0.001 and range to be more forgiving
         this.vadThreshold = 0.001 + (threshold / 100) * 0.049; 
+        if (this.processorNode) {
+            this.processorNode.port.postMessage({ type: 'setVadThreshold', value: this.vadThreshold });
+        }
     }
 
     async processStream(stream: MediaStream): Promise<MediaStream> {
-        if (!this.audioContext || !this.destinationNode) {
-            console.error('[MurClear AI] AudioContext not initialized!');
+        await this.init(); // Ensure worklet is loaded
+
+        if (!this.audioContext || !this.processorNode) {
+            console.error('[MurClear AI] Worklet not ready, falling back to raw stream.');
             return stream;
         }
         
@@ -109,54 +79,30 @@ export class AudioProcessor {
 
         // Clean up old source
         if (this.sourceNode) {
-            try { this.sourceNode.disconnect(); } catch(e) {}
+            try { 
+                this.sourceNode.disconnect(); 
+            } catch(e) {}
         }
 
         try {
             this.sourceNode = this.audioContext.createMediaStreamSource(stream);
-            this.sourceNode.connect(this.processorNode!);
+            this.sourceNode.connect(this.processorNode);
+            
+            // If outputStream is dead or has no tracks, recreate destination
+            if (!this.outputStream || this.outputStream.getAudioTracks().length === 0 || this.outputStream.getAudioTracks()[0].readyState === 'ended') {
+                console.log('[MurClear AI] Re-creating destination node...');
+                this.destinationNode = this.audioContext.createMediaStreamDestination();
+                this.outputStream = this.destinationNode.stream;
+                this.processorNode.disconnect();
+                this.processorNode.connect(this.destinationNode);
+            }
+
             console.log('[MurClear AI] Processor CONNECTED to raw stream:', stream.id);
             return this.outputStream;
         } catch (error) {
             console.error('[MurClear AI] Error connecting source:', error);
             return stream;
         }
-    }
-
-    private detectHumanVoice(buffer: Float32Array, sampleRate: number): boolean {
-        const minFreq = 85;
-        const maxFreq = 400;
-        const minPeriod = Math.floor(sampleRate / maxFreq);
-        const maxPeriod = Math.floor(sampleRate / minFreq);
-        const checkSize = Math.min(buffer.length, 1024);
-        
-        let energy = 0;
-        for (let i = 0; i < checkSize; i += 4) energy += buffer[i] * buffer[i];
-        energy = energy / (checkSize / 4);
-
-        if (energy < 0.00001) return false;
-
-        let bestCorrelation = 0;
-        for (let lag = minPeriod; lag <= maxPeriod; lag += 2) {
-            let sum = 0;
-            let count = 0;
-            for (let i = 0; i < checkSize - lag; i += 4) {
-                sum += buffer[i] * buffer[i + lag];
-                count++;
-            }
-            const correlation = sum / count;
-            if (correlation > bestCorrelation) bestCorrelation = correlation;
-        }
-
-        let crossings = 0;
-        for (let i = 1; i < buffer.length; i++) {
-            if ((buffer[i] >= 0 && buffer[i - 1] < 0) || (buffer[i] < 0 && buffer[i - 1] >= 0)) crossings++;
-        }
-        const zcr = crossings / buffer.length;
-        const normalizedScore = bestCorrelation / energy;
-
-        // Relaxed constraints: normalizedScore 0.3 -> 0.15, zcr 0.4 -> 0.6
-        return normalizedScore > 0.15 && zcr < 0.6;
     }
 }
 

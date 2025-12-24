@@ -1,4 +1,5 @@
 import { audioProcessor } from './AudioProcessor';
+import { getAudioContext, resumeAudioContext } from '../utils/audioContext';
 
 type ConnectionStateCallback = (state: RTCIceConnectionState, userId: string) => void;
 type LocalStreamCallback = (stream: MediaStream) => void;
@@ -22,7 +23,9 @@ class WebRTCService {
   public onLocalStreamCallbacks: Set<LocalStreamCallback> = new Set();
   private onAudioLevelCallbacks: Set<AudioLevelCallback> = new Set();
 
-  constructor() {}
+  constructor() {
+      this.audioContext = getAudioContext();
+  }
 
   public setLocalStream(stream: MediaStream | null) {
     this.localStream = stream;
@@ -63,17 +66,10 @@ class WebRTCService {
         this.localStream = processedStream;
 
         // --- UI Visualization Only ---
-        if (!this.audioContext) {
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-            this.audioContext = new AudioContextClass();
-        }
-        
-        if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
-        }
+        await resumeAudioContext();
 
-        this.sourceNode = this.audioContext.createMediaStreamSource(processedStream);
-        this.analyserNode = this.audioContext.createAnalyser();
+        this.sourceNode = this.audioContext!.createMediaStreamSource(processedStream);
+        this.analyserNode = this.audioContext!.createAnalyser();
         this.sourceNode.connect(this.analyserNode);
         this.analyserNode.fftSize = 512;
         

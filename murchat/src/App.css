@@ -1,9 +1,115 @@
 /* src/App.css */
 
-.App {
-  width: 100%;
-  height: 100%;
+/* --- Global Icon Character Animations --- */
+
+/* Settings Gear Rotation */
+@keyframes icon-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(90deg); }
 }
+
+/* Headset Pulse (Music feel) */
+@keyframes icon-pulse-headset {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15) translateY(-2px); }
+    100% { transform: scale(1); }
+}
+
+/* Monitor/Screen Sway */
+@keyframes icon-monitor-sway {
+    0% { transform: perspective(100px) rotateX(0deg); }
+    50% { transform: perspective(100px) rotateX(10deg) translateY(-2px); }
+    100% { transform: perspective(100px) rotateX(0deg); }
+}
+
+/* Camera Zoom/Flash effect */
+@keyframes icon-camera-shutter {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.9); opacity: 0.8; }
+    60% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+/* Security Shield/Lock Pulse */
+@keyframes icon-shield-protect {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.05); filter: brightness(1.3) drop-shadow(0 0 5px var(--accent-blue)); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* Apply to buttons application-wide */
+
+button:hover .icon-settings,
+.settings-button:hover svg {
+    animation: icon-spin 0.5s ease-in-out forwards;
+}
+
+button:hover .icon-headset {
+    animation: icon-pulse-headset 0.6s ease-in-out infinite;
+}
+
+button:hover .icon-monitor {
+    animation: icon-monitor-sway 1s ease-in-out infinite;
+}
+
+button:hover .icon-camera {
+    animation: icon-camera-shutter 0.4s ease-in-out forwards;
+}
+
+button:hover .icon-shield,
+button:hover .icon-lock {
+    animation: icon-shield-protect 0.8s ease-in-out infinite;
+}
+
+/* Mic Vibrate */
+@keyframes icon-mic-vibrate {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.1) rotate(5deg); }
+    50% { transform: scale(1.1) rotate(-5deg); }
+    75% { transform: scale(1.1) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Paperclip Swing */
+@keyframes icon-paperclip-swing {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(20deg); }
+}
+
+/* Mail/Message Bounce */
+@keyframes icon-mail-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+/* Trash Shake */
+@keyframes icon-trash-shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(2px) rotate(2deg); }
+    50% { transform: translateX(-2px) rotate(-2deg); }
+    75% { transform: translateX(2px) rotate(2deg); }
+    100% { transform: translateX(0); }
+}
+
+button:hover .icon-mic {
+    animation: icon-mic-vibrate 0.4s linear infinite;
+}
+
+button:hover .icon-paperclip {
+    animation: icon-paperclip-swing 0.3s ease-in-out infinite alternate;
+}
+
+button:hover .icon-mail,
+button:hover .icon-send {
+    animation: icon-mail-bounce 0.5s ease-in-out infinite;
+}
+
+button:hover .icon-trash {
+    animation: icon-trash-shake 0.3s ease-in-out infinite;
+}
+
+
+
 
 /* --- CAT MODE (Neko Mode) --- */
 :root.cat-mode body {

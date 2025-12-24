@@ -225,12 +225,10 @@ class MediasoupService {
             return;
         }
         
-        if (!this.sendTransport) {
-             const ready = await this.waitForTransport();
-             if (!ready) {
-                 console.warn("SFU: Transport not ready, skipping audio start.");
-                 return;
-             }
+        const ready = await this.waitForTransport();
+        if (!ready || !this.sendTransport) {
+            console.warn("SFU: Transport not ready, skipping audio start.");
+            return;
         }
 
         try {
@@ -242,111 +240,50 @@ class MediasoupService {
                 deviceId = settings.inputDeviceId;
             }
 
-                                    console.log(`[SFU] Starting audio with device: ${deviceId || 'default'}`);
+            console.log(`[SFU] Starting audio with device: ${deviceId || 'default'}`);
 
-                                    const rawStream = await navigator.mediaDevices.getUserMedia({ 
+            const rawStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+            });
 
-                                        audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+            this.rawMicStream = rawStream;
 
-                                    });
+            // Apply MurClear AI Processor
+            const processedStream = await audioProcessor.processStream(rawStream);
+            this.processedMicStream = processedStream; 
 
-                                    
+            if (this.selfUserId) {
+                this.emit('newStream', { userId: this.selfUserId, stream: processedStream, appData: { source: 'mic' } });
+            }
 
-                                                this.rawMicStream = rawStream;
+            // Visualization uses RAW stream for instant feedback
+            webRTCService.setLocalStream(rawStream); 
 
-                                    
+            let track = processedStream.getAudioTracks()[0];
 
-                                    
+            // If track is not immediately available, wait a few frames (AudioWorklet startup)
+            if (!track || track.readyState === 'ended') {
+                console.log("[SFU] Waiting for AudioProcessor track to activate...");
+                for (let i = 0; i < 15; i++) { // Increased wait time slightly
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    track = processedStream.getAudioTracks()[0];
+                    if (track && track.readyState !== 'ended') break;
+                }
+            }
 
-                                    
+            if (!track || track.readyState === 'ended') {
+                console.error("[SFU] Failed to acquire a valid audio track after waiting. Retrying processor reset...");
+                // Force processor reset for next attempt
+                await audioProcessor.processStream(rawStream);
+                return;
+            }
 
-                                                // Apply MurClear AI Processor
+            console.log(`[SFU] Audio track ready: ${track.label} (${track.id})`);
 
-                                    
-
-                                                const processedStream = await audioProcessor.processStream(rawStream);
-
-                                    
-
-                                                this.processedMicStream = processedStream; 
-
-                                    
-
-                                    
-
-                                    
-
-                                                            if (this.selfUserId) {
-
-                                    
-
-                                    
-
-                                    
-
-                                                                this.emit('newStream', { userId: this.selfUserId, stream: processedStream, appData: { source: 'mic' } });
-
-                                    
-
-                                    
-
-                                    
-
-                                                            }
-
-                                    
-
-                                    
-
-                                    
-
-                                                
-
-                                    
-
-                                    
-
-                                    
-
-                                                            // Visualization uses RAW stream for instant feedback
-
-                                    
-
-                                    
-
-                                    
-
-                                                            webRTCService.setLocalStream(rawStream); 
-
-                                    
-
-                                    
-
-                                    
-
-                                                            
-
-                                    
-
-                                    
-
-                                    
-
-                                                            const track = processedStream.getAudioTracks()[0];
-
-                                    if (!track || track.readyState === 'ended') {
-
-                                        throw new Error("Track is null or already ended before produce");
-
-                                    }
-
-                        
-
-                                    this.audioProducer = await this.sendTransport!.produce({ 
-
-                                        track, 
-
-                                        codecOptions: {                    opusStereo: true,
+            this.audioProducer = await this.sendTransport.produce({ 
+                track, 
+                codecOptions: {
+                    opusStereo: true,
                     opusDtx: true,
                     opusFec: true
                 },
@@ -395,13 +332,14 @@ class MediasoupService {
 
     async startVideo() {
         if (this.videoProducer && !this.videoProducer.closed) {
-            console.warn("Video producer already exists");
+            console.warn("[SFU] Video producer already exists and is active.");
             return;
         }
 
-        if (!this.sendTransport) {
-            const ready = await this.waitForTransport();
-            if (!ready) return;
+        const ready = await this.waitForTransport();
+        if (!ready || !this.sendTransport || this.sendTransport.closed) {
+            console.error("SFU: Cannot start video - Transport not ready or closed.");
+            return;
         }
 
         try {
@@ -430,7 +368,12 @@ class MediasoupService {
                 this.emit('newStream', { userId: this.selfUserId, stream, appData: { source: 'webcam' } });
             }
 
-            this.videoProducer = await this.sendTransport!.produce({ 
+            if (!this.sendTransport || this.sendTransport.closed) {
+                track.stop();
+                return;
+            }
+
+            this.videoProducer = await this.sendTransport.produce({ 
                 track, 
                 appData: { source: 'webcam' } 
             });
@@ -441,7 +384,6 @@ class MediasoupService {
 
         } catch (e) {
             console.error("SFU Video Produce error:", e);
-            throw e;
         }
     }
 
@@ -460,26 +402,20 @@ class MediasoupService {
     }
 
     async startScreenShare(sourceId: string, options: { resolution: string, fps: number } = { resolution: '1080p', fps: 30 }) {
-        if (this.screenProducer) {
-            console.warn("Already sharing screen");
+        if (this.screenProducer && !this.screenProducer.closed) {
+            console.warn("[SFU] Screen share already active.");
             return;
         }
 
         if (!this.channelId) {
-            console.log("SFU: Waiting for channelId before starting screen share...");
             const channelReady = await this.waitForChannel();
-            if (!channelReady) {
-                console.error("SFU: Cannot start screen share - Not in a channel (timeout).");
-                return;
-            }
+            if (!channelReady) return;
         }
 
-        if (!this.sendTransport) {
-            const ready = await this.waitForTransport();
-            if (!ready) {
-                console.error("SFU: Transport init timed out. Cannot start screen share.");
-                return;
-            }
+        const ready = await this.waitForTransport();
+        if (!ready || !this.sendTransport || this.sendTransport.closed) {
+            console.error("SFU: Cannot start screen share - Transport not ready.");
+            return;
         }
 
         try {
@@ -581,15 +517,13 @@ class MediasoupService {
     }
 
     async startBrowserShare(sourceId: string, options: { resolution: string, fps: number } = { resolution: '720p', fps: 30 }) {
-        if (this.browserProducer) {
-            console.warn("Already sharing browser");
+        if (this.browserProducer && !this.browserProducer.closed) {
+            console.warn("[SFU] Browser share already active.");
             return;
         }
 
-        if (!this.sendTransport) {
-            const ready = await this.waitForTransport();
-            if (!ready) return;
-        }
+        const ready = await this.waitForTransport();
+        if (!ready || !this.sendTransport || this.sendTransport.closed) return;
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -743,60 +677,44 @@ class MediasoupService {
         if (this._closed) return;
         this._closed = true;
         
-        console.log('[SFU] Leaving channel...');
+        console.log('[SFU] Leaving channel and cleaning up...');
         
-        // 1. Close Producers explicitly first
-        try {
-            if (this.audioProducer && !this.audioProducer.closed) this.audioProducer.close();
-            if (this.videoProducer && !this.videoProducer.closed) this.videoProducer.close(); // NEW
-            if (this.screenProducer && !this.screenProducer.closed) this.screenProducer.close();
-            if (this.screenAudioProducer && !this.screenAudioProducer.closed) this.screenAudioProducer.close();
-            if (this.browserProducer && !this.browserProducer.closed) this.browserProducer.close();
-            if (this.browserAudioProducer && !this.browserAudioProducer.closed) this.browserAudioProducer.close();
-        } catch (e) { /* Ignore */ }
+        // 1. Close Producers
+        [this.audioProducer, this.videoProducer, this.screenProducer, this.screenAudioProducer, this.browserProducer, this.browserAudioProducer].forEach(p => {
+            if (p && !p.closed) p.close();
+        });
 
         // 2. Close Consumers
         this.consumers.forEach(c => {
-            try { if (!c.closed) c.close(); } catch (e) {}
+            if (!c.closed) c.close();
         });
         this.consumers.clear();
 
         // 3. Close Transports
-        try {
-            if (this.sendTransport && !this.sendTransport.closed) {
-                this.sendTransport.close();
-            }
-        } catch (e) { /* Ignore */ }
-
-        try {
-            if (this.recvTransport && !this.recvTransport.closed) {
-                this.recvTransport.close();
-            }
-        } catch (e) { /* Ignore */ }
+        if (this.sendTransport && !this.sendTransport.closed) this.sendTransport.close();
+        if (this.recvTransport && !this.recvTransport.closed) this.recvTransport.close();
 
         // 4. Nullify everything
         this.sendTransport = null;
         this.recvTransport = null;
         this.audioProducer = null;
-        this.videoProducer = null; // NEW
+        this.videoProducer = null;
         this.screenProducer = null;
         this.screenAudioProducer = null;
         this.browserProducer = null;
         this.browserAudioProducer = null;
         this.pendingProduceCallbacks.clear();
+        this.pendingConnectCallbacks.clear();
         this.channelId = null; 
         this.producerToUser.clear();
         this.producerAppData.clear();
         
-        // ONLY stop the raw microphone tracks. 
-        // DO NOT stop processedMicStream tracks because they belong to the global AudioContext destination.
         if (this.rawMicStream) {
             this.rawMicStream.getTracks().forEach(t => t.stop());
             this.rawMicStream = null;
         }
         this.processedMicStream = null;
-
-        this.device = null; // Also reset device to be safe
+        // Keep device alive for faster re-join
     }
 }
 

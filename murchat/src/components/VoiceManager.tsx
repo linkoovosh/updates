@@ -5,6 +5,7 @@ import { mediasoupService } from '../services/mediasoup';
 import webSocketService from '../services/websocket';
 import { updateVoiceState } from '../store/slices/voiceSlice';
 import type { AppDispatch, RootState } from '../store';
+import { getAudioContext, resumeAudioContext } from '../utils/audioContext';
 
 interface RemoteAudioTrack {
   userId: string;
@@ -43,14 +44,11 @@ const VoiceManager: React.FC = () => {
 
   // Initialize AudioContext
   React.useEffect(() => {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (AudioContextClass && !audioContextRef.current) {
-        audioContextRef.current = new AudioContextClass();
-    }
+    audioContextRef.current = getAudioContext();
   }, []);
 
   React.useEffect(() => {
-    const handleTrack = (stream: MediaStream, userId: string, metadata?: any) => {
+    const handleTrack = async (stream: MediaStream, userId: string, metadata?: any) => {
       const currentSelfId = authUserIdRef.current;
       const isLocal = userId === currentSelfId;
 
@@ -80,9 +78,7 @@ const VoiceManager: React.FC = () => {
       if (!audioContextRef.current) return;
       const audioContext = audioContextRef.current;
 
-      if (audioContext.state === 'suspended') {
-          audioContext.resume();
-      }
+      await resumeAudioContext();
 
       const existingNode = audioNodesRef.current.get(userId);
       // Only re-create if the stream object actually changed
@@ -117,9 +113,7 @@ const VoiceManager: React.FC = () => {
         if (stream.getAudioTracks().length === 0) return;
         
         // Resume context if suspended (browser policy)
-        if (audioContextRef.current.state === 'suspended') {
-            await audioContextRef.current.resume();
-        }
+        await resumeAudioContext();
         
         if (audioNodesRef.current.has(myUserId)) {
             const existing = audioNodesRef.current.get(myUserId);
