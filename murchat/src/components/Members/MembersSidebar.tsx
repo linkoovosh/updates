@@ -155,6 +155,7 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
                         {group.name} — {group.members.length}
                     </div>
                     {group.members.map(member => {
+                        if (!member) return null; // Safety check
                         const roleColor = getMemberRoleColor(member);
                         const isOwner = server?.ownerId === member.id;
                         const isMemberOnline = isOnline(member);

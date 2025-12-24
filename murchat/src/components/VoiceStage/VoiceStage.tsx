@@ -25,7 +25,6 @@ const VoiceStage: React.FC = () => {
     
     const selfId = webSocketService.getUserId();
 
-    // FIXED PARTICIPANTS LOGIC
     const participants = React.useMemo(() => {
         if (activeVoiceChannelId && voiceStates) {
             // Server Voice Channel
@@ -33,7 +32,7 @@ const VoiceStage: React.FC = () => {
                 const state = voiceStates[id];
                 return state && state.channelId === activeVoiceChannelId;
             });
-        } else if (callState.isInCall || callState.isRinging) {
+        } else if (callState && (callState.isInCall || callState.isRinging)) {
             // Private DM Call
             const list = [];
             if (selfId) list.push(selfId);

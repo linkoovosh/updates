@@ -236,7 +236,7 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 <span className="create-channel-plus"><PlusIcon /></span>
             </div>
             {voiceChannels.map((channel) => {
-              const channelMembers = Object.keys(voiceStates).filter(id => voiceStates[id].channelId === channel.id);
+              const channelMembers = voiceStates ? Object.keys(voiceStates).filter(id => voiceStates[id] && voiceStates[id].channelId === channel.id) : [];
               
               return (
               <div key={channel.id}>
