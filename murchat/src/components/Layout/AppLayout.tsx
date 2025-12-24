@@ -34,13 +34,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ className }) => {
   const showMembersSidebar = useSelector((state: RootState) => state.ui.showMembersSidebar);
   const inviteModalServerId = useSelector((state: RootState) => state.ui.inviteModalServerId);
   const showAccessDenied = useSelector((state: RootState) => state.ui.showAccessDenied);
-  const callState = useSelector((state: RootState) => state.voice.callState); // NEW
+  const callState = useSelector((state: RootState) => state.ui.callState);
 
   const [activeFriendTab, setActiveFriendTab] = useState<Tab>('online');
 
   const renderMainView = () => {
     // DM CALL MODE (Ringing or Connected)
-    if (callState.isInCall || callState.isRinging) {
+    if (callState && (callState.isInCall || callState.isRinging)) {
         return <VoiceStage />;
     }
 
