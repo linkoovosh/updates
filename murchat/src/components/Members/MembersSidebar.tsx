@@ -18,21 +18,23 @@ interface MembersSidebarProps {
 const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
     const dispatch = useDispatch();
     const selectedServerId = useSelector((state: RootState) => state.server.selectedServerId);
-    const server = useSelector((state: RootState) => state.server.servers.find(s => s.id === selectedServerId));
-    const members = useSelector((state: RootState) => state.server.serverMembers);
-    const roles = useSelector((state: RootState) => state.server.currentServerRoles);
-    const auth = useSelector((state: RootState) => state.auth); 
+    const servers = useSelector((state: RootState) => state.server.servers) || [];
+    const server = servers.find(s => s.id === selectedServerId);
+    const members = useSelector((state: RootState) => state.server.serverMembers) || [];
+    const roles = useSelector((state: RootState) => state.server.currentServerRoles) || [];
+    const auth = useSelector((state: RootState) => state.auth) || {}; 
     const currentUserId = auth.userId;
     
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; user: ServerMember } | null>(null);
     const [hoveredMember, setHoveredMember] = useState<{ member: ServerMember; x: number; y: number } | null>(null);
 
     // --- SHARED HELPERS ---
-    const isOnline = (m: ServerMember) => m.id === currentUserId || m.status === 'online' || m.status === 'dnd' || m.status === 'idle';
+    const isOnline = (m: ServerMember) => m && (m.id === currentUserId || m.status === 'online' || m.status === 'dnd' || m.status === 'idle');
 
     const getMemberRoleColor = (member: ServerMember) => {
-        if (!member.roles || member.roles.length === 0) return undefined;
-        const memberRoles = roles
+        if (!member || !member.roles || member.roles.length === 0) return undefined;
+        const currentRoles = roles || [];
+        const memberRoles = currentRoles
             .filter(r => member.roles.includes(r.id))
             .sort((a, b) => b.position - a.position);
         return memberRoles.length > 0 ? memberRoles[0].color : undefined;
@@ -40,8 +42,8 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
 
     // --- EFFECTIVE MEMBERS LIST ---
     const effectiveMembers = React.useMemo(() => {
-        const list = [...members];
-        if (currentUserId && !list.find(m => m.id === currentUserId)) {
+        const list = Array.isArray(members) ? [...members] : [];
+        if (currentUserId && !list.find(m => m && m.id === currentUserId)) {
             list.push({
                 id: auth.userId!,
                 username: auth.username || 'Unknown',
@@ -70,36 +72,28 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
         setContextMenu({ x: e.clientX, y: e.clientY, user });
     };
 
-    const handleMouseEnter = (e: React.MouseEvent, member: ServerMember) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        setHoveredMember({ member, x: rect.left, y: rect.top });
-    };
-
-    const handleMouseLeave = () => {
-        setHoveredMember(null);
-    };
-
     // --- Grouping Logic ---
     const groupedMembers = React.useMemo(() => {
-        if (!server) return [];
+        if (!server || !effectiveMembers) return [];
 
         const ownerId = server.ownerId;
         const groups: { name: string; color?: string; members: ServerMember[] }[] = [];
+        const currentRoles = roles || [];
         
         const getHighestRole = (memberRoles: string[]) => {
             if (!memberRoles || memberRoles.length === 0) return null;
-            const validRoles = roles.filter(r => memberRoles.includes(r.id));
+            const validRoles = currentRoles.filter(r => memberRoles.includes(r.id));
             if (validRoles.length === 0) return null;
             return validRoles.sort((a, b) => b.position - a.position)[0];
         };
 
         const processedIds = new Set<string>();
-        const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
+        const sortedRoles = [...currentRoles].sort((a, b) => b.position - a.position);
 
         // 1. Roles (Online Only + Owner)
         sortedRoles.forEach(role => {
             const roleMembers = effectiveMembers.filter(m => {
-                if (processedIds.has(m.id)) return false;
+                if (!m || processedIds.has(m.id)) return false;
                 const isMemberOnline = isOnline(m);
                 const isOwner = m.id === ownerId;
                 if (!isMemberOnline && !isOwner) return false;
@@ -112,16 +106,16 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
                 roleMembers.sort((a, b) => {
                     if (a.id === ownerId) return -1;
                     if (b.id === ownerId) return 1;
-                    return a.username.localeCompare(b.username);
+                    return (a.username || "").localeCompare(b.username || "");
                 });
-                groups.push({ name: role.name.toUpperCase(), color: role.color, members: roleMembers });
+                groups.push({ name: (role.name || "ROLE").toUpperCase(), color: role.color, members: roleMembers });
                 roleMembers.forEach(m => processedIds.add(m.id));
             }
         });
 
         // 2. Online (No Role)
         const onlineNoRole = effectiveMembers.filter(m => {
-            if (processedIds.has(m.id)) return false;
+            if (!m || processedIds.has(m.id)) return false;
             const isMemberOnline = isOnline(m);
             const isOwner = m.id === ownerId;
             return (isMemberOnline || isOwner);
@@ -131,16 +125,16 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
             onlineNoRole.sort((a, b) => {
                 if (a.id === ownerId) return -1;
                 if (b.id === ownerId) return 1;
-                return a.username.localeCompare(b.username);
+                return (a.username || "").localeCompare(b.username || "");
             });
             groups.push({ name: 'В СЕТИ', members: onlineNoRole });
             onlineNoRole.forEach(m => processedIds.add(m.id));
         }
 
         // 3. Offline
-        const offlineMembers = effectiveMembers.filter(m => !processedIds.has(m.id));
+        const offlineMembers = effectiveMembers.filter(m => m && !processedIds.has(m.id));
         if (offlineMembers.length > 0) {
-            offlineMembers.sort((a, b) => a.username.localeCompare(b.username));
+            offlineMembers.sort((a, b) => (a.username || "").localeCompare(b.username || ""));
             groups.push({ name: 'НЕ В СЕТИ', members: offlineMembers });
         }
 
@@ -155,7 +149,7 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
                         {group.name} — {group.members.length}
                     </div>
                     {group.members.map(member => {
-                        if (!member) return null; // Safety check
+                        if (!member) return null; 
                         const roleColor = getMemberRoleColor(member);
                         const isOwner = server?.ownerId === member.id;
                         const isMemberOnline = isOnline(member);

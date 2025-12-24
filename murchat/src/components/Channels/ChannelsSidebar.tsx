@@ -61,13 +61,13 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const activeVoiceChannelId = useSelector((state: RootState) => state.voice.activeVoiceChannelId);
   
   // ROBUST SELECTORS: Use fallback values to prevent crashes
-  const voiceStates = useSelector((state: RootState) => state.voice?.voiceStates || {});
-  const unreadCounts = useSelector((state: RootState) => state.chat?.unreadCounts || {});
-  const mentionCounts = useSelector((state: RootState) => state.chat?.mentionCounts || {});
+  const voiceStates = useSelector((state: RootState) => state.voice?.voiceStates) || {};
+  const unreadCounts = useSelector((state: RootState) => state.chat?.unreadCounts) || {};
+  const mentionCounts = useSelector((state: RootState) => state.chat?.mentionCounts) || {};
   
-  const allChannels = useSelector((state: RootState) => state.ui.channels || []);
-  const servers = useSelector((state: RootState) => state.server.servers || []);
-  const users = useSelector((state: RootState) => state.auth.users || {});
+  const allChannels = useSelector((state: RootState) => state.ui.channels) || [];
+  const servers = useSelector((state: RootState) => state.server.servers) || [];
+  const users = useSelector((state: RootState) => state.auth.users) || {};
   const vadThreshold = useSelector((state: RootState) => state.settings.vadThreshold ?? 5);
 
   const userPerms = usePermissions(selectedServerId);
@@ -86,11 +86,11 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
     return <DmList />;
   }
 
-  const currentServer = servers.find(s => s.id === selectedServerId);
+  const currentServer = (servers || []).find(s => s.id === selectedServerId);
   const headerTitle = currentServer ? currentServer.name : 'MurChat';
   const isOwner = currentServer?.ownerId === userId;
 
-  const serverChannels = allChannels.filter(c => c.serverId === selectedServerId);
+  const serverChannels = (allChannels || []).filter(c => c.serverId === selectedServerId);
   const textChannels = serverChannels.filter(c => c.type === 'text');
   const voiceChannels = serverChannels.filter(c => c.type === 'voice');
   const forumChannels = serverChannels.filter(c => c.type === 'forum');
@@ -154,8 +154,8 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   };
 
   const getChannelBadge = (channelId: string) => {
-      const mentions = mentionCounts[channelId] || 0;
-      const unread = unreadCounts[channelId] || 0;
+      const mentions = (mentionCounts || {})[channelId] || 0;
+      const unread = (unreadCounts || {})[channelId] || 0;
       if (mentions > 0) return <Badge count={mentions} variant="count" color="red" className="channel-badge" />;
       if (unread > 0) return <Badge count={unread} variant="count" color="gray" className="channel-badge" />; 
       return null;
@@ -191,7 +191,7 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
             {textChannels.map((channel) => (
               <div
                 key={channel.id}
-                className={`channel-item ${selectedChannelId === channel.id ? 'selected' : ''} ${unreadCounts[channel.id] > 0 ? 'unread' : ''}`}
+                className={`channel-item ${selectedChannelId === channel.id ? 'selected' : ''} ${(unreadCounts || {})[channel.id] > 0 ? 'unread' : ''}`}
                 onClick={() => handleTextChannelClick(channel)}
                 onContextMenu={(e) => handleChannelContextMenu(e, channel)}
               >
@@ -207,16 +207,17 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 <span className="create-channel-plus"><PlusIcon /></span>
             </div>
             {voiceChannels.map((channel) => {
-              // ROBUST MEMBER FILTER: Check for existence of state
-              const channelMembers = Object.keys(voiceStates).filter(id => {
-                  const state = voiceStates[id];
+              // ROBUST MEMBER FILTER: Check for existence of state safely
+              const currentVoiceStates = voiceStates || {};
+              const channelMembers = Object.keys(currentVoiceStates).filter(id => {
+                  const state = currentVoiceStates[id];
                   return state && state.channelId === channel.id;
               });
               
               return (
               <div key={channel.id}>
                 <div 
-                    className={`channel-item voice ${activeVoiceChannelId === channel.id ? 'active-voice' : ''} ${unreadCounts[channel.id] > 0 ? 'unread' : ''}`} 
+                    className={`channel-item voice ${activeVoiceChannelId === channel.id ? 'active-voice' : ''} ${(unreadCounts || {})[channel.id] > 0 ? 'unread' : ''}`} 
                     onClick={() => handleVoiceChannelClick(channel)}
                     onContextMenu={(e) => handleChannelContextMenu(e, channel)}
                 >
@@ -226,12 +227,12 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 {channelMembers.length > 0 && (
                   <div className="voice-channel-members">
                         {channelMembers.map(memberId => {
-                            const state = voiceStates[memberId];
+                            const state = currentVoiceStates[memberId];
                             if (!state) return null; // FINAL SAFETY
                             
                             const normalizedThreshold = (vadThreshold / 100) * 0.5;
                             const isSpeaking = (state.volume || 0) > normalizedThreshold && !state.isMuted;
-                            const user = users[memberId];
+                            const user = (users || {})[memberId];
                             const displayName = state.username || user?.username || memberId.substring(0, 8);
                             const avatarUrl = state.avatar || user?.avatar;
                             const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
