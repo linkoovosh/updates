@@ -101,20 +101,19 @@ function createWindow() {
     opacity: 0 // Start invisible for fade-in
   });
 
-  // --- CSP Bypass for AudioWorklets ---
+  // --- CSP Bypass for AudioWorklets and Server Media ---
   win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' 'unsafe-inline' data: blob: wss://89.221.20.26:22822 https://89.221.20.26:22822; " +
-          "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; " +
-          "worker-src 'self' blob: data:; " +
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-          "font-src 'self' https://fonts.gstatic.com; " +
-          "connect-src 'self' wss://89.221.20.26:22822 https://89.221.20.26:22822; " +
-          "media-src 'self' blob: data:; " +
-          "img-src 'self' data: blob: https://*; "
+          "default-src * self 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+          "script-src * self 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+          "connect-src * self 'unsafe-inline' 'unsafe-eval' data: blob: wss://89.221.20.26:22822 https://89.221.20.26:22822; " +
+          "img-src * self data: blob: https://89.221.20.26:22822; " +
+          "media-src * self data: blob: https://89.221.20.26:22822; " +
+          "style-src * self 'unsafe-inline'; " +
+          "font-src * self data: https://fonts.gstatic.com;"
         ]
       }
     });
@@ -510,6 +509,8 @@ function sendStatusToWindow(text: string) {
 
 function checkUpdate() {
   autoUpdater.autoDownload = true; // Auto download when found
+  autoUpdater.allowDowngrade = false; // Never go backwards
+  autoUpdater.allowPrerelease = true; // Allow build number patches
   
   autoUpdater.on('checking-for-update', () => {
     sendStatusToWindow('Проверка обновлений...');

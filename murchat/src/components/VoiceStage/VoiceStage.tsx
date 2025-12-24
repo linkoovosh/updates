@@ -54,7 +54,7 @@ const VoiceStage: React.FC = () => {
     
     // Check both Redux state AND local producer existence for instant feedback
     const isLocalScreenSharingActive = !!mediasoupService.screenProducer && !mediasoupService.screenProducer.closed;
-    const isScreenSharing = (selfId ? !!voiceStates[selfId]?.isScreenSharing : false) || isLocalScreenSharingActive;
+    const isScreenSharing = (selfId && voiceStates && voiceStates[selfId] ? !!voiceStates[selfId].isScreenSharing : false) || isLocalScreenSharingActive;
     
     // New: Manual Focus & Zoom State
     const [manualFocusId, setManualFocusId] = React.useState<string | null>(null);
@@ -143,8 +143,8 @@ const VoiceStage: React.FC = () => {
 
     // Layout Logic
     const isBrowserActive = sharedBrowser?.isActive;
-    const screenSharerId = participants.find(id => voiceStates[id]?.isScreenSharing);
-    const cameraUserId = participants.find(id => voiceStates[id]?.isVideoEnabled); // NEW
+    const screenSharerId = participants.find(id => voiceStates && voiceStates[id]?.isScreenSharing);
+    const cameraUserId = participants.find(id => voiceStates && voiceStates[id]?.isVideoEnabled); // NEW
     
     const activeFocusId = manualFocusId || screenSharerId || cameraUserId || (isBrowserActive ? BROWSER_ID : null);
     const isFocusedLayout = !!activeFocusId;
