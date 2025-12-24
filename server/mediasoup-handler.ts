@@ -63,6 +63,9 @@ class MediasoupManager {
         const transport = await router.createWebRtcTransport({
             listenIps: config.mediasoup.webRtcTransport.listenIps,
             initialAvailableOutgoingBitrate: config.mediasoup.webRtcTransport.initialAvailableOutgoingBitrate,
+            enableUdp: true,
+            enableTcp: true, // FALLBACK TO TCP IF UDP FAILS
+            preferUdp: true,
         });
         
         if (config.mediasoup.webRtcTransport.maxIncomingBitrate) {

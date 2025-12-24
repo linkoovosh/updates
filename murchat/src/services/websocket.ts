@@ -680,23 +680,17 @@ class WebSocketService {
               }
               break;
 
-            case S2C_MSG_TYPE.S2C_VOICE_STATE_UPDATE:
-              {
-                const payload = message.payload as any; // VoiceStateUpdatePayload
-                const partialState: any = { 
-                    isScreenSharing: payload.isScreenSharing 
-                };
-                // Only update channelId if explicitly provided
-                if (payload.channelId !== undefined) {
-                    partialState.channelId = payload.channelId;
-                }
-                
-                this.dispatch(updateVoiceState({ 
-                    userId: payload.userId, 
-                    partialState
-                }));
-              }
-              break;
+            case S2C_MSG_TYPE.VOICE_STATE_UPDATE: {
+                const states = Array.isArray(parsedMessage.payload) ? parsedMessage.payload : [parsedMessage.payload];
+                states.forEach((state: any) => {
+                    const { userId, channelId, username, userAvatar } = state;
+                    this.dispatch(updateVoiceState({ 
+                        userId,
+                        newState: { channelId, username, avatar: userAvatar }
+                    }));
+                });
+                break;
+            }
 
             case S2C_MSG_TYPE.SERVER_UPDATED:
               {

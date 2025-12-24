@@ -98,11 +98,28 @@ const voiceSlice = createSlice({
         state.activeVoiceChannelId = null;
         state.voiceStates = {};
     },
-    updateVoiceState: (state, action: PayloadAction<{ userId: string, partialState: Partial<VoiceState> }>) => {
-        const { userId, partialState } = action.payload;
-        if (state.voiceStates[userId]) {
-            state.voiceStates[userId] = { ...state.voiceStates[userId], ...partialState };
-        }
+    updateVoiceState: (state, action: PayloadAction<{ userId: string; newState: Partial<VoiceState> }>) => {
+      const { userId, newState } = action.payload;
+      if (newState.channelId === null) {
+          delete state.voiceStates[userId];
+          return;
+      }
+      
+      if (state.voiceStates[userId]) {
+        state.voiceStates[userId] = { ...state.voiceStates[userId], ...newState };
+      } else {
+        // Create new state if it doesn't exist
+        state.voiceStates[userId] = {
+            userId,
+            channelId: newState.channelId || '',
+            username: newState.username || '',
+            avatar: newState.avatar || '',
+            isMuted: newState.isMuted || false,
+            isDeafened: newState.isDeafened || false,
+            volume: newState.volume || 0,
+            ...newState
+        };
+      }
     },
     setIncomingCall: (state, action: PayloadAction<{ callerId: string; callerData: { username: string; avatar?: string } }>) => {
         state.callState = {

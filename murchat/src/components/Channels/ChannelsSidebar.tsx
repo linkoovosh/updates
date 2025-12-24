@@ -105,6 +105,8 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
 
   const handleTextChannelClick = (channel: Channel) => {
     if (!checkAccess(channel)) return;
+    if (selectedChannelId === channel.id) return; // SKIP IF ALREADY SELECTED
+    
     dispatch(setSelectedChannelId(channel.id));
     dispatch(clearUnreadCount(channel.id)); 
     webSocketService.getChannelMessages(channel.id); 

@@ -82,13 +82,23 @@ class MediasoupService {
         });
     }
 
+    private isRestarting = false;
+
     private handleTransportFailure() {
-        if (this._closed || !this.channelId) return;
-        console.warn("[SFU] Critical transport failure. Restarting in 3s...");
+        if (this._closed || !this.channelId || this.isRestarting) return;
+        
+        this.isRestarting = true;
+        console.warn("[SFU] Transport failed. Attempting graceful restart in 3s...");
+        
         const savedChannelId = this.channelId;
-        this.leave();
+        this.leave(); 
+        
         setTimeout(() => {
-            if (savedChannelId) this.joinChannel(savedChannelId);
+            this.isRestarting = false;
+            if (savedChannelId && !this._closed) {
+                console.log("[SFU] Restarting voice session...");
+                this.joinChannel(savedChannelId);
+            }
         }, 3000);
     }
 

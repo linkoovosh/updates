@@ -169,25 +169,30 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                 });
                 
                 const voiceChannelIds = new Set(voiceChannelsList.map(c => c.id));
+                const serverVoiceStates: any[] = [];
 
                 for (const [channelId, userIds] of voiceChannels.entries()) {
                     if (voiceChannelIds.has(channelId)) {
                         for (const uid of userIds) {
                             const user = await prisma.user.findUnique({ where: { id: uid } });
                             if (user) {
-                                const voiceStateMsg: WebSocketMessage<any> = {
-                                    type: S2C_MSG_TYPE.S2C_VOICE_STATE_UPDATE,
-                                    payload: { 
-                                        userId: user.id, 
-                                        channelId: channelId,
-                                        username: user.username,
-                                        userAvatar: user.avatar 
-                                    }
-                                };
-                                ws.send(JSON.stringify(voiceStateMsg));
+                                serverVoiceStates.push({
+                                    userId: user.id,
+                                    channelId: channelId,
+                                    username: user.username,
+                                    userAvatar: user.avatar
+                                });
                             }
                         }
                     }
+                }
+
+                if (serverVoiceStates.length > 0) {
+                    const voiceSyncMsg = {
+                        type: S2C_MSG_TYPE.S2C_VOICE_STATE_UPDATE, // Fixed typo: added S2C_ prefix
+                        payload: serverVoiceStates // Send ARRAY of states
+                    };
+                    ws.send(JSON.stringify(voiceSyncMsg));
                 }
             }
         return true;
