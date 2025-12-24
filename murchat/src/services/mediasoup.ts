@@ -42,6 +42,14 @@ class MediasoupService {
         this.listeners.get(event)?.delete(fn);
     }
 
+    removeAllListeners(event?: string) {
+        if (event) {
+            this.listeners.delete(event);
+        } else {
+            this.listeners.clear();
+        }
+    }
+
     private emit(event: string, ...args: any[]) {
         this.listeners.get(event)?.forEach(fn => fn(...args));
     }
@@ -114,13 +122,19 @@ class MediasoupService {
             });
 
             this.sendTransport.on('produce', (args, callback, errback) => {
-                const { kind, rtpParameters, appData } = args;
-                this.signal(C2S_MSG_TYPE.MS_PRODUCE, { 
-                    transportId: this.sendTransport!.id, 
-                    kind, rtpParameters, appData, 
-                    channelId: this.channelId 
-                });
-                this.pendingProduceCallbacks.set(appData?.source || 'mic', callback);
+                try {
+                    const { kind, rtpParameters, appData } = args;
+                    this.signal(C2S_MSG_TYPE.MS_PRODUCE, { 
+                        transportId: this.sendTransport!.id, 
+                        kind, rtpParameters, appData, 
+                        channelId: this.channelId 
+                    });
+                    if (typeof callback === 'function') {
+                        this.pendingProduceCallbacks.set(appData?.source || 'mic', callback);
+                    }
+                } catch (error: any) { 
+                    if (typeof errback === 'function') errback(error);
+                }
             });
 
             this.sendTransport.on('connectionstatechange', (state) => {
