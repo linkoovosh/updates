@@ -74,10 +74,10 @@ export const config = {
       minimumAvailableOutgoingBitrate: 600000,
       maxSctpMessageSize: 262144,
       maxIncomingBitrate: 1500000,
-      // TCP Fallback Support
       enableUdp: true,
-      enableTcp: true, 
-      preferUdp: true,
+      enableTcp: true,
+      preferUdp: false, // Disabling UDP preference effectively prioritizes TCP
+      initialAvailableOutgoingBitrate: 600000 
     }
   }
 };
