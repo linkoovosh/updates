@@ -354,9 +354,19 @@ class MediasoupService {
         [this.audioProducer, this.videoProducer, this.screenProducer, this.screenAudioProducer, this.browserProducer, this.browserAudioProducer].forEach(p => { if (p && !p.closed) p.close(); });
         this.consumers.forEach(c => { if (!c.closed) c.close(); });
         this.consumers.clear();
-        if (this.sendTransport && !this.sendTransport.closed) this.sendTransport.close();
-        if (this.recvTransport && !this.recvTransport.closed) this.recvTransport.close();
-        this.sendTransport = null; this.recvTransport = null;
+    // Close transports
+    try {
+      if (this.sendTransport) {
+        this.sendTransport.close();
+        this.sendTransport = null;
+      }
+      if (this.recvTransport) {
+        this.recvTransport.close();
+        this.recvTransport = null;
+      }
+    } catch (e) {
+      // Ignore queue stopped errors during cleanup
+    }
         this.audioProducer = null; this.videoProducer = null;
         this.screenProducer = null; this.screenAudioProducer = null;
         this.browserProducer = null; this.browserAudioProducer = null;
