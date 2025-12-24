@@ -12,16 +12,11 @@ const VoiceStage: React.FC = () => {
   const [cinemaMode, setCinemaMode] = useState(false);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
-  // Safety: get member IDs that actually exist in voiceStates
-  const memberIds = Object.keys(voiceStates).filter(id => {
-      const state = voiceStates[id];
-      return state && state.channelId === activeVoiceChannelId;
-  });
-
   const sharedBrowser = useSelector((state: RootState) => state.voice.sharedBrowser);
-
-  // If we have a shared browser, we prioritize it
   const hasBrowser = sharedBrowser.isActive;
+
+  // Filter members for the current channel
+  const memberIds = Object.keys(voiceStates).filter(id => voiceStates[id]?.channelId === activeVoiceChannelId);
 
   if (!activeVoiceChannelId && !hasBrowser) return null;
 

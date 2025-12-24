@@ -12,78 +12,89 @@ interface MembersSidebarProps {
 const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
   const dispatch: AppDispatch = useDispatch();
   const members = useSelector((state: RootState) => state.server.serverMembers || []);
+  const roles = useSelector((state: RootState) => state.server.currentServerRoles || []);
   
-  // Group members by status
+  // Group members by their highest role or online/offline status
   const groupedMembers = useMemo(() => {
-    const groups = {
-      online: [] as any[],
-      offline: [] as any[]
-    };
+    const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
+    const groups: Record<string, { name: string; color?: string; members: any[] }> = {};
+
+    // Initialize groups for roles
+    sortedRoles.forEach(role => {
+      groups[role.id] = { name: role.name, color: role.color, members: [] };
+    });
+
+    // Add generic groups
+    groups['online'] = { name: 'В сети', members: [] };
+    groups['offline'] = { name: 'Не в сети', members: [] };
 
     members.forEach(member => {
-      if (member.status && member.status !== 'offline') {
-        groups.online.push(member);
+      const isOnline = member.status && member.status !== 'offline';
+      
+      if (!isOnline) {
+        groups['offline'].members.push(member);
       } else {
-        groups.offline.push(member);
+        // Find highest role that has members displayed separately
+        const memberRoles = member.roles || [];
+        const highestRole = sortedRoles.find(r => memberRoles.includes(r.id));
+        
+        if (highestRole) {
+          groups[highestRole.id].members.push(member);
+        } else {
+          groups['online'].members.push(member);
+        }
       }
     });
 
-    return groups;
-  }, [members]);
+    return Object.values(groups).filter(g => g.members.length > 0);
+  }, [members, roles]);
 
-  const renderMember = (member: any, index: number, totalPrev: number) => {
-    const avatarUrl = member.avatar;
-    const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
-    
-    // Calculate staggered delay (max 2 seconds total spread)
-    const delay = Math.min((totalPrev + index) * 0.05, 2);
-
-    return (
-      <div 
-        key={member.id} 
-        className="member-item" 
-        style={{ animationDelay: `${delay}s` }}
-        onClick={() => dispatch(setUserProfileForId(member.id))}
-      >
-        <div className="member-avatar-wrapper">
-          <div 
-            className="member-avatar" 
-            style={{ 
-              backgroundColor: hasAvatar ? 'transparent' : generateAvatarColor(member.username),
-              backgroundImage: hasAvatar ? `url(${avatarUrl})` : 'none'
-            }}
-          >
-            {!hasAvatar && getInitials(member.username)}
-          </div>
-          <div className={`member-status-dot status-${member.status || 'offline'}`} />
-        </div>
-        <div className="member-info">
-          <span className="member-name" style={{ color: member.highestRoleColor || 'inherit' }}>
-            {member.username}
-          </span>
-          {member.statusText && <span className="member-status-text">{member.statusText}</span>}
-        </div>
-      </div>
-    );
-  };
+  let globalIndex = 0; // For global staggered animation delay
 
   return (
     <div className={`members-sidebar glass-panel ${className || ''}`}>
       <div className="members-header">Участники — {members.length}</div>
       <div className="members-scroll">
-        {groupedMembers.online.length > 0 && (
-          <div className="member-group">
-            <div className="member-group-title">В сети — {groupedMembers.online.length}</div>
-            {groupedMembers.online.map((m, i) => renderMember(m, i, 0))}
+        {groupedMembers.map((group) => (
+          <div key={group.name} className="member-group">
+            <div className="member-group-title">
+              {group.name} — {group.members.length}
+            </div>
+            {group.members.map((member) => {
+              const avatarUrl = member.avatar;
+              const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
+              const delay = Math.min(globalIndex++ * 0.04, 1.5);
+
+              return (
+                <div 
+                  key={member.id} 
+                  className="member-item" 
+                  style={{ animationDelay: `${delay}s` }}
+                  onClick={() => dispatch(setUserProfileForId(member.id))}
+                >
+                  <div className="member-avatar-wrapper">
+                    <div 
+                      className="member-avatar" 
+                      style={{ 
+                        backgroundColor: hasAvatar ? 'transparent' : generateAvatarColor(member.username),
+                        backgroundImage: hasAvatar ? `url(${avatarUrl})` : 'none'
+                      }}
+                    >
+                      {!hasAvatar && getInitials(member.username)}
+                    </div>
+                    <div className={`member-status-dot status-${member.status || 'offline'}`} />
+                  </div>
+                  <div className="member-info">
+                    <span className="member-name" style={{ color: group.color || 'inherit' }}>
+                      {member.username}
+                    </span>
+                    {member.statusText && <span className="member-status-text">{member.statusText}</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-        
-        {groupedMembers.offline.length > 0 && (
-          <div className="member-group">
-            <div className="member-group-title">Не в сети — {groupedMembers.offline.length}</div>
-            {groupedMembers.offline.map((m, i) => renderMember(m, i, groupedMembers.online.length))}
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );
