@@ -9,10 +9,16 @@ import webSocketService from './services/websocket'; // Import the service
 // Initialize the WebSocket service with the store's methods
 webSocketService.setStore(store.dispatch, store.getState);
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+import { Provider } from 'react-redux';
+import { store } from './store';
+import ErrorBoundary from './components/UI/ErrorBoundary';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
     <Provider store={store}>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </Provider>
-  </StrictMode>,
-)
+  </React.StrictMode>,
+);

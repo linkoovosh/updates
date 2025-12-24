@@ -6,17 +6,17 @@ import { setSelectedChannelId, openServerSettings } from '../../store/slices/ser
 import { setVoiceChannel, clearVoiceChannel, updateVoiceState } from '../../store/slices/voiceSlice';
 import { clearUnreadCount } from '../../store/slices/chatSlice';
 import { setUserProfileForId } from '../../store/slices/authSlice';
-import { setShowAccessDenied } from '../../store/slices/uiSlice'; // NEW
+import { setShowAccessDenied } from '../../store/slices/uiSlice'; 
 import { generateAvatarColor, getInitials } from '../../utils/avatarUtils';
 import webSocketService from '../../services/websocket';
 import CreateChannelModal from './CreateChannelModal';
-import EditChannelModal from './EditChannelModal'; // NEW
-import ChannelContextMenu from './ChannelContextMenu'; // NEW
-import { Badge } from '../Badge/Badge'; // NEW
+import EditChannelModal from './EditChannelModal'; 
+import ChannelContextMenu from './ChannelContextMenu'; 
+import { Badge } from '../Badge/Badge'; 
 import DmList from '../Dms/DmList';
 import ServerDropdown from '../Servers/ServerDropdown'; 
-import { usePermissions } from '../../hooks/usePermissions'; // NEW
-import { PERMISSIONS, hasPermission } from '../../../common/permissions'; // NEW
+import { usePermissions } from '../../hooks/usePermissions'; 
+import { PERMISSIONS, hasPermission } from '../../../common/permissions'; 
 import { 
     MicIcon, LockIcon, ShieldIcon, PlusIcon, BellIcon, InfoIcon, TrashIcon 
 } from '../UI/Icons'; 
@@ -56,18 +56,20 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const selectedChannelId = useSelector((state: RootState) => state.server.selectedChannelId);
   const selectedServerId = useSelector((state: RootState) => state.server.selectedServerId);
   const username = useSelector((state: RootState) => state.auth.username);
-  const userId = useSelector((state: RootState) => state.auth.userId); // Needed for owner check
+  const userId = useSelector((state: RootState) => state.auth.userId); 
   const avatar = useSelector((state: RootState) => state.auth.avatar);
   const activeVoiceChannelId = useSelector((state: RootState) => state.voice.activeVoiceChannelId);
-  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); // Fixed selector
-  const unreadCounts = useSelector((state: RootState) => state.chat.unreadCounts);
-  const mentionCounts = useSelector((state: RootState) => state.chat.mentionCounts);
-  const allChannels = useSelector((state: RootState) => state.ui.channels);
-  const servers = useSelector((state: RootState) => state.server.servers);
-  const users = useSelector((state: RootState) => state.auth.users);
-  const vadThreshold = useSelector((state: RootState) => state.settings.vadThreshold); // NEW
+  
+  // ROBUST SELECTORS: Use fallback values to prevent crashes
+  const voiceStates = useSelector((state: RootState) => state.voice?.voiceStates || {});
+  const unreadCounts = useSelector((state: RootState) => state.chat?.unreadCounts || {});
+  const mentionCounts = useSelector((state: RootState) => state.chat?.mentionCounts || {});
+  
+  const allChannels = useSelector((state: RootState) => state.ui.channels || []);
+  const servers = useSelector((state: RootState) => state.server.servers || []);
+  const users = useSelector((state: RootState) => state.auth.users || {});
+  const vadThreshold = useSelector((state: RootState) => state.settings.vadThreshold ?? 5);
 
-  // Permissions
   const userPerms = usePermissions(selectedServerId);
   const canAccessPrivate = hasPermission(userPerms, PERMISSIONS.ADMINISTRATOR) || 
                            hasPermission(userPerms, PERMISSIONS.MANAGE_SERVER) || 
@@ -75,14 +77,10 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; channel: Channel } | null>(null); // NEW
-  const [editingChannel, setEditingChannel] = useState<Channel | null>(null); // NEW
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; channel: Channel } | null>(null); 
+  const [editingChannel, setEditingChannel] = useState<Channel | null>(null); 
   
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-      // Cleanup if needed
-  }, []);
 
   if (!selectedServerId) {
     return <DmList />;
@@ -90,12 +88,9 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
 
   const currentServer = servers.find(s => s.id === selectedServerId);
   const headerTitle = currentServer ? currentServer.name : 'MurChat';
-  const isOwner = currentServer?.ownerId === userId; // Check ownership
+  const isOwner = currentServer?.ownerId === userId;
 
   const serverChannels = allChannels.filter(c => c.serverId === selectedServerId);
-  // Sort channels by position if available, or name? Database has position now.
-  // Assuming array is somewhat ordered or we sort here. 
-  // Simple sort by name for now unless position is implemented in UI DnD
   const textChannels = serverChannels.filter(c => c.type === 'text');
   const voiceChannels = serverChannels.filter(c => c.type === 'voice');
   const forumChannels = serverChannels.filter(c => c.type === 'forum');
@@ -111,8 +106,8 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const handleTextChannelClick = (channel: Channel) => {
     if (!checkAccess(channel)) return;
     dispatch(setSelectedChannelId(channel.id));
-    dispatch(clearUnreadCount(channel.id)); // NEW: Clear counts on click
-    webSocketService.getChannelMessages(channel.id); // Request messages for the new channel
+    dispatch(clearUnreadCount(channel.id)); 
+    webSocketService.getChannelMessages(channel.id); 
   };
 
   const handleVoiceChannelClick = (channel: Channel) => {
@@ -124,18 +119,12 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
       dispatch(clearVoiceChannel());
       dispatch(setSelectedChannelId(null));
     } else {
-      if(activeVoiceChannelId) {
-        webSocketService.leaveVoiceChannel(activeVoiceChannelId);
-      }
+      if(activeVoiceChannelId) webSocketService.leaveVoiceChannel(activeVoiceChannelId);
       if (selfId) {
         webSocketService.joinVoiceChannel(channelId);
         dispatch(setVoiceChannel({ 
             channelId, 
-            members: [{ 
-                userId: selfId, 
-                username: username || 'Unknown', 
-                avatar: avatar || undefined 
-            }] 
+            members: [{ userId: selfId, username: username || 'Unknown', avatar: avatar || undefined }] 
         }));
         dispatch(setSelectedChannelId(channelId)); 
       }
@@ -167,9 +156,8 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const getChannelBadge = (channelId: string) => {
       const mentions = mentionCounts[channelId] || 0;
       const unread = unreadCounts[channelId] || 0;
-      
       if (mentions > 0) return <Badge count={mentions} variant="count" color="red" className="channel-badge" />;
-      if (unread > 0) return <Badge count={unread} variant="count" color="gray" className="channel-badge" />; // Or dot if preferred
+      if (unread > 0) return <Badge count={unread} variant="count" color="gray" className="channel-badge" />; 
       return null;
   };
 
@@ -182,39 +170,21 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
 
   return (
     <div className={`channels-sidebar glass-panel ${className || ''}`}>
-      <div className="channel-header" style={bannerStyle} key={currentServer?.banner}>
+      <div className="channel-header" style={bannerStyle}>
         <div className="header-info">
           <h3>{headerTitle}</h3>
-          {currentServer?.description && (
-            <div className="server-description" title={currentServer.description}>
-              {currentServer.description}
-            </div>
-          )}
+          {currentServer?.description && <div className="server-description" title={currentServer.description}>{currentServer.description}</div>}
         </div>
-        <div 
-            className="server-settings-icon" 
-            onClick={handleDropdownClick}
-            title="Меню сервера"
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
-            ref={dropdownRef}
-        >
+        <div className="server-settings-icon" onClick={handleDropdownClick} ref={dropdownRef}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: dropdownPosition ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'white' }}>
                 <path d="M6 9l6 6 6-6"/>
             </svg>
-            {dropdownPosition && (
-                <ServerDropdown 
-                    serverId={selectedServerId} 
-                    onClose={() => setDropdownPosition(null)}
-                    onOpenCreateChannel={() => setIsCreateModalOpen(true)}
-                    position={dropdownPosition}
-                />
-            )}
+            {dropdownPosition && <ServerDropdown serverId={selectedServerId} onClose={() => setDropdownPosition(null)} onOpenCreateChannel={() => setIsCreateModalOpen(true)} position={dropdownPosition} />}
         </div>
       </div>
       <div className="channel-list">
-          {/* Text Channels */}
           <div className="channel-category">
-            <div className="channel-category-title" onClick={() => setIsCreateModalOpen(true)} title="Create Channel">
+            <div className="channel-category-title" onClick={() => setIsCreateModalOpen(true)}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><ShieldIcon /> Текстовые каналы</span>
               <span className="create-channel-plus"><PlusIcon /></span>
             </div>
@@ -223,97 +193,66 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 key={channel.id}
                 className={`channel-item ${selectedChannelId === channel.id ? 'selected' : ''} ${unreadCounts[channel.id] > 0 ? 'unread' : ''}`}
                 onClick={() => handleTextChannelClick(channel)}
-                onContextMenu={(e) => handleChannelContextMenu(e, channel)} // Context Menu
+                onContextMenu={(e) => handleChannelContextMenu(e, channel)}
               >
-                <span className="channel-icon"><TextChannelIcon /></span> {channel.name} {channel.isPrivate && <span title="Private" style={{ marginLeft: 'auto' }}><LockIcon /></span>}
+                <span className="channel-icon"><TextChannelIcon /></span> {channel.name} {channel.isPrivate && <span style={{ marginLeft: 'auto' }}><LockIcon /></span>}
                 {getChannelBadge(channel.id)}
               </div>
             ))}
           </div>
 
-          {/* Voice Channels */}
           <div className="channel-category">
-            <div className="channel-category-title" onClick={() => setIsCreateModalOpen(true)} title="Create Channel">
+            <div className="channel-category-title" onClick={() => setIsCreateModalOpen(true)}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><MicIcon /> Голосовые каналы</span>
                 <span className="create-channel-plus"><PlusIcon /></span>
             </div>
             {voiceChannels.map((channel) => {
-              // SAFETY CHECK: Ensure voiceStates exists and contains the ID before accessing channelId
-              const channelMembers = voiceStates ? Object.keys(voiceStates).filter(id => {
+              // ROBUST MEMBER FILTER: Check for existence of state
+              const channelMembers = Object.keys(voiceStates).filter(id => {
                   const state = voiceStates[id];
                   return state && state.channelId === channel.id;
-              }) : [];
+              });
               
               return (
               <div key={channel.id}>
                 <div 
                     className={`channel-item voice ${activeVoiceChannelId === channel.id ? 'active-voice' : ''} ${unreadCounts[channel.id] > 0 ? 'unread' : ''}`} 
                     onClick={() => handleVoiceChannelClick(channel)}
-                    onContextMenu={(e) => handleChannelContextMenu(e, channel)} // Context Menu
+                    onContextMenu={(e) => handleChannelContextMenu(e, channel)}
                 >
-                  <span className="channel-icon"><VoiceChannelIcon /></span> {channel.name} {channel.isPrivate && <span title="Private" style={{ marginLeft: 'auto' }}><LockIcon /></span>}
+                  <span className="channel-icon"><VoiceChannelIcon /></span> {channel.name} {channel.isPrivate && <span style={{ marginLeft: 'auto' }}><LockIcon /></span>}
                   {getChannelBadge(channel.id)}
                 </div>
                 {channelMembers.length > 0 && (
                   <div className="voice-channel-members">
-                                        {channelMembers.map(memberId => {
-                                          // Safety check: ensure voice state exists
-                                          if (!voiceStates || !voiceStates[memberId]) return null;
-                                          
-                                          const state = voiceStates[memberId];
-                                          const normalizedThreshold = (vadThreshold / 100) * 0.5;
-                                          const isSpeaking = state.volume > normalizedThreshold && !state.isMuted;
-                                          const user = users ? users[memberId] : undefined;
-                                          const displayName = state.username || (user ? user.username : memberId.substring(0, 8) + '...');
-                                          const avatarUrl = state.avatar || user?.avatar;
-                                          const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
-                    
-                                          return (
-                                            <div key={memberId} className={`voice-member ${isSpeaking ? 'speaking' : ''} ${state.isConnecting ? 'connecting' : ''} ${state.isDisconnected ? 'disconnected' : ''}`} onClick={() => dispatch(setUserProfileForId(memberId))}>
-                                              <div className="member-avatar-wrapper">
-                                                <div 
-                                                    className="member-avatar" 
-                                                    style={{ backgroundColor: generateAvatarColor(memberId) }}
-                                                >
-                                                  {hasAvatar ? (
-                                                    <img src={avatarUrl} alt={displayName} />
-                                                  ) : (
-                                                    getInitials(displayName)
-                                                  )}
-                                                </div>
-                                                {state.isMuted && <span className="voice-state-icon" title="Микрофон выключен">🔇</span>}
-                                                {state.isDeafened && <span className="voice-state-icon" title="Звук выключен">🎧</span>}
-                                              </div>
-                                              <span className="member-name">{displayName}</span>
-                                            </div>
-                                          );
-                                        })}
+                        {channelMembers.map(memberId => {
+                            const state = voiceStates[memberId];
+                            if (!state) return null; // FINAL SAFETY
+                            
+                            const normalizedThreshold = (vadThreshold / 100) * 0.5;
+                            const isSpeaking = (state.volume || 0) > normalizedThreshold && !state.isMuted;
+                            const user = users[memberId];
+                            const displayName = state.username || user?.username || memberId.substring(0, 8);
+                            const avatarUrl = state.avatar || user?.avatar;
+                            const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
+    
+                            return (
+                            <div key={memberId} className={`voice-member ${isSpeaking ? 'speaking' : ''}`} onClick={() => dispatch(setUserProfileForId(memberId))}>
+                                <div className="member-avatar-wrapper">
+                                <div className="member-avatar" style={{ backgroundColor: generateAvatarColor(memberId) }}>
+                                    {hasAvatar ? <img src={avatarUrl} alt={displayName} /> : getInitials(displayName)}
+                                </div>
+                                {state.isMuted && <span className="voice-state-icon">🔇</span>}
+                                </div>
+                                <span className="member-name">{displayName}</span>
+                            </div>
+                            );
+                        })}
                   </div>
                 )}
               </div>
             )})}
           </div>
-
-          {/* Forum Channels */}
-          {forumChannels.length > 0 && (
-              <div className="channel-category">
-                <div className="channel-category-title" onClick={() => setIsCreateModalOpen(true)} title="Create Channel">
-                  <span>Форумы</span>
-                  <span className="create-channel-plus">+</span>
-                </div>
-                {forumChannels.map((channel) => (
-                  <div
-                    key={channel.id}
-                    className={`channel-item ${selectedChannelId === channel.id ? 'selected' : ''} ${unreadCounts[channel.id] > 0 ? 'unread' : ''}`}
-                    onClick={() => handleTextChannelClick(channel)} 
-                    onContextMenu={(e) => handleChannelContextMenu(e, channel)} // Context Menu
-                  >
-                    <span className="channel-icon"><ForumChannelIcon /></span> {channel.name} {channel.isPrivate && <span title="Private">🔒</span>}
-                    {getChannelBadge(channel.id)}
-                  </div>
-                ))}
-              </div>
-          )}
       </div>
       
       <CreateChannelModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} serverId={selectedServerId} />
