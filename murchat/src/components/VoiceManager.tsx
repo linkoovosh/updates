@@ -245,6 +245,17 @@ const VoiceManager: React.FC = () => {
 
   const { inputDeviceId, vadThreshold } = useSelector((state: RootState) => state.settings);
 
+  // --- NEW: Sync AudioContext Output Device ---
+  React.useEffect(() => {
+      const ctx = audioContextRef.current;
+      if (ctx && outputDeviceId && (ctx as any).setSinkId) {
+          console.log(`[VoiceManager] Switching AudioContext output to: ${outputDeviceId}`);
+          (ctx as any).setSinkId(outputDeviceId)
+              .then(() => console.log(`[VoiceManager] AudioContext output updated successfully.`))
+              .catch((err: any) => console.error(`[VoiceManager] Failed to set AudioContext output:`, err));
+      }
+  }, [outputDeviceId]);
+
   // HTML Audio Elements (Fallback + SinkID)
   // We MUTE these because we are playing audio via WebAudio API above.
   // But we keep them because 'setSinkId' works best on HTMLAudioElements in Electron/Chrome.
