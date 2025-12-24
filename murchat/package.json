@@ -62,6 +62,7 @@
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
+      "terminateProcess": true,
       "include": "build/installer.nsh",
       "installerIcon": "public/murchat.ico",
       "uninstallerIcon": "public/murchat.ico",
