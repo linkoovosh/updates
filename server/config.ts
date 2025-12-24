@@ -70,17 +70,15 @@ export const config = {
         {
           ip: '0.0.0.0',
           announcedIp: '89.221.20.26' 
-        },
-        {
-          ip: '127.0.0.1',
-          announcedIp: '127.0.0.1'
         }
       ],
       initialAvailableOutgoingBitrate: 1000000,
       minimumAvailableOutgoingBitrate: 600000,
       maxSctpMessageSize: 262144,
-      // Additional options
-      maxIncomingBitrate: 1500000
+      maxIncomingBitrate: 1500000,
+      enableUdp: true,
+      enableTcp: true, // Включаем TCP как запасной вариант
+      preferUdp: true
     }
   }
 };

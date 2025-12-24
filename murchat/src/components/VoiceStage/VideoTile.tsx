@@ -49,9 +49,9 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
   const isSpeaking = voiceState ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
   const isMuted = voiceState?.isMuted;
   
-  const username = voiceState?.username || user?.username || userId.substring(0, 8);
+  const username = voiceState?.username || user?.username || (userId && userId.length > 8 ? userId.substring(0, 8) : 'Unknown');
   const avatar = voiceState?.avatar || user?.avatar;
-  const profileBanner = isLocal ? currentUser.profile_banner : user?.profile_banner; 
+  const profileBanner = isLocal ? currentUser?.profile_banner : user?.profile_banner; 
   const hasAvatar = !!avatar && avatar !== 'null' && avatar !== 'undefined';
 
   React.useEffect(() => {

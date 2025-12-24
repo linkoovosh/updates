@@ -18,23 +18,23 @@ const DmList: React.FC = () => {
 
   const [contextMenu, setContextMenu] = React.useState<{ x: number, y: number, friend: any } | null>(null);
 
-  console.log('Friends in DmList:', friends); // DEBUG LOG
-
   // Create a display list that includes the active DM user if they are not a friend
-  const displayList = [...friends];
-  if (activeDmConversationId && !friends.find(f => f.id === activeDmConversationId)) {
-      const cachedUser = users[activeDmConversationId];
-      if (cachedUser) {
-          // Add the active non-friend to the top of the list
-          displayList.unshift({
-              id: activeDmConversationId,
-              username: cachedUser.username,
-              avatar: cachedUser.avatar,
-              discriminator: '????',
-              status: 'offline' // Or 'unknown'
-          } as any);
+  const displayList = React.useMemo(() => {
+      const list = [...friends];
+      if (activeDmConversationId && !friends.find(f => f.id === activeDmConversationId)) {
+          const cachedUser = users ? users[activeDmConversationId] : null;
+          if (cachedUser) {
+              list.unshift({
+                  id: activeDmConversationId,
+                  username: cachedUser.username,
+                  avatar: cachedUser.avatar,
+                  discriminator: '????',
+                  status: 'offline' 
+              } as any);
+          }
       }
-  }
+      return list;
+  }, [friends, activeDmConversationId, users]);
 
   const handleFriendClick = (friendId: string) => {
     console.log('DmList: Clicked friend with ID:', friendId);
