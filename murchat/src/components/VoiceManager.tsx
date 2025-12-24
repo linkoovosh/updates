@@ -252,7 +252,7 @@ const VoiceManager: React.FC = () => {
     };
   }, [dispatch]);
 
-  const { inputDeviceId, outputDeviceId, vadThreshold } = useSelector((state: RootState) => state.settings);
+  const { inputDeviceId, vadThreshold } = useSelector((state: RootState) => state.settings);
 
   // Apply volume changes and OUTPUT DEVICE to Audio Elements
   React.useEffect(() => {
