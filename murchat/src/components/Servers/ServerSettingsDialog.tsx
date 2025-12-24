@@ -206,7 +206,7 @@ const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, o
                                     backgroundSize: 'cover'
                                 }}>
                                     {!defaultAvatar && 'D'}
-                                }</div>
+                                </div>
                                 <div className="avatar-actions" style={{ marginTop: '10px' }}>
                                     <label className={`btn-upload small ${!canManageServer ? 'disabled' : ''}`}>
                                         Изменить
