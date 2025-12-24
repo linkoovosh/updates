@@ -8,10 +8,12 @@ export const makeSelectTargetUser = () => createSelector(
   [
     selectAuth,
     selectServer,
-    (state: RootState, userId: string) => userId,
+    (_state: RootState, userId: string) => userId,
   ],
   (auth, server, userId) => {
-    // Is it the logged-in user?
+    if (!userId || !auth) return null;
+
+    // 1. Is it the logged-in user?
     if (userId === auth.userId) {
       return {
         id: auth.userId,
@@ -25,17 +27,20 @@ export const makeSelectTargetUser = () => createSelector(
       };
     }
     
-    // 3. Is it a server member? (Usually has full data from S2C_SERVER_MEMBERS)
-    const serverMember = server.serverMembers.find(m => m.id === userId);
+    // 2. Is it a friend?
+    const friend = auth.friends?.find(f => f.id === userId);
+    
+    // 3. Is it a server member?
+    const serverMember = server.serverMembers?.find(m => m.id === userId);
     
     // 4. Is it in the general user cache?
-    const cachedUser = auth.users[userId];
+    const cachedUser = auth.users ? auth.users[userId] : null;
 
-    // Priority: Server Member (most current) > Friend > General Cache
+    // Priority: Server Member > Friend > General Cache
     if (serverMember) return serverMember;
     if (friend) return { ...friend, roles: [] };
     if (cachedUser) return { ...cachedUser, roles: [] };
 
-    return null; // User not found
+    return null; 
   }
 );

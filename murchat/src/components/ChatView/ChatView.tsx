@@ -114,7 +114,6 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
     const content = messageInput.trim();
     if ((content || (attachments && attachments.length > 0)) && effectiveChannelId && userId) {
       if (isDm) {
-          // websocketService.sendDm already handles optimistic update for DMs internally!
           webSocketService.sendDm(effectiveChannelId, content, attachments); 
       } else {
           webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, {
@@ -213,10 +212,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                 className="chat-textarea"
                 placeholder="Напишите сообщение..."
                 value={messageInput}
-                onChange={(e) => {
-                    setMessageInput(e.target.value);
-                    if (effectiveChannelId) webSocketService.sendTypingStart(effectiveChannelId);
-                }}
+                onChange={(e) => setMessageInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                 rows={1}
             />
