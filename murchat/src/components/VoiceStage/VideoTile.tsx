@@ -21,13 +21,14 @@ const PopOutIcon = () => (
 );
 
 const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelected }) => {
-  const users = useSelector((state: RootState) => state.auth.users);
+  const usersCache = useSelector((state: RootState) => state.auth.users);
   const currentUser = useSelector((state: RootState) => state.auth);
   const voiceStates = useSelector((state: RootState) => state.voice.voiceStates); 
   const { vadThreshold } = useSelector((state: RootState) => state.settings);
 
   const isLocal = userId === currentUser.userId;
-  const user = isLocal ? currentUser : (users ? users[userId] : undefined);
+  // Get full user data from cache or current user
+  const user = isLocal ? currentUser : usersCache[userId];
   const voiceState = voiceStates ? voiceStates[userId] : undefined;
   
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -36,18 +37,19 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
 
   const hasVideo = stream && stream.getVideoTracks().length > 0;
   
-  // Speak detection logic
   const normalizedThreshold = (vadThreshold / 100) * 0.5;
   const isSpeaking = voiceState ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
   const isMuted = voiceState?.isMuted;
   
   const username = voiceState?.username || user?.username || (userId && userId.length > 8 ? userId.substring(0, 8) : 'Unknown');
   const avatar = voiceState?.avatar || user?.avatar;
-  const profileBanner = user?.profile_banner; // Now correctly gets from users cache too
+  const profileBanner = user?.profile_banner; 
   const hasAvatar = !!avatar && avatar !== 'null' && avatar !== 'undefined';
 
   React.useEffect(() => {
     if (videoRef.current && stream && hasVideo) {
+      const tracks = stream.getTracks();
+      if (tracks.every(t => t.readyState === 'ended')) return;
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(() => {});
       const audioTracks = stream.getAudioTracks();
@@ -60,7 +62,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
           videoRef.current.muted = true;
       }
     }
-  }, [stream, isLocal, hasVideo]);
+  }, [stream, isLocal, hasVideo, volume]);
 
   const handlePopOut = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -84,7 +86,6 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
         />
       ) : (
         <div className="tile-avatar-container">
-           {/* GIF Banner FIX: Always show but dim/blur when not speaking. This ensures GIF keeps playing. */}
            {profileBanner && (
                <div 
                    className="tile-banner-bg"
@@ -95,10 +96,10 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
                        backgroundSize: 'cover',
                        backgroundPosition: 'center',
                        backgroundRepeat: 'no-repeat',
-                       opacity: isSpeaking ? 0.8 : 0.3, 
-                       filter: isSpeaking ? 'blur(0px)' : 'blur(10px) brightness(0.5)', 
+                       opacity: isSpeaking ? 0.85 : 0.35, // Slightly brighter base
+                       filter: isSpeaking ? 'blur(0px)' : 'blur(8px) brightness(0.6)', 
                        transform: isSpeaking ? 'scale(1.1)' : 'scale(1)',
-                       transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                       transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                        zIndex: 0,
                        pointerEvents: 'none'
                    }}
@@ -110,8 +111,8 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
                 style={{ 
                     backgroundColor: generateAvatarColor(username),
                     zIndex: 2,
-                    border: isSpeaking ? '2px solid var(--accent-blue)' : '2px solid transparent',
-                    boxShadow: isSpeaking ? '0 0 20px rgba(var(--accent-blue-rgb), 0.5)' : 'none',
+                    border: isSpeaking ? '2px solid var(--accent-blue)' : '2px solid rgba(255,255,255,0.1)',
+                    boxShadow: isSpeaking ? '0 0 20px rgba(var(--accent-blue-rgb), 0.6)' : 'none',
                     transition: 'all 0.3s ease'
                 }}
             >
@@ -138,7 +139,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
                         min="0" max="1" step="0.05" 
                         value={volume} 
                         onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        style={{ width: '60px' }}
+                        style={{ width: '60px', accentColor: 'var(--accent-blue)' }}
                     />
                 </div>
             )}

@@ -18,7 +18,7 @@ interface AuthState {
   friends: User[];
   incomingRequests: User[];
   outgoingRequests: User[];
-  users: Record<string, { username: string; avatar?: string }>; // User cache
+  users: Record<string, User>; // User cache (Full profile data)
   userProfileOpenForId: string | null;
   isStatusMenuOpen: boolean;
 }
@@ -96,11 +96,19 @@ const authSlice = createSlice({
     setUserStatusMenuOpen: (state, action: PayloadAction<boolean>) => {
         state.isStatusMenuOpen = action.payload;
     },
-    cacheUser: (state, action: PayloadAction<{ userId: string; username: string; avatar?: string }>) => {
-        state.users[action.payload.userId] = {
-            username: action.payload.username,
-            avatar: action.payload.avatar
+    cacheUser: (state, action: PayloadAction<User>) => {
+        state.users[action.payload.id] = {
+            ...state.users[action.payload.id],
+            ...action.payload
         };
+    },
+    cacheUsers: (state, action: PayloadAction<User[]>) => {
+        action.payload.forEach(user => {
+            state.users[user.id] = {
+                ...state.users[user.id],
+                ...user
+            };
+        });
     },
     setFriendsList: (state, action: PayloadAction<{ friends: User[], incomingRequests: User[], outgoingRequests: User[] }>) => {
         state.friends = action.payload.friends;
@@ -146,6 +154,7 @@ export const {
     setUserProfileForId,
     setUserStatusMenuOpen,
     cacheUser,
+    cacheUsers,
     setFriendsList,
     addFriendRequest,
     removeFriendRequest,

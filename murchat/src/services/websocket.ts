@@ -101,7 +101,9 @@ import {
   setAuthSuccess,
   setAuthError,
   setAuthVerificationRequired,
-  updateUserProfile
+  updateUserProfile,
+  cacheUser,
+  cacheUsers
 } from '../store/slices/authSlice';
 import { setThemes, addTheme, updateTheme, removeTheme } from '../store/slices/customThemeSlice';
 import { 
@@ -708,6 +710,7 @@ class WebSocketService {
               {
                 const payload = message.payload as ServerMembersPayload;
                 this.dispatch(setServerMembers(payload.members));
+                this.dispatch(cacheUsers(payload.members)); // Sync with global cache
                 console.log('Received SERVER_MEMBERS:', payload.members.length);
               }
               break;
@@ -718,6 +721,7 @@ class WebSocketService {
                   const state = this.getState();
                   if (state.server.selectedServerId === payload.serverId) {
                       this.dispatch(addServerMember(payload.member));
+                      this.dispatch(cacheUser(payload.member)); // Sync with global cache
                       console.log(`[WS] New member added to current server: ${payload.member.username}`);
                   }
               }
