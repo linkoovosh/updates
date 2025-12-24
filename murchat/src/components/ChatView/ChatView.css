@@ -130,76 +130,127 @@
     font-weight: bold;
 }
 
+/* INPUT AREA STYLING */
 .chat-input-area {
   display: flex;
   flex-direction: column;
-  background-color: rgba(var(--bg-panels-rgb), 0.4);
-  backdrop-filter: blur(15px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(var(--bg-panels-rgb), 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   margin: 0 var(--space-l) var(--space-l) var(--space-l);
-  border-radius: var(--radius-large);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.chat-input-area:focus-within {
+  background: rgba(var(--bg-panels-rgb), 0.5);
+  border-color: rgba(var(--accent-blue-rgb), 0.4);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 15px rgba(var(--accent-blue-rgb), 0.2);
+  transform: translateY(-2px);
 }
 
 .chat-input-row {
   display: flex;
   align-items: flex-end;
-  padding: 12px 16px;
-  gap: 12px;
+  padding: 10px 14px;
+  gap: 10px;
   width: 100%;
 }
 
 .chat-textarea {
   flex-grow: 1;
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.03) !important;
-  border-radius: var(--radius-medium);
+  background: rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px;
   padding: 12px 16px;
   color: var(--text-primary);
-  font-size: var(--text2-size);
-  outline: none;
+  font-size: 15px;
+  outline: none !important;
   resize: none;
   min-height: 44px;
-  max-height: 250px;
+  max-height: 200px;
   overflow-y: auto;
-  font-family: inherit;
+  font-family: var(--font-main);
   line-height: 1.5;
+  transition: all 0.2s ease;
+}
+
+.chat-textarea:focus {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(var(--accent-blue-rgb), 0.3) !important;
+}
+
+.attach-button, .action-button {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 10px !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin-bottom: 2px;
+}
+
+.attach-button:hover, .action-button:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-primary) !important;
+    transform: scale(1.05) translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.action-button.mic-button:hover {
+    color: var(--status-negative) !important;
+    background: rgba(var(--status-negative-rgb), 0.1) !important;
+}
+
+.action-button svg, .attach-button svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s ease;
+}
+
+/* Animations for icons */
+.attach-button:hover .icon-paperclip {
+    animation: paperclip-swing 0.4s ease-in-out infinite alternate;
+}
+
+.emoji-button:hover .icon-smile {
+    animation: smile-bounce 0.5s ease-in-out infinite;
+}
+
+.mic-button:hover .icon-mic {
+    animation: mic-vibrate 0.3s linear infinite;
+}
+
+@keyframes paperclip-swing {
+    from { transform: rotate(-10deg); }
+    to { transform: rotate(20deg); }
+}
+
+@keyframes smile-bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2) translateY(-2px); }
+}
+
+@keyframes mic-vibrate {
+    0% { transform: translate(0); }
+    25% { transform: translate(1px, 1px) rotate(2deg); }
+    50% { transform: translate(-1px, -1px) rotate(-2deg); }
+    75% { transform: translate(1px, -1px) rotate(2deg); }
+    100% { transform: translate(0); }
 }
 
 .input-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 4px;
-}
-
-.action-button {
-    background: transparent !important;
-    color: var(--text-secondary) !important;
-    border: none !important;
-    border-radius: var(--radius-medium) !important;
-    width: 36px !important;
-    height: 36px !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-.action-button svg {
-    width: 22px;
-    height: 22px;
-}
-
-.emoji-button:hover svg {
-    animation: smile-jump 0.6s infinite;
-}
-
-@keyframes smile-jump {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
 }
 
 .expression-picker-popup {
@@ -218,7 +269,7 @@
     display: flex;
     align-items: center;
     padding: 0 12px;
-    border-radius: var(--radius-large);
+    border-radius: 20px;
 }
 
 .drag-drop-overlay {

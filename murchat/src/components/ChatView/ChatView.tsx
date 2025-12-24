@@ -43,6 +43,20 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const recorderRef = useRef<any>(null);
+
+  const handleMicMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowAudioRecorder(true);
+    window.addEventListener('mouseup', handleMicMouseUpGlobal);
+  };
+
+  const handleMicMouseUpGlobal = () => {
+    window.removeEventListener('mouseup', handleMicMouseUpGlobal);
+    if (recorderRef.current) {
+      recorderRef.current.stopAndSend();
+    }
+  };
 
   useEffect(() => {
     if (messageInputRef.current) {
@@ -218,7 +232,12 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
             />
             <div className="input-actions">
                 <button className="action-button emoji-button" onClick={(e) => { e.stopPropagation(); setShowPicker(!showPicker); }}><SmileIcon /></button>
-                <button className="action-button mic-button" onClick={() => setShowAudioRecorder(true)}><MicIcon /></button>
+                <button 
+                    className="action-button mic-button" 
+                    onMouseDown={handleMicMouseDown}
+                >
+                    <MicIcon />
+                </button>
             </div>
         </div>
         
@@ -239,9 +258,16 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
         {showAudioRecorder && (
             <div className="audio-recorder-overlay">
                 <AudioRecorder 
+                    ref={recorderRef}
                     onComplete={(audioData) => {
-                        webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, { channelId: effectiveChannelId, content: '', author: username, audioData });
+                        webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, { 
+                            channelId: effectiveChannelId, 
+                            content: '', 
+                            author: username, 
+                            audioData 
+                        });
                         setShowAudioRecorder(false);
+                        messageInputRef.current?.focus();
                     }}
                     onCancel={() => setShowAudioRecorder(false)}
                 />
