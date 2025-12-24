@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { User } from '@common/types';
+import type { User } from '@common/types';
 
 export interface VoiceState {
   userId: string;
