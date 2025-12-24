@@ -101,6 +101,26 @@ function createWindow() {
     opacity: 0 // Start invisible for fade-in
   });
 
+  // --- CSP Bypass for AudioWorklets ---
+  win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' 'unsafe-inline' data: blob: wss://89.221.20.26:22822 https://89.221.20.26:22822; " +
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: data:; " +
+          "worker-src 'self' blob: data:; " +
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+          "font-src 'self' https://fonts.gstatic.com; " +
+          "connect-src 'self' wss://89.221.20.26:22822 https://89.221.20.26:22822; " +
+          "media-src 'self' blob: data:; " +
+          "img-src 'self' data: blob: https://*; "
+        ]
+      }
+    });
+  });
+  // ------------------------------------
+
   win.webContents.on('before-input-event', (event, input) => {
       if (allowDevTools) return;
       if ((input.control || input.meta) && input.key.toLowerCase() === 'r') {

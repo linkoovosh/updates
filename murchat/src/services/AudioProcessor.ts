@@ -29,11 +29,22 @@ export class AudioProcessor {
             if (!this.audioContext) return;
 
             try {
-                // Vite helper to load the worklet as a module URL
+                // Try relative path first (Dev and standard Vite)
                 const workletUrl = new URL('./MurClearWorklet.ts', import.meta.url);
+                console.log('[MurClear AI] Attempting to load worklet from:', workletUrl.href);
                 await this.audioContext.audioWorklet.addModule(workletUrl);
+            } catch (e) {
+                console.warn('[MurClear AI] Relative load failed, trying absolute path...', e);
+                try {
+                    // Fallback for some Electron environments
+                    await this.audioContext.audioWorklet.addModule('src/services/MurClearWorklet.ts');
+                } catch (e2) {
+                    console.error('[MurClear AI] All load attempts failed:', e2);
+                    throw e2;
+                }
+            }
                 
-                this.processorNode = new AudioWorkletNode(this.audioContext, 'mur-clear-processor');
+            this.processorNode = new AudioWorkletNode(this.audioContext, 'mur-clear-processor');
                 this.processorNode.connect(this.destinationNode!);
                 
                 // Sync initial settings
