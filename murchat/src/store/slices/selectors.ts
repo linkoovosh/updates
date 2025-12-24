@@ -25,17 +25,16 @@ export const makeSelectTargetUser = () => createSelector(
       };
     }
     
-    // Is it a friend?
-    const friend = auth.friends.find(f => f.id === userId);
-    if (friend) return { ...friend, roles: [] };
-    
-    // Is it a server member?
+    // 3. Is it a server member? (Usually has full data from S2C_SERVER_MEMBERS)
     const serverMember = server.serverMembers.find(m => m.id === userId);
-    if (serverMember) return serverMember;
-
-    // Is it in the general user cache?
+    
+    // 4. Is it in the general user cache?
     const cachedUser = auth.users[userId];
-    if (cachedUser) return { id: userId, discriminator: '????', ...cachedUser, roles: [] };
+
+    // Priority: Server Member (most current) > Friend > General Cache
+    if (serverMember) return serverMember;
+    if (friend) return { ...friend, roles: [] };
+    if (cachedUser) return { ...cachedUser, roles: [] };
 
     return null; // User not found
   }

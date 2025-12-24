@@ -236,8 +236,24 @@ class MediasoupService {
             let width = 1920, height = 1080;
             if (options.resolution === '720p') { width = 1280; height = 720; }
             const stream = await navigator.mediaDevices.getUserMedia({
-                audio: { mandatory: { chromeMediaSource: 'desktop' } } as any,
-                video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, minWidth: width, maxWidth: width, minHeight: height, maxHeight: height, minFrameRate: options.fps, maxFrameRate: options.fps } } as any
+                audio: { 
+                    mandatory: { 
+                        chromeMediaSource: 'desktop',
+                        systemAudio: 'exclude' // Experimental: try to exclude self from system capture
+                    } 
+                } as any,
+                video: { 
+                    mandatory: { 
+                        chromeMediaSource: 'desktop', 
+                        chromeMediaSourceId: sourceId, 
+                        minWidth: width, 
+                        maxWidth: width, 
+                        minHeight: height, 
+                        maxHeight: height, 
+                        minFrameRate: options.fps, 
+                        maxFrameRate: options.fps 
+                    } 
+                } as any
             });
             const track = stream.getVideoTracks()[0];
             const audioTrack = stream.getAudioTracks()[0];
