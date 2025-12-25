@@ -52,9 +52,11 @@ const VoicePanel: React.FC<VoicePanelProps> = ({ className }) => {
   const selfId = webSocketService.getUserId();
   
   const voiceMembers = React.useMemo(() => {
-      return Object.keys(voiceStates).filter(memberId => 
-          voiceStates[memberId].channelId === activeVoiceChannelId && memberId !== selfId
-      );
+      if (!voiceStates) return []; // SAFETY CHECK
+      return Object.keys(voiceStates).filter(memberId => {
+          const state = voiceStates[memberId];
+          return state && state.channelId === activeVoiceChannelId && memberId !== selfId;
+      });
   }, [voiceStates, activeVoiceChannelId, selfId]);
 
   return (
@@ -62,7 +64,7 @@ const VoicePanel: React.FC<VoicePanelProps> = ({ className }) => {
       {focusedStreamUser && videoStreams[focusedStreamUser] && (
           <StreamModal 
               stream={videoStreams[focusedStreamUser]} 
-              username={users[focusedStreamUser]?.username || focusedStreamUser}
+              username={users ? users[focusedStreamUser]?.username || focusedStreamUser : focusedStreamUser}
               onClose={() => setFocusedStreamUser(null)} 
           />
       )}
@@ -71,12 +73,14 @@ const VoicePanel: React.FC<VoicePanelProps> = ({ className }) => {
             <div className="voice-channel-members">
               {voiceMembers.length > 0 ? (
                 voiceMembers.map(memberId => {
+                  if (!voiceStates) return null; // SAFETY CHECK
                   const state = voiceStates[memberId];
-                  if (!state) return null;
-                  const isSpeaking = state.volume > 0.005; 
-                  const visualVolume = Math.max(5, state.volume * 100); 
+                  if (!state) return null; // SAFETY CHECK
+                  
+                  const isSpeaking = (state.volume || 0) > 0.005; 
+                  const visualVolume = Math.max(5, (state.volume || 0) * 100); 
 
-                  const user = users[memberId];
+                  const user = users ? users[memberId] : null;
                   const displayName = user ? user.username : memberId.substring(0, 8) + '...';
                   const avatarUrl = user?.avatar;
                   const hasVideo = !!videoStreams[memberId];

@@ -11,6 +11,7 @@ import { generateAvatarColor, getInitials } from "../../utils/avatarUtils";
 import AudioRecorder from '../AudioRecorder/AudioRecorder';
 import VoiceMessagePlayer from '../VoiceMessagePlayer/VoiceMessagePlayer';
 import MarkdownRenderer from '../MarkdownRenderer/MarkdownRenderer';
+import VideoPlayer from './VideoPlayer'; // IMPORT THIS
 import ExpressionPicker from './ExpressionPicker';
 import MessageContextMenu from './MessageContextMenu';
 import PinnedMessages from './PinnedMessages';
@@ -198,17 +199,50 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
 
   const handleFiles = async (files: FileList | null) => {
       if (!files || files.length === 0) return;
+      const MAX_SIZE = 2.5 * 1024 * 1024 * 1024; // 2.5 GB
       const newAttachments: Attachment[] = [];
+      const token = localStorage.getItem('authToken');
+
       for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          const reader = new FileReader();
-          const base64 = await new Promise<string>((resolve) => {
-              reader.onload = () => resolve(reader.result as string);
-              reader.readAsDataURL(file);
-          });
-          newAttachments.push({ id: crypto.randomUUID(), url: base64, filename: file.name, contentType: file.type, size: file.size });
+          
+          if (file.size > MAX_SIZE) {
+              alert(`Файл "${file.name}" слишком велик! Максимальный размер: 2.5 ГБ.`);
+              continue;
+          }
+
+          // Show a temporary "uploading" state could be good, but for now we just do it
+          const formData = new FormData();
+          formData.append('file', file);
+
+          try {
+              const response = await fetch(`${webSocketService.getServerUrl().replace('wss://', 'https://').replace('ws://', 'http://')}/upload`, {
+                  method: 'POST',
+                  headers: {
+                      'Authorization': `Bearer ${token}`
+                  },
+                  body: formData
+              });
+
+              if (!response.ok) throw new Error('Upload failed');
+
+              const data = await response.json();
+              // Server returns { url: '/uploads/filename...' }
+              const fullUrl = `${webSocketService.getServerUrl().replace('wss://', 'https://').replace('ws://', 'http://')}${data.url}`;
+
+              newAttachments.push({ 
+                  id: crypto.randomUUID(), 
+                  url: fullUrl, 
+                  filename: file.name, 
+                  contentType: file.type, 
+                  size: file.size 
+              });
+          } catch (err) {
+              console.error('File upload error:', err);
+              alert(`Не удалось загрузить файл "${file.name}"`);
+          }
       }
-      handleSendMessage(newAttachments);
+      if (newAttachments.length > 0) handleSendMessage(newAttachments);
   };
 
   return (
@@ -249,7 +283,9 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                     <div className="message-attachments">
                         {msg.attachments?.map((att: Attachment) => (
                             <div key={att.id} className="attachment-preview">
-                                {att.contentType.startsWith('image/') ? (
+                                {att.contentType.startsWith('video/') ? (
+                                    <VideoPlayer url={att.url} filename={att.filename} />
+                                ) : att.contentType.startsWith('image/') ? (
                                     <img src={att.url} alt={att.filename} className="chat-img-attachment" onClick={() => window.open(att.url)} />
                                 ) : (
                                     <div className="file-attachment-card">
