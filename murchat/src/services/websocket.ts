@@ -58,14 +58,15 @@ import {
   deleteMessage,
   addDmMessage,
   setDmMessages,
-  setActiveDmConversationId
+  setActiveDmConversationId,
+  incrementUnreadCount // ADDED THIS
 } from '../store/slices/chatSlice';
 import {
   setSharedBrowser,
   addVoiceChannelMember as addVoiceChannelMemberVoice, 
   removeVoiceChannelMember as removeVoiceChannelMemberVoice, 
   updateVoiceState,
-  setIncomingCall as setIncomingCallVoice,
+  setIncomingCall, // FIXED NAME (was setIncomingCallVoice)
   setOutgoingCall,
   setCallConnected,
   endCall

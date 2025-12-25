@@ -260,16 +260,13 @@ class MediasoupService {
             let width = 1920, height = 1080;
             if (options.resolution === '720p') { width = 1280; height = 720; }
             
-            // Proper constraints for Electron desktop capture
+            // Fixed constraints: use ONLY mandatory for Electron desktop capture to avoid errors
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     mandatory: {
                         chromeMediaSource: 'desktop',
-                        chromeMediaSourceId: sourceId // This captures audio of the specific window/screen
-                    },
-                    // Add echo cancellation even to system audio to try and filter out MurCHAT's own output
-                    echoCancellation: true,
-                    noiseSuppression: true
+                        chromeMediaSourceId: sourceId
+                    }
                 } as any,
                 video: {
                     mandatory: {

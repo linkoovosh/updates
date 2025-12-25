@@ -141,7 +141,7 @@ const VoiceManager: React.FC = () => {
   React.useEffect(() => {
     remoteAudioTracks.forEach(({ userId, stream }) => {
       const audioEl = audioRefs.current.get(userId);
-      const userState = voiceStates[userId];
+      const userState = voiceStates ? voiceStates[userId] : null; // SAFE ACCESS
       
       if (audioEl) {
           // 1. Assign Stream
@@ -163,10 +163,14 @@ const VoiceManager: React.FC = () => {
           if (userState) {
               const vol = (userState.localVolume ?? 100) / 100;
               // Only update if changed to prevent thrashing
-              if (Math.abs(audioEl.volume - vol) > 0.01) audioEl.volume = isDeafened ? 0 : vol;
+              const targetVol = isDeafened ? 0 : vol;
+              if (Math.abs(audioEl.volume - targetVol) > 0.01) audioEl.volume = targetVol;
               
               const shouldMute = userState.isMuted || isDeafened;
               if (audioEl.muted !== shouldMute) audioEl.muted = shouldMute;
+          } else if (isDeafened) {
+              // Even if userState is gone, if we are deafened, mute the element
+              audioEl.muted = true;
           }
       }
     });
