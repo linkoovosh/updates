@@ -141,21 +141,21 @@ const UserContextMenu: React.FC<UserContextMenuProps> = ({ position, user, onClo
                     <div className="glass-menu-item" style={{ cursor: 'default', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                             <span>Громкость</span>
-                            <span>{userVoiceState.localVolume ?? 100}%</span>
+                            <span>{userVoiceState?.localVolume ?? 100}%</span>
                         </div>
                         <input 
                             type="range" 
                             min="0" 
                             max="200" 
-                            value={userVoiceState.localVolume ?? 100} 
+                            value={userVoiceState?.localVolume ?? 100} 
                             onChange={handleVolumeChange}
                             style={{ width: '100%', accentColor: 'var(--accent-primary)', height: '4px' }}
                         />
                     </div>
                     <div className="glass-menu-item" onClick={() => dispatch(updateVoiceState({ userId: user.id, partialState: { isMuted: !userVoiceState.isMuted } }))}>
-                        <span className="icon">{userVoiceState.isMuted ? <CheckIcon /> : <div className="empty-square" />}</span> 
+                        <span className="icon">{userVoiceState?.isMuted ? <CheckIcon /> : <div className="empty-square" />}</span> 
                         <span style={{ flex: 1 }}>Заглушить локально</span>
-                        {userVoiceState.isMuted && <span style={{ color: 'var(--status-negative)' }}><CheckIcon /></span>}
+                        {userVoiceState?.isMuted && <span style={{ color: 'var(--status-negative)' }}><CheckIcon /></span>}
                     </div>
                     <div className="glass-menu-separator" />
                 </>

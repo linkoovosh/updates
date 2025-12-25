@@ -32,7 +32,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
   const isLocal = userId === currentUser.userId;
   // Get full user data from cache or current user safely
   const user = isLocal ? currentUser : (usersCache[userId] || {});
-  const voiceState = voiceStates[userId];
+  const voiceState = voiceStates ? voiceStates[userId] : null;
   
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [volume, setVolume] = React.useState(1);
@@ -41,8 +41,8 @@ const VideoTile: React.FC<VideoTileProps> = ({ userId, stream, onClick, isSelect
   const hasVideo = stream && stream.getVideoTracks().length > 0;
   
   const normalizedThreshold = (vadThreshold / 100) * 0.5;
-  const isSpeaking = voiceState ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
-  const isMuted = voiceState?.isMuted;
+  const isSpeaking = voiceState && voiceState.volume ? (voiceState.volume > normalizedThreshold && !voiceState.isMuted) : false; 
+  const isMuted = voiceState ? voiceState.isMuted : false;
   
   const username = voiceState?.username || user?.username || userId.substring(0, 8);
   const avatar = voiceState?.avatar || user?.avatar;

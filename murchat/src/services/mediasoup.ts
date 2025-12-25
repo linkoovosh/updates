@@ -259,21 +259,53 @@ class MediasoupService {
         try {
             let width = 1920, height = 1080;
             if (options.resolution === '720p') { width = 1280; height = 720; }
+            
+            // Proper constraints for Electron desktop capture
             const stream = await navigator.mediaDevices.getUserMedia({
-                audio: { mandatory: { chromeMediaSource: 'desktop', systemAudio: 'exclude' } } as any,
-                video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, minWidth: width, maxWidth: width, minHeight: height, maxHeight: height, minFrameRate: options.fps, maxFrameRate: options.fps } } as any
+                audio: {
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        chromeMediaSourceId: sourceId // This captures audio of the specific window/screen
+                    },
+                    // Add echo cancellation even to system audio to try and filter out MurCHAT's own output
+                    echoCancellation: true,
+                    noiseSuppression: true
+                } as any,
+                video: {
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        chromeMediaSourceId: sourceId,
+                        minWidth: width,
+                        maxWidth: width,
+                        minHeight: height,
+                        maxHeight: height,
+                        minFrameRate: options.fps,
+                        maxFrameRate: options.fps
+                    }
+                } as any
             });
+            
             const track = stream.getVideoTracks()[0];
             const audioTrack = stream.getAudioTracks()[0];
+            
             if (this.selfUserId) this.emit('newStream', { userId: this.selfUserId, stream, appData: { source: 'screen' } });
             track.onended = () => this.stopScreenShare();
             
             const transport = this.sendTransport as any;
-            if (!transport || transport.closed) { stream.getTracks().forEach(t => t.stop()); return; }
+            if (!transport || transport.closed) { 
+                stream.getTracks().forEach(t => t.stop()); 
+                return; 
+            }
 
             this.screenProducer = await transport.produce({ track, appData: { source: 'screen' } });
             playScreenshareStart();
-            if (audioTrack && !transport.closed) this.screenAudioProducer = await transport.produce({ track: audioTrack, appData: { source: 'screen-audio' } });
+            
+            if (audioTrack && !transport.closed) {
+                this.screenAudioProducer = await transport.produce({ 
+                    track: audioTrack, 
+                    appData: { source: 'screen-audio' } 
+                });
+            }
         } catch (e) { console.error("SFU Screen error:", e); }
     }
 

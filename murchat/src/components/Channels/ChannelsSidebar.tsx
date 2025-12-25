@@ -207,12 +207,14 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 <span className="create-channel-plus"><PlusIcon /></span>
             </div>
             {voiceChannels.map((channel) => {
-              // ROBUST MEMBER FILTER: Check for existence of state safely
-              const currentVoiceStates = voiceStates || {};
-              const channelMembers = Object.keys(currentVoiceStates).filter(id => {
-                  const state = currentVoiceStates[id];
-                  return state && state.channelId === channel.id;
-              });
+              // Memoize members for this channel to prevent mid-render crashes
+              const channelMembers = React.useMemo(() => {
+                  if (!voiceStates) return [];
+                  return Object.keys(voiceStates).filter(id => {
+                      const state = voiceStates[id];
+                      return state && state.channelId === channel.id;
+                  });
+              }, [voiceStates, channel.id]);
               
               return (
               <div key={channel.id}>
@@ -227,12 +229,12 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
                 {channelMembers.length > 0 && (
                   <div className="voice-channel-members">
                         {channelMembers.map(memberId => {
-                            const state = currentVoiceStates[memberId];
-                            if (!state) return null; // FINAL SAFETY
+                            const state = voiceStates ? voiceStates[memberId] : null;
+                            if (!state) return null; // CRITICAL PROTECTION
                             
                             const normalizedThreshold = (vadThreshold / 100) * 0.5;
                             const isSpeaking = (state.volume || 0) > normalizedThreshold && !state.isMuted;
-                            const user = (users || {})[memberId];
+                            const user = users ? users[memberId] : null;
                             const displayName = state.username || user?.username || memberId.substring(0, 8);
                             const avatarUrl = state.avatar || user?.avatar;
                             const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';

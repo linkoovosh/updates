@@ -26,8 +26,10 @@ const VoiceStage: React.FC = () => {
     const selfId = webSocketService.getUserId();
 
     const participants = React.useMemo(() => {
-        if (activeVoiceChannelId && voiceStates) {
-            // Server Voice Channel
+        if (!voiceStates) return [];
+
+        if (activeVoiceChannelId) {
+            // Server Voice Channel - only return IDs that actually exist in voiceStates
             return Object.keys(voiceStates).filter(id => {
                 const state = voiceStates[id];
                 return state && state.channelId === activeVoiceChannelId;
@@ -37,7 +39,8 @@ const VoiceStage: React.FC = () => {
             const list = [];
             if (selfId) list.push(selfId);
             if (callState.otherUserId) list.push(callState.otherUserId);
-            return list;
+            // Filter to make sure we have some data for them (or they are self)
+            return list.filter(id => id === selfId || (voiceStates && voiceStates[id]));
         }
         return [];
     }, [activeVoiceChannelId, voiceStates, callState, selfId]);
