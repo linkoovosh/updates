@@ -2,6 +2,8 @@
   "name": "murchat",
   "private": true,
   "version": "0.2.6",
+  "author": "Linko Arts <mursuportstop@gmail.com>",
+  "description": "Secure and stylish communication platform by Linko Arts",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -48,6 +50,7 @@
   "build": {
     "appId": "com.murchat.app",
     "productName": "MurCHAT",
+    "copyright": "Copyright © 2025 Linko Arts",
     "files": [
       "dist-electron/**/*",
       "dist/**/*",
@@ -63,6 +66,7 @@
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
+      "license": "build/license.txt",
       "installerIcon": "public/murchat.ico",
       "uninstallerIcon": "public/murchat.ico",
       "installerHeaderIcon": "public/murchat.ico",
@@ -75,7 +79,9 @@
     "win": {
       "target": "nsis",
       "icon": "public/murchat.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "cscLink": "../электронный сертифират/Linko Arts sertificat.pfx",
+      "cscKeyPassword": "Lolkekpolk11"
     },
     "mac": {
       "target": "dmg"
