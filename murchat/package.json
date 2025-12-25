@@ -1,7 +1,7 @@
 {
   "name": "murchat",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -60,7 +60,7 @@
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
+      "allowToChangeInstallationDirectory": false,
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
       "installerIcon": "public/murchat.ico",
