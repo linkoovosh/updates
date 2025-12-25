@@ -17,7 +17,7 @@ interface VoicePanelProps {
 const VoicePanel: React.FC<VoicePanelProps> = ({ className }) => {
   const dispatch: AppDispatch = useDispatch();
   const activeVoiceChannelId = useSelector((state: RootState) => state.voice.activeVoiceChannelId); 
-  const voiceStates = useSelector((state: RootState) => state.voice.voiceStates);
+  const voiceStates = useSelector((state: RootState) => state.voice?.voiceStates || {}); // ADDED OPTIONAL CHAINING
   const users = useSelector((state: RootState) => state.auth.users);
 
   // Video Streams State

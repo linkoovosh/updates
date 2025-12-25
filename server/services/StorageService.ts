@@ -40,9 +40,12 @@ class StorageService {
                     content TEXT,
                     timestamp INTEGER,
                     read INTEGER DEFAULT 0,
-                    attachments TEXT
+                    attachments TEXT,
+                    audioData TEXT
                 )
             `);
+            // Ensure audioData exists for older DBs
+            try { await db.exec(`ALTER TABLE direct_messages ADD COLUMN audioData TEXT`); } catch(e) {}
         } else {
             await db.exec(`
                 CREATE TABLE IF NOT EXISTS messages (
@@ -139,9 +142,9 @@ class StorageService {
     async saveDirectMessage(msg: DirectMessage) {
         const db = await this.getDb('dms');
         await db.run(
-            `INSERT INTO direct_messages (id, senderId, recipientId, content, timestamp, read, attachments) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [msg.id, msg.senderId, msg.recipientId, msg.content, msg.timestamp, msg.read, JSON.stringify(msg.attachments || [])]
+            `INSERT INTO direct_messages (id, senderId, recipientId, content, timestamp, read, attachments, audioData) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [msg.id, msg.senderId, msg.recipientId, msg.content, msg.timestamp, msg.read, JSON.stringify(msg.attachments || []), msg.audioData || null]
         );
     }
 
@@ -161,7 +164,8 @@ class StorageService {
             content: row.content,
             timestamp: row.timestamp,
             read: row.read,
-            attachments: JSON.parse(row.attachments || '[]')
+            attachments: JSON.parse(row.attachments || '[]'),
+            audioData: row.audioData
         }));
     }
 }

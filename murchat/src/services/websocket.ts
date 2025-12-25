@@ -413,20 +413,28 @@ class WebSocketService {
                         content: payload.content,
                         timestamp: payload.timestamp,
                         isSent: true,
+                        audioData: payload.audioData
                     };
 
                     // 1. Dispatch to UI immediately for speed
-                    this.dispatch(addDmMessage(newMessage));
+                    this.dispatch!(addDmMessage(newMessage));
 
                     // 2. Save to DB in background
                     db.dmMessages.add(newMessage).catch(err => {
                         console.error('Failed to save incoming DM to DB:', err);
                     });
 
-                    if (chat.activeDmConversationId !== payload.senderId) {
-                        const sender = auth.friends.find(f => f.id === payload.senderId);
-                        showNotification(`New DM from ${sender?.username || 'Someone'}`, payload.content);
-                        playDmNotify();
+                    const state = this.getState!();
+                    if (state.chat.activeDmConversationId !== payload.senderId) {
+                        if (state.settings.notifyOnDm) { // CHECK SETTING
+                            const sender = state.auth.friends.find(f => f.id === payload.senderId);
+                            if (state.settings.enableDesktopNotifications) {
+                                showNotification(`New DM from ${sender?.username || 'Someone'}`, payload.content);
+                            }
+                            if (state.settings.enableSoundNotifications) {
+                                playDmNotify();
+                            }
+                        }
                     }
                 }
                 break;
@@ -635,8 +643,12 @@ class WebSocketService {
                   const contextTitle = server ? `${server.name} > #${channel?.name}` : `#${channel?.name || 'Message'}`;
 
                   let shouldNotify = false;
-                  if (state.settings.notifyOnMention && isMention) shouldNotify = true;
-                  else if (state.settings.notifyOnDm) shouldNotify = true; // This is a server message, but settings might use this key
+                  // If it's a mention, check notifyOnMention setting
+                  if (isMention && state.settings.notifyOnMention) shouldNotify = true;
+                  
+                  // If it's just a message, and we NOT mentioned, only notify if we really want to (currently no separate setting for "all server messages")
+                  // Using state.settings to be safe
+                  if (!isMention && state.settings.notifyOnDm) shouldNotify = false; 
 
                   if (shouldNotify) {
                     if (state.settings.enableDesktopNotifications) {
@@ -1065,7 +1077,7 @@ class WebSocketService {
     }
   }
   
-  public async sendDm(recipientId: string, content: string, attachments?: any[]) {
+  public async sendDm(recipientId: string, content: string, attachments?: any[], audioData?: string) {
     if (!this.userId) {
         console.error("Cannot send DM without a user ID.");
         return;
@@ -1083,7 +1095,7 @@ class WebSocketService {
         content,
         timestamp,
         isSent: true,
-        // attachments: attachments // TODO: Add attachments support to Dexie/IDmMessage if needed locally
+        audioData: audioData // ADDED THIS
     };
 
     try {
@@ -1102,7 +1114,8 @@ class WebSocketService {
             recipientId,
             content,
             timestamp,
-            attachments
+            attachments,
+            audioData // ADDED THIS
         };
         this.sendMessage(C2S_MSG_TYPE.SEND_DM, payload);
     } catch (error) {

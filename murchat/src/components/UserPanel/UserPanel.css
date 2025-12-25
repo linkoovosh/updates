@@ -88,7 +88,7 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* Online status indicator */
+/* Online status indicator base */
 .user-avatar::after {
   content: '';
   position: absolute;
@@ -96,10 +96,17 @@
   right: -2px;
   width: 12px;
   height: 12px;
-  background-color: var(--status-positive); 
+  background-color: var(--status-positive); /* Default */
   border-radius: 50%;
-  border: 3px solid var(--bg-panels); /* Thicker border to match panel bg */
+  border: 3px solid var(--bg-panels);
+  transition: background-color 0.3s ease;
 }
+
+/* Specific status colors */
+.user-avatar.online::after { background-color: var(--status-positive); }
+.user-avatar.idle::after { background-color: #f1c40f; } /* Yellow */
+.user-avatar.dnd::after { background-color: var(--status-negative); }
+.user-avatar.offline::after { background-color: #747f8d; }
 
 .user-details {
   display: flex;

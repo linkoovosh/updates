@@ -571,6 +571,25 @@ export interface DirectMessage {
   timestamp: number;
   read: number;
   attachments?: Attachment[];
+  audioData?: string; // ADDED THIS
+}
+
+export interface SendDmPayload {
+    messageId: string;
+    recipientId: string;
+    content: string;
+    timestamp: number;
+    attachments?: Attachment[];
+    audioData?: string; // ADDED THIS
+}
+
+export interface ReceiveDmPayload {
+    messageId: string;
+    senderId: string;
+    content: string;
+    timestamp: number;
+    attachments?: Attachment[];
+    audioData?: string; // ADDED THIS
 }
 
 export interface DmHistoryPayload {

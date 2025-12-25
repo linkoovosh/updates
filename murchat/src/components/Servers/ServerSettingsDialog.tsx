@@ -97,20 +97,40 @@ const ServerSettingsDialog: React.FC<ServerSettingsDialogProps> = ({ serverId, o
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'default' | 'active' | 'banner') => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
-          // Use Base64 for avatars to ensure GIF compatibility and immediate application
-          const base64 = await fileToBase64(file);
+          const token = localStorage.getItem('authToken');
           
-          if (type === 'banner') {
-              setServerBanner(base64);
-          } else {
-              const payload: UpdateServerProfilePayload = {
-                  serverId: serverId,
-                  avatar_default: type === 'default' ? base64 : undefined,
-                  avatar_active: type === 'active' ? base64 : undefined
-              };
-              webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_SERVER_PROFILE, payload);
-              if (type === 'default') setDefaultAvatar(base64);
-              else setActiveAvatar(base64);
+          const formData = new FormData();
+          formData.append('file', file);
+
+          try {
+              const response = await fetch(`${webSocketService.getServerUrl().replace('wss://', 'https://').replace('ws://', 'http://')}/upload`, {
+                  method: 'POST',
+                  headers: {
+                      'Authorization': `Bearer ${token}`
+                  },
+                  body: formData
+              });
+
+              if (!response.ok) throw new Error('Upload failed');
+
+              const data = await response.json();
+              const fullUrl = `${webSocketService.getServerUrl().replace('wss://', 'https://').replace('ws://', 'http://')}${data.url}`;
+              
+              if (type === 'banner') {
+                  setServerBanner(fullUrl);
+              } else {
+                  const payload: UpdateServerProfilePayload = {
+                      serverId: serverId,
+                      avatar_default: type === 'default' ? fullUrl : undefined,
+                      avatar_active: type === 'active' ? fullUrl : undefined
+                  };
+                  webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_SERVER_PROFILE, payload);
+                  if (type === 'default') setDefaultAvatar(fullUrl);
+                  else setActiveAvatar(fullUrl);
+              }
+          } catch (err) {
+              console.error('Server asset upload error:', err);
+              alert('Не удалось загрузить изображение');
           }
       }
   };

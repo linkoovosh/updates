@@ -5,7 +5,7 @@ import { setUserProfileForId } from '../../store/slices/authSlice';
 import { setActiveDmConversationId, setDmView } from '../../store/slices/chatSlice';
 import { setSelectedServerId } from '../../store/slices/serverSlice';
 import websocketService from '../../services/websocket';
-// import '../Servers/ServerContextMenu.css'; // Removed
+import { UserIcon, MailIcon, MicIcon } from '../UI/Icons'; // IMPORT ICONS
 
 interface FriendContextMenuProps {
   position: { x: number; y: number };
@@ -48,14 +48,14 @@ const FriendContextMenu: React.FC<FriendContextMenuProps> = ({ position, friend,
   return createPortal(
     <div className="glass-menu" style={{ top: position.y, left: position.x }} ref={menuRef} onClick={e => e.stopPropagation()}>
       <div className="glass-menu-item" onClick={handleProfile}>
-          <span className="icon">👤</span> Посмотреть профиль
+          <span className="icon"><UserIcon /></span> Посмотреть профиль
       </div>
       <div className="glass-menu-item" onClick={handleMessage}>
-          <span className="icon">💬</span> Написать сообщение
+          <span className="icon"><MailIcon /></span> Написать сообщение
       </div>
       <div className="glass-menu-separator" />
       <div className="glass-menu-item" onClick={handleCall}>
-          <span className="icon">📞</span> Позвонить
+          <span className="icon"><MicIcon /></span> Позвонить
       </div>
     </div>,
     document.body

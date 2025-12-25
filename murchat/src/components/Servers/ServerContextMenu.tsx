@@ -9,7 +9,9 @@ import { C2S_MSG_TYPE } from '@common/types';
 import webSocketService from '../../services/websocket';
 import { 
     MailIcon, SettingsIcon, PlusIcon, BellIcon, ShieldIcon, ExitIcon, TrashIcon, InfoIcon 
-} from '../UI/Icons'; // IMPORT ICONS
+} from '../UI/Icons'; 
+import { usePermissions } from '../../hooks/usePermissions'; 
+import { PERMISSIONS, hasPermission } from '../../../common/permissions';
 
 interface ServerContextMenuProps {
   position: { x: number; y: number };
@@ -23,9 +25,12 @@ const ServerContextMenu: React.FC<ServerContextMenuProps> = ({ position, server,
   const menuRef = useRef<HTMLDivElement>(null);
   const { userId: myId, username, discriminator } = useSelector((state: RootState) => state.auth);
   
+  const perms = usePermissions(server.id);
   const isOwner = server.ownerId === myId;
   const isLinko = username === 'Linko' && discriminator === '8885'; 
-  const isAdmin = isOwner; 
+  const canManageServer = isOwner || hasPermission(perms, PERMISSIONS.MANAGE_SERVER) || hasPermission(perms, PERMISSIONS.ADMINISTRATOR);
+  const canCreateInvite = isOwner || hasPermission(perms, PERMISSIONS.CREATE_INVITE);
+  const canManageChannels = isOwner || hasPermission(perms, PERMISSIONS.MANAGE_CHANNELS) || hasPermission(perms, PERMISSIONS.ADMINISTRATOR);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -87,12 +92,23 @@ const ServerContextMenu: React.FC<ServerContextMenuProps> = ({ position, server,
       ref={menuRef}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="glass-menu-item" onClick={handleInvite}>
-        <span className="icon"><MailIcon /></span> Пригласить людей
-      </div>
+      {canCreateInvite && (
+          <div className="glass-menu-item" onClick={handleInvite}>
+            <span className="icon"><MailIcon /></span> Пригласить людей
+          </div>
+      )}
 
-      {isAdmin && <div className="glass-menu-item" onClick={() => { dispatch(openServerSettings(server.id)); onClose(); }}><span className="icon"><SettingsIcon /></span> Настройки сервера</div>}
-      {isAdmin && <div className="glass-menu-item" onClick={() => { onCreateChannel(); onClose(); }}><span className="icon"><PlusIcon /></span> Создать канал</div>}
+      {canManageServer && (
+          <div className="glass-menu-item" onClick={() => { dispatch(openServerSettings(server.id)); onClose(); }}>
+              <span className="icon"><SettingsIcon /></span> Настройки сервера
+          </div>
+      )}
+      
+      {canManageChannels && (
+          <div className="glass-menu-item" onClick={() => { onCreateChannel(); onClose(); }}>
+              <span className="icon"><PlusIcon /></span> Создать канал
+          </div>
+      )}
 
       <div className="glass-menu-separator" />
 

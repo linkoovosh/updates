@@ -242,7 +242,7 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
               onClose={() => setContextMenu(null)}
               onEdit={() => setEditingChannel(contextMenu.channel)}
               onDelete={() => handleDeleteChannel(contextMenu.channel.id)}
-              isOwner={!!isOwner}
+              canManage={isOwner || hasPermission(userPerms, PERMISSIONS.MANAGE_CHANNELS) || hasPermission(userPerms, PERMISSIONS.ADMINISTRATOR)}
           />
       )}
 

@@ -294,9 +294,9 @@ export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSock
     // --- DM Handling ---
     else if (parsedMessage.type === C2S_MSG_TYPE.SEND_DM) {
         const payload = parsedMessage.payload as SendDmPayload;
-        const { recipientId, content, timestamp, messageId, attachments } = payload;
+        const { recipientId, content, timestamp, messageId, attachments, audioData } = payload;
         
-        console.log(`[DM] Received from ${userId} for ${recipientId}. Message: "${content}"`);
+        console.log(`[DM] Received from ${userId} for ${recipientId}. Message: "${content}" (hasAudio: ${!!audioData})`);
 
         const newDm: DirectMessage = {
             id: messageId || uuidv4(),
@@ -305,12 +305,13 @@ export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSock
             content: content,
             timestamp: timestamp,
             read: 0,
-            attachments: attachments
+            attachments: attachments,
+            audioData: audioData
         };
 
         try {
             await storageService.saveDirectMessage(newDm);
-            console.log(`[DM] Saved to sharded DB: ${messageId}`);
+            console.log(`[DM] Saved to sharded DB: ${newDm.id}`);
         } catch (err) {
             console.error('[DM] Error saving to sharded DB:', err);
         }
@@ -324,7 +325,8 @@ export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSock
                 senderId: userId,
                 content,
                 timestamp,
-                attachments
+                attachments,
+                audioData
             };
             const message: WebSocketMessage<ReceiveDmPayload> = {
                 type: S2C_MSG_TYPE.RECEIVE_DM,
@@ -332,8 +334,6 @@ export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSock
             };
             recipientWs.send(JSON.stringify(message));
             console.log(`[DM] Relayed DM from ${userId} to ${recipientId}`);
-        } else {
-            console.log(`[DM] Recipient ${recipientId} is OFFLINE. DM from ${userId} will not be delivered immediately.`);
         }
         return true;
     }

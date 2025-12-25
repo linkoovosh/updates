@@ -258,6 +258,7 @@ function App() {
     
     // Apply Audio Processor Settings
     audioProcessor.setAiEnabled(settings.aiNoiseSuppression);
+    audioProcessor.setThreshold(settings.vadThreshold); // ADDED THIS
 
     const themeColors = getComputedStyle(root);
     root.style.setProperty('--bg-primary-rgb', hexToRgb(themeColors.getPropertyValue('--bg-primary').trim()));

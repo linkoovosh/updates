@@ -5,8 +5,10 @@ class MurClearWorklet extends AudioWorkletProcessor {
   constructor() {
     super();
     this.enabled = true;
+    this.threshold = 0.005; // Default
     this.port.onmessage = (e) => {
       if (e.data.type === 'setEnabled') this.enabled = e.data.value;
+      if (e.data.type === 'setThreshold') this.threshold = e.data.value;
     };
   }
 
@@ -29,11 +31,15 @@ class MurClearWorklet extends AudioWorkletProcessor {
         let sample = inputChannel[i];
         const absSample = Math.abs(sample);
         
-        // Very basic noise gate + soft knee
-        if (absSample < 0.005) {
+        // Dynamic noise gate based on threshold setting
+        // Soft knee starts at threshold, fully open at threshold * 4
+        const lowerBound = this.threshold;
+        const upperBound = this.threshold * 4;
+
+        if (absSample < lowerBound) {
           sample = 0;
-        } else if (absSample < 0.02) {
-          const factor = (absSample - 0.005) / (0.02 - 0.005);
+        } else if (absSample < upperBound) {
+          const factor = (absSample - lowerBound) / (upperBound - lowerBound);
           sample *= factor;
         }
         
@@ -50,6 +56,7 @@ class AudioProcessor {
     private audioContext: AudioContext | null = null;
     private processorNode: AudioWorkletNode | null = null;
     private isAiEnabled: boolean = false;
+    private currentThreshold: number = 0.005;
     private initPromise: Promise<void> | null = null;
 
     async init() {
@@ -71,6 +78,7 @@ class AudioProcessor {
                 });
                 
                 this.processorNode.port.postMessage({ type: 'setEnabled', value: this.isAiEnabled });
+                this.processorNode.port.postMessage({ type: 'setThreshold', value: this.currentThreshold });
                 console.log('[MurClear AI] AudioWorklet initialized successfully (Mono Mode).');
             } catch (error) {
                 console.error('[MurClear AI] Failed to initialize AudioWorklet:', error);
@@ -86,6 +94,15 @@ class AudioProcessor {
             this.processorNode.port.postMessage({ type: 'setEnabled', value: enabled });
         }
         console.log(`[MurClear AI] State: ${enabled ? 'ON' : 'OFF'}`);
+    }
+
+    setThreshold(value: number) {
+        // Map 0-100% slider to 0.0 - 0.1 internal threshold
+        const normalized = (value / 100) * 0.1;
+        this.currentThreshold = normalized;
+        if (this.processorNode) {
+            this.processorNode.port.postMessage({ type: 'setThreshold', value: normalized });
+        }
     }
 
     async processStream(stream: MediaStream): Promise<MediaStream> {

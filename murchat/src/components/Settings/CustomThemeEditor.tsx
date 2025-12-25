@@ -61,17 +61,22 @@ const CustomThemeEditor: React.FC<CustomThemeEditorProps> = ({ isOpen, onClose, 
             return;
         }
 
+        let finalName = themeName;
+        if (asNew && initialTheme && themeName === initialTheme.name) {
+            finalName = `${themeName} (Copy)`;
+        }
+
         if (isOwner && !asNew && initialTheme) {
             // Update existing
             webSocketService.sendMessage(C2S_MSG_TYPE.UPDATE_THEME, {
                 themeId: initialTheme.id,
-                name: themeName,
+                name: finalName,
                 config: config
             });
         } else {
             // Create new (Fork or Scratch)
             webSocketService.sendMessage(C2S_MSG_TYPE.CREATE_THEME, {
-                name: themeName,
+                name: finalName,
                 config: config
             });
         }

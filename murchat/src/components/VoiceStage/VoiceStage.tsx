@@ -15,8 +15,8 @@ const BROWSER_ID = 'shared-browser'; // Virtual ID for the browser tile
 
 const VoiceStage: React.FC = () => {
     const activeVoiceChannelId = useSelector((state: RootState) => state.voice.activeVoiceChannelId);
-    const voiceStates = useSelector((state: RootState) => state.voice.voiceStates);
-    const channels = useSelector((state: RootState) => state.ui.channels);
+    const voiceStates = useSelector((state: RootState) => state.voice?.voiceStates || {}); // ADDED OPTIONAL CHAINING AND FALLBACK
+    const channels = useSelector((state: RootState) => state.ui.channels) || [];
     const sharedBrowser = useSelector((state: RootState) => state.voice.sharedBrowser); 
     const callState = useSelector((state: RootState) => state.voice.callState);
     
@@ -26,45 +26,38 @@ const VoiceStage: React.FC = () => {
     const selfId = webSocketService.getUserId();
 
     const participants = React.useMemo(() => {
-        if (!voiceStates) return []; // NUCLEAR SAFETY
-
-        if (activeVoiceChannelId) {
-            // Server Voice Channel
-            return Object.keys(voiceStates).filter(id => {
-                const state = voiceStates[id];
-                return state && state.channelId === activeVoiceChannelId;
-            });
-        } else if (callState && (callState.isInCall || callState.isRinging)) {
-            // Private DM Call
-            const list = [];
-            if (selfId) list.push(selfId);
-            if (callState.otherUserId) list.push(callState.otherUserId);
-            return list.filter(id => id === selfId || (voiceStates && voiceStates[id]));
-        }
+        try {
+            if (!voiceStates) return [];
+            if (activeVoiceChannelId) {
+                return Object.keys(voiceStates).filter(id => {
+                    const state = voiceStates[id];
+                    return state && state.channelId === activeVoiceChannelId;
+                });
+            } else if (callState && (callState.isInCall || callState.isRinging)) {
+                const list = [];
+                if (selfId) list.push(selfId);
+                if (callState.otherUserId) list.push(callState.otherUserId);
+                return list.filter(id => id === selfId || (voiceStates && voiceStates[id]));
+            }
+        } catch (e) { console.error("Error in participants memo:", e); }
         return [];
     }, [activeVoiceChannelId, voiceStates, callState, selfId]);
     
-    // State for video streams
     const [streams, setStreams] = React.useState<Record<string, MediaStream>>({});
     const [showScreenPicker, setShowScreenPicker] = React.useState(false);
 
-    // Clear streams when channel changes to avoid ghost tiles
-    React.useEffect(() => {
-        setStreams({});
-    }, [activeVoiceChannelId]);
+    React.useEffect(() => { setStreams({}); }, [activeVoiceChannelId]);
     
-    // Check both Redux state AND local producer existence safely
     const isLocalScreenSharingActive = !!mediasoupService.screenProducer && !mediasoupService.screenProducer.closed;
-    const isScreenSharing = (selfId && voiceStates && voiceStates[selfId] ? !!voiceStates[selfId].isScreenSharing : false) || isLocalScreenSharingActive;
+    // ABSOLUTE SAFETY FOR isScreenSharing
+    const isScreenSharing = (selfId && voiceStates && voiceStates[selfId] ? !!voiceStates[selfId]?.isScreenSharing : false) || isLocalScreenSharingActive;
     
-    // New: Manual Focus & Zoom State
     const [manualFocusId, setManualFocusId] = React.useState<string | null>(null);
     const [zoomLevel, setZoomLevel] = React.useState(1);
     const [panPosition, setPanPosition] = React.useState({ x: 0, y: 0 });
     const isDraggingRef = React.useRef(false);
     const lastMousePositionRef = React.useRef({ x: 0, y: 0 });
 
-    // FIXED NAME LOGIC
     const channelName = React.useMemo(() => {
         if (activeVoiceChannelId) {
             return channels.find(c => c.id === activeVoiceChannelId)?.name || 'Голосовой канал';
@@ -74,50 +67,21 @@ const VoiceStage: React.FC = () => {
         return 'Голосовой чат';
     }, [activeVoiceChannelId, channels, callState]);
 
-    // Effects for Mediasoup
     React.useEffect(() => {
-        const handleNewStream = ({ userId, stream, appData }: { userId: string; stream: MediaStream; appData?: any }) => {
-            if (!userId) return; // Safety
-            const hasVideo = stream.getVideoTracks().length > 0;
-            const isScreen = appData?.source === 'screen' || appData?.source === 'browser';
-            
-            console.log(`[VoiceStage] New stream for ${userId}, source: ${appData?.source}, hasVideo: ${hasVideo}`);
-            
-            setStreams(prev => {
-                const existingStream = prev[userId];
-                const newStreamObj = new MediaStream(stream.getTracks());
-
-                if (isScreen) {
-                    return { ...prev, [userId]: newStreamObj };
-                }
-
-                if (existingStream && existingStream.getVideoTracks().length > 0 && !hasVideo) {
-                    return prev;
-                }
-                
-                return { ...prev, [userId]: newStreamObj };
-            });
-        };
-
-        const handleStreamClosed = ({ userId }: { userId: string; appData?: any }) => {
+        const handleNewStream = ({ userId, stream, appData }: any) => {
             if (!userId) return;
-            setStreams(prev => {
-                const newStreams = { ...prev };
-                delete newStreams[userId];
-                return newStreams;
-            });
+            const isScreen = appData?.source === 'screen' || appData?.source === 'browser';
+            setStreams(prev => ({ ...prev, [userId]: new MediaStream(stream.getTracks()) }));
         };
-
+        const handleStreamClosed = ({ userId }: any) => {
+            if (!userId) return;
+            setStreams(prev => { const n = { ...prev }; delete n[userId]; return n; });
+        };
         mediasoupService.on('newStream', handleNewStream);
         mediasoupService.on('streamClosed', handleStreamClosed);
-
-        const handleLocalStream = (stream: MediaStream) => {
-            if (selfId) {
-                setStreams(prev => ({ ...prev, [selfId]: stream }));
-            }
-        };
-        const unsubscribeLocal = webRTCService.onLocalStream(handleLocalStream);
-
+        const unsubscribeLocal = webRTCService.onLocalStream((stream) => {
+            if (selfId) setStreams(prev => ({ ...prev, [selfId]: stream }));
+        });
         return () => {
             mediasoupService.off('newStream', handleNewStream);
             mediasoupService.off('streamClosed', handleStreamClosed);
@@ -125,19 +89,11 @@ const VoiceStage: React.FC = () => {
         };
     }, [selfId]);
 
-    // Layout Logic
     const isBrowserActive = sharedBrowser?.isActive;
     
-    // SAFE FIND: ensure voiceStates exists before looking up
-    const screenSharerId = participants.find(id => {
-        const s = voiceStates ? voiceStates[id] : null;
-        return s?.isScreenSharing;
-    });
-    
-    const cameraUserId = participants.find(id => {
-        const s = voiceStates ? voiceStates[id] : null;
-        return s?.isVideoEnabled;
-    });
+    // SAFE FIND with optional chaining
+    const screenSharerId = participants.find(id => voiceStates?.[id]?.isScreenSharing);
+    const cameraUserId = participants.find(id => voiceStates?.[id]?.isVideoEnabled);
     
     const activeFocusId = manualFocusId || screenSharerId || cameraUserId || (isBrowserActive ? BROWSER_ID : null);
     const isFocusedLayout = !!activeFocusId && (activeFocusId === BROWSER_ID || participants.includes(activeFocusId));
@@ -146,18 +102,14 @@ const VoiceStage: React.FC = () => {
         ? 'layout-focused' 
         : participants.length <= 1 ? 'grid-1' : participants.length <= 4 ? 'grid-2' : 'grid-large';
 
-    // Handlers
     const handleTileClick = (userId: string) => {
         if (manualFocusId === userId) setManualFocusId(null);
         else setManualFocusId(userId);
     };
 
     const toggleScreenShare = () => {
-        if (isScreenSharing) {
-            mediasoupService.stopScreenShare();
-        } else {
-            setShowScreenPicker(true);
-        }
+        if (isScreenSharing) mediasoupService.stopScreenShare();
+        else setShowScreenPicker(true);
     };
 
     const handleScreenShareSelect = (source: { id: string }) => {
@@ -165,7 +117,6 @@ const VoiceStage: React.FC = () => {
         setShowScreenPicker(false);
     };
 
-    // Zoom & Pan Handlers
     const handleWheel = (e: React.WheelEvent) => {
         if (!isFocusedLayout) return;
         const delta = e.deltaY * -0.001;
@@ -188,10 +139,6 @@ const VoiceStage: React.FC = () => {
         lastMousePositionRef.current = { x: e.clientX, y: e.clientY };
     };
 
-    const handleMouseUp = () => {
-        isDraggingRef.current = false;
-    };
-
     return (
         <div className="voice-stage">
             <div className="voice-header">
@@ -210,75 +157,36 @@ const VoiceStage: React.FC = () => {
             <div className={`voice-grid ${gridClass}`}>
                 {isFocusedLayout && activeFocusId ? (
                     <>
-                        <div 
-                            className="main-stage-area"
-                            onWheel={handleWheel}
-                            onMouseDown={handleMouseDown}
-                            onMouseMove={handleMouseMove}
-                            onMouseUp={handleMouseUp}
-                            onMouseLeave={handleMouseUp}
-                        >
-                            <div 
-                                className="pan-zoom-container"
-                                style={{ transform: `scale(${zoomLevel}) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)` }}
-                            >
+                        <div className="main-stage-area" onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={() => isDraggingRef.current = false} onMouseLeave={() => isDraggingRef.current = false}>
+                            <div className="pan-zoom-container" style={{ transform: `scale(${zoomLevel}) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)` }}>
                                 {activeFocusId === BROWSER_ID ? (
-                                    <div style={{ width: '100%', height: '100%' }}>
-                                        <SharedBrowserStage />
-                                    </div>
+                                    <div style={{ width: '100%', height: '100%' }}><SharedBrowserStage /></div>
                                 ) : (
-                                    <VideoTile 
-                                        key={activeFocusId} 
-                                        userId={activeFocusId} 
-                                        stream={streams[activeFocusId]} 
-                                    />
+                                    <VideoTile key={activeFocusId} userId={activeFocusId} stream={streams[activeFocusId]} />
                                 )}
                             </div>
                         </div>
                         <div className="filmstrip-area">
-                            {/* Browser Thumbnail in Filmstrip */}
                             {isBrowserActive && (
-                                <div 
-                                    className={`video-tile ${activeFocusId === BROWSER_ID ? 'selected' : ''}`}
-                                    onClick={() => handleTileClick(BROWSER_ID)}
-                                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#000' }}
-                                >
+                                <div className={`video-tile ${activeFocusId === BROWSER_ID ? 'selected' : ''}`} onClick={() => handleTileClick(BROWSER_ID)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#000' }}>
                                     <div style={{ fontSize: '2rem' }}><GlobeIcon /></div>
                                     <div className="tile-name">Общий Браузер</div>
                                 </div>
                             )}
-                            
-                            {participants.map(userId => (
-                                <VideoTile 
-                                    key={userId} 
-                                    userId={userId} 
-                                    stream={streams[userId]}
-                                    onClick={() => handleTileClick(userId)}
-                                    isSelected={activeFocusId === userId}
-                                />
+                            {participants.map(id => (
+                                <VideoTile key={id} userId={id} stream={streams[id]} onClick={() => handleTileClick(id)} isSelected={activeFocusId === id} />
                             ))}
                         </div>
                     </>
                 ) : (
                     <>
-                        {/* Grid View: Browser + Participants */}
                         {isBrowserActive && (
-                             <div 
-                                className={`video-tile ${activeFocusId === BROWSER_ID ? 'selected' : ''}`} 
-                                style={{ minHeight: '300px', gridColumn: '1 / -1' }} // Browser takes full width in grid if possible
-                                onClick={() => handleTileClick(BROWSER_ID)}
-                             >
+                             <div className={`video-tile ${activeFocusId === BROWSER_ID ? 'selected' : ''}`} style={{ minHeight: '300px', gridColumn: '1 / -1' }} onClick={() => handleTileClick(BROWSER_ID)}>
                                  <SharedBrowserStage />
                              </div>
                         )}
-
-                        {participants.map(userId => (
-                            <VideoTile 
-                                key={userId} 
-                                userId={userId} 
-                                stream={streams[userId]}
-                                onClick={() => handleTileClick(userId)} 
-                            />
+                        {participants.map(id => (
+                            <VideoTile key={id} userId={id} stream={streams[id]} onClick={() => handleTileClick(id)} />
                         ))}
                         {participants.length === 0 && !isBrowserActive && !isScreenSharing && (
                             <div className="empty-stage-message">В канале пока никого нет... кроме вас?</div>
@@ -287,16 +195,10 @@ const VoiceStage: React.FC = () => {
                 )}
             </div>
 
-            <CallControls 
-                onToggleScreenShare={toggleScreenShare} 
-                isScreenSharing={isScreenSharing} 
-            />
+            <CallControls onToggleScreenShare={toggleScreenShare} isScreenSharing={isScreenSharing} />
 
             {showScreenPicker && (
-                <ScreenSharePicker 
-                    onSelect={handleScreenShareSelect} 
-                    onCancel={() => setShowScreenPicker(false)} 
-                />
+                <ScreenSharePicker onSelect={handleScreenShareSelect} onCancel={() => setShowScreenPicker(false)} />
             )}
         </div>
     );

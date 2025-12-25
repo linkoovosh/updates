@@ -15,8 +15,8 @@ import type { Role } from '@common/types';
 
 import StatusMenu from '../StatusMenu/StatusMenu';
 import { 
-    SettingsIcon, ShieldIcon, MailIcon, PlusIcon, InfoIcon, CheckIcon 
-} from '../UI/Icons'; // IMPORT ICONS
+    SettingsIcon, ShieldIcon, MailIcon, PlusIcon, InfoIcon, CheckIcon, MicIcon 
+} from '../UI/Icons'; // ADDED MicIcon
 
 const UserProfilePopup = ({ userId }: { userId: string }) => {
   const dispatch: AppDispatch = useDispatch();
@@ -94,6 +94,16 @@ const UserProfilePopup = ({ userId }: { userId: string }) => {
           dispatch(setSelectedServerId(null));
           dispatch(setActiveDmConversationId(targetUser.id));
           dispatch(setDmView('dms'));
+          handleClose();
+      }
+  };
+
+  const handleCall = () => {
+      if (targetUser?.id) {
+          webSocketService.startCall(targetUser.id, { 
+              username: targetUser.username || 'Unknown', 
+              avatar: targetUser.avatar || undefined 
+          });
           handleClose();
       }
   };
@@ -289,6 +299,10 @@ const UserProfilePopup = ({ userId }: { userId: string }) => {
                             <>
                                 <button className="holo-btn primary" onClick={handleSendMessage}>
                                     <span><MailIcon /></span> Написать
+                                </button>
+
+                                <button className="holo-btn primary" onClick={handleCall}>
+                                    <span><MicIcon /></span> Позвонить
                                 </button>
                                 
                                 {!isFriend && !hasOutgoingRequest && !hasIncomingRequest && (

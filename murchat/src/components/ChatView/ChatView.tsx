@@ -355,12 +355,16 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                 <AudioRecorder 
                     ref={recorderRef}
                     onComplete={(audioData) => {
-                        webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, { 
-                            channelId: effectiveChannelId, 
-                            content: '', 
-                            author: username, 
-                            audioData 
-                        });
+                        if (isDm && effectiveChannelId) {
+                            webSocketService.sendDm(effectiveChannelId, '', undefined, audioData);
+                        } else if (effectiveChannelId) {
+                            webSocketService.sendMessage(C2S_MSG_TYPE.SEND_MESSAGE, { 
+                                channelId: effectiveChannelId, 
+                                content: '', 
+                                author: username || 'Unknown', 
+                                audioData 
+                            });
+                        }
                         setShowAudioRecorder(false);
                         messageInputRef.current?.focus();
                     }}

@@ -64,6 +64,7 @@ const UserPanel: React.FC = () => {
 
   const selfId = webSocketService.getUserId();
   const selfVoiceState = selfId ? voiceStates[selfId] : undefined;
+  const userStatus = useSelector((state: RootState) => state.auth.status) || 'offline'; // ADDED STATUS
   
   const handleToggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -169,7 +170,7 @@ const UserPanel: React.FC = () => {
 
         <div className="user-info" onClick={handleOpenProfile} title="Открыть профиль">
             <div 
-                className="user-avatar" 
+                className={`user-avatar ${userStatus}`} // ADDED CLASS
                 style={{ 
                     backgroundColor: avatar ? 'transparent' : generateAvatarColor(username || ''),
                     backgroundImage: avatar ? `url(${avatar})` : 'none',
