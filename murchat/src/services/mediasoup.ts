@@ -260,20 +260,29 @@ class MediasoupService {
             let width = 1920, height = 1080;
             if (options.resolution === '720p') { width = 1280; height = 720; }
             
-            // Fixed constraints: Use modern flat object structure instead of mandatory/optional
-            const stream = await navigator.mediaDevices.getUserMedia({
+            // CORRECT constraints for Electron: MUST use mandatory for chromeMediaSource
+            const constraints = {
                 audio: {
-                    chromeMediaSource: 'desktop',
-                    chromeMediaSourceId: sourceId
-                } as any,
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        chromeMediaSourceId: sourceId
+                    }
+                },
                 video: {
-                    chromeMediaSource: 'desktop',
-                    chromeMediaSourceId: sourceId,
-                    width: { ideal: width },
-                    height: { ideal: height },
-                    frameRate: { ideal: options.fps }
-                } as any
-            });
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        chromeMediaSourceId: sourceId,
+                        minWidth: width,
+                        maxWidth: width,
+                        minHeight: height,
+                        maxHeight: height,
+                        minFrameRate: options.fps,
+                        maxFrameRate: options.fps
+                    }
+                }
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints as any);
             
             const track = stream.getVideoTracks()[0];
             const audioTrack = stream.getAudioTracks()[0];
