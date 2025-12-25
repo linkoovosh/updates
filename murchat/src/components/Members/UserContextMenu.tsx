@@ -30,10 +30,14 @@ const UserContextMenu: React.FC<UserContextMenuProps> = ({ position, user, onClo
     const serverMembers = useSelector((state: RootState) => state.server.serverMembers);
     const currentServerRoles = useSelector((state: RootState) => state.server.currentServerRoles);
     
+    const servers = useSelector((state: RootState) => state.server.servers);
+    const currentServer = servers.find(s => s.id === selectedServerId);
+    const isOwner = currentServer?.ownerId === useSelector((state: RootState) => state.auth.userId);
+
     const perms = usePermissions(selectedServerId);
-    const canManageRoles = hasPermission(perms, PERMISSIONS.MANAGE_ROLES);
-    const canKick = hasPermission(perms, PERMISSIONS.KICK_MEMBERS);
-    const canBan = hasPermission(perms, PERMISSIONS.BAN_MEMBERS);
+    const canManageRoles = isOwner || hasPermission(perms, PERMISSIONS.MANAGE_ROLES);
+    const canKick = isOwner || hasPermission(perms, PERMISSIONS.KICK_MEMBERS);
+    const canBan = isOwner || hasPermission(perms, PERMISSIONS.BAN_MEMBERS);
 
     const userVoiceState = voiceStates ? voiceStates[user.id] : undefined;
     const targetMember = selectedServerId ? serverMembers.find(m => m.id === user.id) : null;

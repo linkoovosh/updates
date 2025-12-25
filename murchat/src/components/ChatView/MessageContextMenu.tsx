@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-// import './MessageContextMenu.css'; // REMOVED
+import { TrashIcon, ExitIcon, MicIcon, UserIcon, MailIcon, CheckIcon } from '../UI/Icons'; 
+import './MessageContextMenu.css'; // IMPORT STYLES
 
 interface MessageContextMenuProps {
     position: { x: number; y: number };
@@ -8,13 +9,13 @@ interface MessageContextMenuProps {
     messageContent: string;
     authorId: string;
     isAuthor: boolean;
-    canManage: boolean; // NEW: Can pin/delete others' messages
-    isPinned: boolean; // NEW
+    canManage: boolean;
+    isPinned: boolean;
     onClose: () => void;
     onEdit: () => void;
     onDelete: () => void;
     onReply: () => void;
-    onPin: () => void; // NEW
+    onPin: () => void;
 }
 
 const MessageContextMenu: React.FC<MessageContextMenuProps> = ({ 
@@ -38,34 +39,42 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
                 onClose();
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
+        // Add a small delay to prevent immediate close if the event that opened the menu bubbles up
+        const timeout = setTimeout(() => {
+            document.addEventListener('mousedown', handleClickOutside);
+        }, 10);
+        
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
 
-    // Adjust position to viewport
-    const style = {
-        top: position.y,
-        left: position.x,
-    };
+    // Adjust position to viewport to prevent going off-screen
+    let top = position.y;
+    let left = position.x;
+    if (left + 200 > window.innerWidth) left = window.innerWidth - 210;
+    if (top + 250 > window.innerHeight) top = window.innerHeight - 260;
 
-    const handleCopyText = () => {
+    const style = { top, left };
+
+    const handleCopyText = (e: React.MouseEvent) => {
+        e.stopPropagation();
         navigator.clipboard.writeText(messageContent);
         onClose();
     };
 
-    const handleCopyId = () => {
+    const handleCopyId = (e: React.MouseEvent) => {
+        e.stopPropagation();
         navigator.clipboard.writeText(messageId);
         onClose();
     };
 
     return createPortal(
         <div className="glass-menu" style={style} ref={menuRef} onClick={(e) => e.stopPropagation()}>
-            <div className="glass-menu-item" onClick={() => { onReply(); onClose(); }}>
+            <div className="glass-menu-item" onClick={(e) => { e.stopPropagation(); onReply(); onClose(); }}>
                 <span className="icon">↩️</span> Ответить
             </div>
             
             {(isAuthor || canManage) && (
-                <div className="glass-menu-item" onClick={() => { onPin(); onClose(); }}>
+                <div className="glass-menu-item" onClick={(e) => { e.stopPropagation(); onPin(); onClose(); }}>
                     <span className="icon">📌</span> {isPinned ? 'Открепить' : 'Закрепить'}
                 </div>
             )}
@@ -74,22 +83,19 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
                 <span className="icon">📋</span> Копировать текст
             </div>
             
-            {(isAuthor) && (
+            {isAuthor && (
                 <>
                     <div className="glass-menu-separator" />
-                    <div className="glass-menu-item" onClick={() => { onEdit(); onClose(); }}>
+                    <div className="glass-menu-item" onClick={(e) => { e.stopPropagation(); onEdit(); onClose(); }}>
                         <span className="icon">✏️</span> Редактировать
                     </div>
                 </>
             )}
 
             {(isAuthor || canManage) && (
-                <>
-                     <div className="glass-menu-separator" />
-                     <div className="glass-menu-item danger" onClick={() => { onDelete(); onClose(); }}>
-                        <span className="icon">🗑️</span> Удалить сообщение
-                    </div>
-                </>
+                <div className="glass-menu-item danger" onClick={(e) => { e.stopPropagation(); onDelete(); onClose(); }}>
+                    <span className="icon"><TrashIcon /></span> Удалить сообщение
+                </div>
             )}
             
             <div className="glass-menu-separator" />

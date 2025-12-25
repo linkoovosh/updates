@@ -55,9 +55,13 @@ class StorageService {
                     timestamp INTEGER,
                     audioData TEXT,
                     attachments TEXT,
-                    replyToId TEXT
+                    replyToId TEXT,
+                    isPinned INTEGER DEFAULT 0
                 )
             `);
+            // Add isPinned if it doesn't exist (for existing DBs)
+            try { await db.exec(`ALTER TABLE messages ADD COLUMN isPinned INTEGER DEFAULT 0`); } catch (e) {}
+            
             // Create index for fast history fetching
             await db.exec(`CREATE INDEX IF NOT EXISTS idx_channel_ts ON messages(channelId, timestamp)`);
         }
@@ -105,8 +109,19 @@ class StorageService {
             timestamp: row.timestamp,
             audioData: row.audioData,
             attachments: JSON.parse(row.attachments || '[]'),
-            replyToId: row.replyToId
+            replyToId: row.replyToId,
+            isPinned: !!row.isPinned
         }));
+    }
+
+    async pinChannelMessage(serverId: string, messageId: string) {
+        const db = await this.getDb(serverId);
+        await db.run(`UPDATE messages SET isPinned = 1 WHERE id = ?`, [messageId]);
+    }
+
+    async unpinChannelMessage(serverId: string, messageId: string) {
+        const db = await this.getDb(serverId);
+        await db.run(`UPDATE messages SET isPinned = 0 WHERE id = ?`, [messageId]);
     }
 
     async deleteChannelMessage(serverId: string, messageId: string) {

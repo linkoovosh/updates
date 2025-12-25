@@ -37,8 +37,12 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const serverMembers = useSelector((state: RootState) => state.server.serverMembers);
   const currentServerRoles = useSelector((state: RootState) => state.server.currentServerRoles);
   
+  const currentServer = servers.find(s => s.id === selectedServerId);
+  const isOwner = currentServer?.ownerId === userId;
+
   const userPerms = usePermissions(selectedServerId);
-  const canManageMessages = hasPermission(userPerms, PERMISSIONS.MANAGE_MESSAGES) || 
+  const canManageMessages = isOwner || // OWNER CAN ALWAYS MANAGE
+                            hasPermission(userPerms, PERMISSIONS.MANAGE_MESSAGES) || 
                             hasPermission(userPerms, PERMISSIONS.ADMINISTRATOR);
 
   const isDm = selectedServerId === null && !!activeDmConversationId;
@@ -172,6 +176,17 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const handleMessageContextMenu = (e: React.MouseEvent, message: any) => {
       e.preventDefault();
       setContextMenu({ x: e.clientX, y: e.clientY, message });
+  };
+
+  const handleDeleteMessage = (message: any) => {
+      if (confirm('Вы уверены, что хотите удалить это сообщение?')) {
+          // Optimistic update
+          dispatch(deleteMessage(message.id));
+          // Server update
+          if (message.id.startsWith('temp-')) return; // Don't delete temp messages on server
+          webSocketService.deleteMessage(message.id, effectiveChannelId!);
+      }
+      setContextMenu(null);
   };
 
   const handlePinMessage = (message: any) => {
@@ -329,7 +344,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
               isPinned={!!contextMenu.message.isPinned}
               onClose={() => setContextMenu(null)}
               onEdit={() => {}} // TODO: Implement edit
-              onDelete={() => webSocketService.deleteMessage(contextMenu.message.id, effectiveChannelId!)}
+              onDelete={() => handleDeleteMessage(contextMenu.message)}
               onReply={() => setReplyTo(contextMenu.message)}
               onPin={() => handlePinMessage(contextMenu.message)}
           />

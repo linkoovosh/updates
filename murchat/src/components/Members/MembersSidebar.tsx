@@ -52,10 +52,11 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
                 discriminator: auth.discriminator || '0000',
                 email: auth.email || '',
                 avatar: auth.avatar,
-                status: 'online',
+                status: auth.status || 'online',
                 bio: auth.bio || '',
                 profile_banner: auth.profile_banner,
                 profile_theme: auth.profile_theme,
+                activity: auth.activity, // ADDED THIS
                 roles: [],
                 joinedAt: null
             });

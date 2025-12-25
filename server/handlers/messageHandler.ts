@@ -236,6 +236,60 @@ export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSock
         });
         return true;
     }
+
+    // --- Message Pinning ---
+    else if (parsedMessage.type === C2S_MSG_TYPE.PIN_MESSAGE || parsedMessage.type === C2S_MSG_TYPE.UNPIN_MESSAGE) {
+        const payload = parsedMessage.payload as { channelId: string, messageId: string };
+        const isPinning = parsedMessage.type === C2S_MSG_TYPE.PIN_MESSAGE;
+
+        try {
+            const channel = await prisma.channel.findUnique({ select: { serverId: true }, where: { id: payload.channelId } });
+            if (!channel) return true;
+
+            // --- PERMISSION CHECK ---
+            const server = await prisma.server.findUnique({ select: { ownerId: true }, where: { id: channel.serverId } });
+            if (server?.ownerId !== userId) {
+                const userRoles = await prisma.userRole.findMany({
+                    where: { userId: userId, role: { serverId: channel.serverId } },
+                    include: { role: true }
+                });
+                const perms = userRoles.reduce((acc, ur) => acc | BigInt(ur.role.permissions || '0'), 0n);
+                const canManage = (perms & 1n) === 1n || (perms & 16n) === 16n; // ADMINISTRATOR or MANAGE_MESSAGES
+                
+                if (!canManage) {
+                    console.warn(`User ${userId} attempted to pin/unpin without permission.`);
+                    return true;
+                }
+            }
+
+            if (isPinning) {
+                await storageService.pinChannelMessage(channel.serverId, payload.messageId);
+            } else {
+                await storageService.unpinChannelMessage(channel.serverId, payload.messageId);
+            }
+
+            const broadcastMsg: WebSocketMessage<any> = {
+                type: isPinning ? S2C_MSG_TYPE.MESSAGE_PINNED : S2C_MSG_TYPE.MESSAGE_UNPINNED,
+                payload: {
+                    messageId: payload.messageId,
+                    channelId: payload.channelId
+                }
+            };
+
+            clients.forEach((uid, clientWs) => {
+                if (clientWs.readyState === WebSocket.OPEN) {
+                     const clientState = clientStates.get(uid);
+                     if (clientState && clientState.selectedServerId === channel.serverId) {
+                         clientWs.send(JSON.stringify(broadcastMsg));
+                     }
+                }
+            });
+
+        } catch (e) {
+            console.error("Error pinning/unpinning message:", e);
+        }
+        return true;
+    }
     
     // --- DM Handling ---
     else if (parsedMessage.type === C2S_MSG_TYPE.SEND_DM) {
