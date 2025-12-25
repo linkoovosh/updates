@@ -195,6 +195,38 @@
     color: var(--text-primary);
 }
 
+/* --- Badges --- */
+.channel-badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 2px 6px !important;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.channel-badge.mention-badge {
+    background-color: var(--status-negative) !important; /* Bright red */
+    color: white !important;
+    box-shadow: 0 0 8px rgba(var(--status-negative-rgb), 0.4);
+    animation: pulse-red 2s infinite;
+}
+
+.channel-badge.unread-badge {
+    background-color: #4f545c !important; /* Muted gray */
+    color: #dcddde !important;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
 /* --- Members in Voice --- */
 .voice-channel-members {
     margin-left: 12px;

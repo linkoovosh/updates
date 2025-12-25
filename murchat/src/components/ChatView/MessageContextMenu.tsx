@@ -8,10 +8,13 @@ interface MessageContextMenuProps {
     messageContent: string;
     authorId: string;
     isAuthor: boolean;
+    canManage: boolean; // NEW: Can pin/delete others' messages
+    isPinned: boolean; // NEW
     onClose: () => void;
     onEdit: () => void;
     onDelete: () => void;
     onReply: () => void;
+    onPin: () => void; // NEW
 }
 
 const MessageContextMenu: React.FC<MessageContextMenuProps> = ({ 
@@ -19,10 +22,13 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
     messageId, 
     messageContent, 
     isAuthor, 
+    canManage,
+    isPinned,
     onClose, 
     onEdit, 
     onDelete,
-    onReply
+    onReply,
+    onPin
 }) => {
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +63,13 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
             <div className="glass-menu-item" onClick={() => { onReply(); onClose(); }}>
                 <span className="icon">↩️</span> Ответить
             </div>
+            
+            {(isAuthor || canManage) && (
+                <div className="glass-menu-item" onClick={() => { onPin(); onClose(); }}>
+                    <span className="icon">📌</span> {isPinned ? 'Открепить' : 'Закрепить'}
+                </div>
+            )}
+
             <div className="glass-menu-item" onClick={handleCopyText}>
                 <span className="icon">📋</span> Копировать текст
             </div>
@@ -70,7 +83,7 @@ const MessageContextMenu: React.FC<MessageContextMenuProps> = ({
                 </>
             )}
 
-            {(isAuthor) && (
+            {(isAuthor || canManage) && (
                 <>
                      <div className="glass-menu-separator" />
                      <div className="glass-menu-item danger" onClick={() => { onDelete(); onClose(); }}>

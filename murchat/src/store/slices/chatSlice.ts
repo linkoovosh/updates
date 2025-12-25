@@ -56,9 +56,12 @@ const chatSlice = createSlice({
             }
         });
     },
-    updateMessage: (state, action: PayloadAction<{ messageId: string; content: string }>) => {
+    updateMessage: (state, action: PayloadAction<{ messageId: string; content?: string; isPinned?: boolean }>) => {
         const msg = state.messages.find(m => m.id === action.payload.messageId);
-        if (msg) msg.content = action.payload.content;
+        if (msg) {
+            if (action.payload.content !== undefined) msg.content = action.payload.content;
+            if (action.payload.isPinned !== undefined) (msg as any).isPinned = action.payload.isPinned;
+        }
     },
     deleteMessage: (state, action: PayloadAction<string>) => {
         state.messages = state.messages.filter(m => m.id !== action.payload);
@@ -95,6 +98,13 @@ const chatSlice = createSlice({
     clearUnreadCount: (state, action: PayloadAction<string>) => {
         state.unreadCounts[action.payload] = 0;
     },
+    incrementMentionCount: (state, action: PayloadAction<string>) => {
+        const channelId = action.payload;
+        state.mentionCounts[channelId] = (state.mentionCounts[channelId] || 0) + 1;
+    },
+    clearMentionCount: (state, action: PayloadAction<string>) => {
+        state.mentionCounts[action.payload] = 0;
+    },
     setTypingUser: (state, action: PayloadAction<{ channelId: string; username: string; isTyping: boolean }>) => {
         const { channelId, username, isTyping } = action.payload;
         if (!state.typingUsers[channelId]) state.typingUsers[channelId] = [];
@@ -114,6 +124,7 @@ export const {
     addMessage, addMessages, updateMessage, deleteMessage,
     setDmMessages, addDmMessage, setActiveDmConversationId, setDmView,
     setUnreadCounts, incrementUnreadCount, clearUnreadCount,
+    incrementMentionCount, clearMentionCount, // ADDED THESE
     setTypingUser, togglePinnedMessages
 } = chatSlice.actions;
 

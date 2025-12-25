@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setSelectedChannelId, openServerSettings } from '../../store/slices/serverSlice';
 import { setVoiceChannel, clearVoiceChannel, updateVoiceState } from '../../store/slices/voiceSlice';
-import { clearUnreadCount } from '../../store/slices/chatSlice';
+import { clearUnreadCount, clearMentionCount } from '../../store/slices/chatSlice'; // ADDED THIS
 import { setUserProfileForId } from '../../store/slices/authSlice';
 import { setShowAccessDenied } from '../../store/slices/uiSlice'; 
 import { generateAvatarColor, getInitials } from '../../utils/avatarUtils';
@@ -108,6 +108,7 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
     if (!checkAccess(channel)) return;
     dispatch(setSelectedChannelId(channel.id));
     dispatch(clearUnreadCount(channel.id)); 
+    dispatch(clearMentionCount(channel.id)); // ADDED THIS
     webSocketService.getChannelMessages(channel.id); 
   };
 
@@ -115,20 +116,25 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
     if (!checkAccess(channel)) return;
     const channelId = channel.id;
     const selfId = webSocketService.getUserId();
+    
+    // If clicking the channel we are already in, just select it (open the stage)
     if (activeVoiceChannelId === channelId) {
-      webSocketService.leaveVoiceChannel(channelId);
-      dispatch(clearVoiceChannel());
-      dispatch(setSelectedChannelId(null));
-    } else {
-      if(activeVoiceChannelId) webSocketService.leaveVoiceChannel(activeVoiceChannelId);
-      if (selfId) {
-        webSocketService.joinVoiceChannel(channelId);
-        dispatch(setVoiceChannel({ 
-            channelId, 
-            members: [{ userId: selfId, username: username || 'Unknown', avatar: avatar || undefined }] 
-        }));
-        dispatch(setSelectedChannelId(channelId)); 
-      }
+      dispatch(setSelectedChannelId(channelId));
+      return;
+    }
+
+    // If joining a NEW voice channel while already in one, leave the old one first
+    if (activeVoiceChannelId && activeVoiceChannelId !== channelId) {
+      webSocketService.leaveVoiceChannel(activeVoiceChannelId);
+    }
+
+    if (selfId) {
+      webSocketService.joinVoiceChannel(channelId);
+      dispatch(setVoiceChannel({ 
+          channelId, 
+          members: [{ userId: selfId, username: username || 'Unknown', avatar: avatar || undefined }] 
+      }));
+      dispatch(setSelectedChannelId(channelId)); 
     }
   };
 
@@ -157,8 +163,9 @@ const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const getChannelBadge = (channelId: string) => {
       const mentions = (mentionCounts || {})[channelId] || 0;
       const unread = (unreadCounts || {})[channelId] || 0;
-      if (mentions > 0) return <Badge count={mentions} variant="count" color="red" className="channel-badge" />;
-      if (unread > 0) return <Badge count={unread} variant="count" color="gray" className="channel-badge" />; 
+      
+      if (mentions > 0) return <Badge count={mentions} variant="count" color="red" className="channel-badge mention-badge" />;
+      if (unread > 0) return <Badge count={unread} variant="count" color="gray" className="channel-badge unread-badge" />; 
       return null;
   };
 

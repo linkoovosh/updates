@@ -260,25 +260,18 @@ class MediasoupService {
             let width = 1920, height = 1080;
             if (options.resolution === '720p') { width = 1280; height = 720; }
             
-            // Fixed constraints: use ONLY mandatory for Electron desktop capture to avoid errors
+            // Fixed constraints: Use modern flat object structure instead of mandatory/optional
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
-                    mandatory: {
-                        chromeMediaSource: 'desktop',
-                        chromeMediaSourceId: sourceId
-                    }
+                    chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: sourceId
                 } as any,
                 video: {
-                    mandatory: {
-                        chromeMediaSource: 'desktop',
-                        chromeMediaSourceId: sourceId,
-                        minWidth: width,
-                        maxWidth: width,
-                        minHeight: height,
-                        maxHeight: height,
-                        minFrameRate: options.fps,
-                        maxFrameRate: options.fps
-                    }
+                    chromeMediaSource: 'desktop',
+                    chromeMediaSourceId: sourceId,
+                    width: { ideal: width },
+                    height: { ideal: height },
+                    frameRate: { ideal: options.fps }
                 } as any
             });
             

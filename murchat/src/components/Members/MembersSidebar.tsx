@@ -37,7 +37,9 @@ const MembersSidebar: React.FC<MembersSidebarProps> = ({ className }) => {
         const memberRoles = currentRoles
             .filter(r => member.roles.includes(r.id))
             .sort((a, b) => b.position - a.position);
-        return memberRoles.length > 0 ? memberRoles[0].color : undefined;
+        
+        const highestWithColor = memberRoles.find(r => r.color && r.color !== '#000000');
+        return highestWithColor ? highestWithColor.color : undefined;
     };
 
     // --- EFFECTIVE MEMBERS LIST ---

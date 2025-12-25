@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './ChatView.css';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { addMessage, deleteMessage, updateMessage, addDmMessage, clearUnreadCount } from '../../store/slices/chatSlice';
+import { addMessage, deleteMessage, updateMessage, addDmMessage, clearUnreadCount, togglePinnedMessages } from '../../store/slices/chatSlice';
 import { setUserProfileForId } from "../../store/slices/authSlice";
 import webSocketService from "../../services/websocket";
 import { C2S_MSG_TYPE } from "../../../common/types";
@@ -12,8 +12,12 @@ import AudioRecorder from '../AudioRecorder/AudioRecorder';
 import VoiceMessagePlayer from '../VoiceMessagePlayer/VoiceMessagePlayer';
 import MarkdownRenderer from '../MarkdownRenderer/MarkdownRenderer';
 import ExpressionPicker from './ExpressionPicker';
+import MessageContextMenu from './MessageContextMenu';
+import PinnedMessages from './PinnedMessages';
 import { getConversationId } from '../../services/db';
 import { PaperclipIcon, SmileIcon, MicIcon } from '../UI/Icons';
+import { usePermissions } from '../../hooks/usePermissions';
+import { PERMISSIONS, hasPermission } from '../../../common/permissions';
 
 const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const dispatch: AppDispatch = useDispatch();
@@ -21,6 +25,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const selectedServerId = useSelector((state: RootState) => state.server.selectedServerId);
   const selectedChannelId = useSelector((state: RootState) => state.server.selectedChannelId);
   const activeDmConversationId = useSelector((state: RootState) => state.chat.activeDmConversationId);
+  const pinnedMessagesOpen = useSelector((state: RootState) => state.chat.pinnedMessagesOpen);
   
   const allMessages = useSelector((state: RootState) => state.chat.messages);
   const dmMessages = useSelector((state: RootState) => state.chat.dmMessages);
@@ -32,6 +37,10 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const serverMembers = useSelector((state: RootState) => state.server.serverMembers);
   const currentServerRoles = useSelector((state: RootState) => state.server.currentServerRoles);
   
+  const userPerms = usePermissions(selectedServerId);
+  const canManageMessages = hasPermission(userPerms, PERMISSIONS.MANAGE_MESSAGES) || 
+                            hasPermission(userPerms, PERMISSIONS.ADMINISTRATOR);
+
   const isDm = selectedServerId === null && !!activeDmConversationId;
   const effectiveChannelId = isDm ? activeDmConversationId : selectedChannelId;
 
@@ -39,6 +48,8 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: any } | null>(null);
+  const [replyingTo, setReplyTo] = useState<any>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,10 +98,13 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   }, [allMessages, dmMessages, selectedChannelId, activeDmConversationId, isDm, userId]);
 
   const getAuthorColor = (authorId: string, authorName: string) => {
+      if (isDm) return 'var(--text-primary)';
       const member = serverMembers.find(m => m.id === authorId);
-      if (member && member.roles?.length > 0) {
-          const roles = currentServerRoles.filter(r => member.roles.includes(r.id)).sort((a,b) => b.position - a.position);
-          if (roles.length > 0) return roles[0].color;
+      if (member && member.roles && member.roles.length > 0) {
+          const roles = currentServerRoles
+            .filter(r => member.roles.includes(r.id))
+            .sort((a,b) => b.position - a.position);
+          if (roles.length > 0 && roles[0].color && roles[0].color !== '#000000') return roles[0].color;
       }
       return generateAvatarColor(authorName);
   };
@@ -105,7 +119,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
       const hasContent = msg.content || msg.audioData || (msg.attachments && msg.attachments.length > 0);
 
       if (currentGroup && currentGroup.authorId === msgAuthorId && hasContent) {
-        currentGroup.messages.push({ id: msgId, content: msg.content, audioData: msg.audioData, attachments: msg.attachments });
+        currentGroup.messages.push({ id: msgId, content: msg.content, audioData: msg.audioData, attachments: msg.attachments, isPinned: msg.isPinned });
       } else if (hasContent) {
         const authorName = isDm ? (msg.senderId === userId ? username : channelName) : msg.author;
         groups.push({
@@ -113,7 +127,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
           author: authorName || 'Unknown',
           authorAvatar: msg.authorAvatar,
           timestamp: new Date(Number(msg.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          messages: [{ id: msgId, content: msg.content, audioData: msg.audioData, attachments: msg.attachments }],
+          messages: [{ id: msgId, content: msg.content, audioData: msg.audioData, attachments: msg.attachments, isPinned: msg.isPinned }],
           authorColor: getAuthorColor(msgAuthorId, authorName || ''),
         });
         currentGroup = groups[groups.length - 1];
@@ -134,7 +148,8 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
               channelId: effectiveChannelId,
               content: content,
               author: username,
-              attachments: attachments
+              attachments: attachments,
+              replyToId: replyingTo?.id
           });
           
           dispatch(addMessage({
@@ -149,8 +164,20 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
           }));
       }
       setMessageInput('');
+      setReplyTo(null);
       messageInputRef.current?.focus();
     }
+  };
+
+  const handleMessageContextMenu = (e: React.MouseEvent, message: any) => {
+      e.preventDefault();
+      setContextMenu({ x: e.clientX, y: e.clientY, message });
+  };
+
+  const handlePinMessage = (message: any) => {
+      const type = message.isPinned ? C2S_MSG_TYPE.UNPIN_MESSAGE : C2S_MSG_TYPE.PIN_MESSAGE;
+      webSocketService.sendMessage(type as any, { channelId: effectiveChannelId, messageId: message.id });
+      setContextMenu(null);
   };
 
   const handleFiles = async (files: FileList | null) => {
@@ -172,7 +199,16 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
     <div className={`chat-view ${className || ''}`} onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()} onClick={() => setShowPicker(false)}>
       <div className="chat-header">
         <h2>{isDm ? `@ ${channelName}` : `# ${channelName || 'Выберите канал'}`}</h2>
+        <div className="header-actions">
+            {!isDm && (
+                <button className={`header-btn ${pinnedMessagesOpen ? 'active' : ''}`} title="Закреплённые сообщения" onClick={() => dispatch(togglePinnedMessages())}>
+                    <span style={{ fontSize: '1.2rem' }}>📌</span>
+                </button>
+            )}
+        </div>
       </div>
+
+      {pinnedMessagesOpen && <PinnedMessages />}
       
       <div className="message-list">
         {groupedMessages.map((group, gIdx) => (
@@ -190,7 +226,8 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                 <span className="message-time">{group.timestamp}</span>
               </div>
               {group.messages.map((msg: any) => (
-                <div key={msg.id} className="message-item-content">
+                <div key={msg.id} className={`message-item-content ${msg.isPinned ? 'pinned' : ''}`} onContextMenu={(e) => handleMessageContextMenu(e, msg)}>
+                    {msg.isPinned && <div className="pinned-indicator">📌 закреплено</div>}
                     {msg.content && <MarkdownRenderer content={msg.content} />}
                     {msg.audioData && <VoiceMessagePlayer src={msg.audioData} />}
                     <div className="message-attachments">
@@ -216,6 +253,12 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
       </div>
 
       <div className="chat-input-area" onClick={e => e.stopPropagation()}>
+        {replyingTo && (
+            <div className="reply-preview">
+                <span className="reply-text">Ответ пользователю <strong>{replyingTo.author}</strong></span>
+                <button className="cancel-reply" onClick={() => setReplyTo(null)}>✕</button>
+            </div>
+        )}
         <div className="chat-input-row">
             <button className="attach-button" onClick={() => fileInputRef.current?.click()}>
                 <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={(e) => handleFiles(e.target.files)} multiple />
@@ -274,6 +317,24 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
             </div>
         )}
       </div>
+      
+      {contextMenu && (
+          <MessageContextMenu 
+              position={contextMenu}
+              messageId={contextMenu.message.id}
+              messageContent={contextMenu.message.content}
+              authorId={contextMenu.message.authorId}
+              isAuthor={contextMenu.message.authorId === userId}
+              canManage={canManageMessages}
+              isPinned={!!contextMenu.message.isPinned}
+              onClose={() => setContextMenu(null)}
+              onEdit={() => {}} // TODO: Implement edit
+              onDelete={() => webSocketService.deleteMessage(contextMenu.message.id, effectiveChannelId!)}
+              onReply={() => setReplyTo(contextMenu.message)}
+              onPin={() => handlePinMessage(contextMenu.message)}
+          />
+      )}
+
       {isDragging && <div className="drag-drop-overlay">Отпустите, чтобы отправить файлы 📥</div>}
     </div>
   );

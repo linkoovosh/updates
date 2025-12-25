@@ -59,14 +59,15 @@ import {
   addDmMessage,
   setDmMessages,
   setActiveDmConversationId,
-  incrementUnreadCount // ADDED THIS
+  incrementUnreadCount,
+  incrementMentionCount // ADDED THIS
 } from '../store/slices/chatSlice';
 import {
   setSharedBrowser,
   addVoiceChannelMember as addVoiceChannelMemberVoice, 
   removeVoiceChannelMember as removeVoiceChannelMemberVoice, 
   updateVoiceState,
-  setIncomingCall, // FIXED NAME (was setIncomingCallVoice)
+  setIncomingCall, // CLEAN IMPORT
   setOutgoingCall,
   setCallConnected,
   endCall
@@ -410,13 +411,13 @@ class WebSocketService {
                         isSent: true,
                     };
 
-                    try {
-                        await db.dmMessages.add(newMessage);
-                    } catch (err) {
-                        console.error('Failed to save incoming DM to DB:', err);
-                    }
-
+                    // 1. Dispatch to UI immediately for speed
                     this.dispatch(addDmMessage(newMessage));
+
+                    // 2. Save to DB in background
+                    db.dmMessages.add(newMessage).catch(err => {
+                        console.error('Failed to save incoming DM to DB:', err);
+                    });
 
                     if (chat.activeDmConversationId !== payload.senderId) {
                         const sender = auth.friends.find(f => f.id === payload.senderId);
@@ -599,35 +600,46 @@ class WebSocketService {
               {
                 const payload = message.payload as NewMessagePayload;
                 const receivedMessage = payload.message;
-                const state = this.getState();
+                const state = this.getState!();
 
                 // 1. Add message to store
-                this.dispatch(addMessage(receivedMessage));
+                this.dispatch!(addMessage(receivedMessage));
                 
                 // 2. Increment unread count if channel is not active
                 const isCurrentChannel = state.server.selectedChannelId === receivedMessage.channelId;
-                const isCurrentDm = state.chat.activeDmConversationId === receivedMessage.authorId;
                 
-                if (!isCurrentChannel && !isCurrentDm) {
-                    this.dispatch(incrementUnreadCount(receivedMessage.channelId));
+                if (!isCurrentChannel) {
+                    this.dispatch!(incrementUnreadCount(receivedMessage.channelId));
                 }
 
                 console.log('Received NEW_MESSAGE:', receivedMessage);
                 
                 if (receivedMessage.authorId !== this.userId) {
-                  const mentionRegex = new RegExp(`@${state.auth.username}`, 'i');
+                  // MENTION DETECTION: Escape username for regex
+                  const escapedUsername = (state.auth.username || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                  const mentionRegex = new RegExp(`@${escapedUsername}\\b`, 'i');
                   const isMention = mentionRegex.test(receivedMessage.content);
                   
-                  // Check if server/user is muted before notifying
-                  const isMuted = false; // TODO: Implement server mute check
+                  if (isMention) {
+                      this.dispatch!(incrementMentionCount(receivedMessage.channelId));
+                  }
+
+                  // Find channel and server names for notification
+                  const channel = state.ui.channels.find(c => c.id === receivedMessage.channelId);
+                  const server = channel ? state.server.servers.find(s => s.id === channel.serverId) : null;
+                  
+                  const contextTitle = server ? `${server.name} > #${channel?.name}` : `#${channel?.name || 'Message'}`;
 
                   let shouldNotify = false;
                   if (state.settings.notifyOnMention && isMention) shouldNotify = true;
-                  else if (state.settings.notifyOnDm && !isMention) shouldNotify = true;
+                  else if (state.settings.notifyOnDm) shouldNotify = true; // This is a server message, but settings might use this key
 
-                  if (shouldNotify && !isMuted) {
+                  if (shouldNotify) {
                     if (state.settings.enableDesktopNotifications) {
-                      showNotification(`Сообщение от ${receivedMessage.author}`, receivedMessage.content);
+                      showNotification(
+                          isMention ? `Упоминание от ${receivedMessage.author}` : `Новое сообщение в ${contextTitle}`,
+                          `${receivedMessage.author}: ${receivedMessage.content.substring(0, 100)}${receivedMessage.content.length > 100 ? '...' : ''}`
+                      );
                     }
                     if (state.settings.enableSoundNotifications) {
                       playChatNotify(); 
@@ -647,7 +659,21 @@ class WebSocketService {
             case S2C_MSG_TYPE.MESSAGE_DELETED:
               {
                   const payload = message.payload as MessageDeletedPayload;
-                  this.dispatch(deleteMessage(payload.messageId));
+                  this.dispatch!(deleteMessage(payload.messageId));
+              }
+              break;
+
+            case S2C_MSG_TYPE.MESSAGE_PINNED:
+              {
+                  const payload = message.payload as any;
+                  this.dispatch!(updateMessage({ messageId: payload.messageId, isPinned: true }));
+              }
+              break;
+
+            case S2C_MSG_TYPE.MESSAGE_UNPINNED:
+              {
+                  const payload = message.payload as any;
+                  this.dispatch!(updateMessage({ messageId: payload.messageId, isPinned: false }));
               }
               break;
 
