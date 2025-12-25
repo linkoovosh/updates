@@ -58,9 +58,9 @@
       "output": "release"
     },
     "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
       "include": "build/installer.nsh",
       "installerIcon": "public/murchat.ico",

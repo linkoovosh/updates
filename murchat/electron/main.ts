@@ -221,10 +221,51 @@ app.whenReady().then(async () => {
 });
 
 function checkUpdate() {
-  autoUpdater.on('update-available', (info) => { win?.webContents.send('update-available', info); });
-  autoUpdater.on('download-progress', (p) => { win?.webContents.send('update-download-progress', p); });
-  autoUpdater.on('update-downloaded', (info) => { win?.webContents.send('update-ready', info); });
+  autoUpdater.autoDownload = true; // Auto download when found
+  autoUpdater.allowDowngrade = false; // Never go backwards
+  autoUpdater.allowPrerelease = true; // Allow build number patches
+
+  autoUpdater.on('checking-for-update', () => {
+    sendStatusToWindow('╨Я╤А╨╛╨▓╨╡╤А╨║╨░ ╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╨╕╨╣...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    log.info('Update available:', info.version);
+    win?.webContents.send('update-available', info);
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    log.info('Update not available.');
+    win?.webContents.send('update-not-available');
+  });
+
+  autoUpdater.on('error', (err) => {
+    log.error('Error in auto-updater: ', err);
+    win?.webContents.send('update-error', err.message);
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    let log_message = "Download speed: " + progressObj.bytesPerSecond;
+    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+    log.info(log_message);
+    win?.webContents.send('update-download-progress', progressObj);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded');
+    win?.webContents.send('update-ready', info);
+  });
+
+  // Start the check immediately
   autoUpdater.checkForUpdatesAndNotify();
+
+  // Loop every 10 seconds
+  setInterval(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch(err => {
+          // Suppress errors during interval checks to avoid console spam if offline
+      });
+  }, 10000);
 }
 
 function toggleWindow() { if (win?.isVisible()) win.hide(); else win?.show(); }
