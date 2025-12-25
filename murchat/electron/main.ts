@@ -24,6 +24,18 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 const DIST = path.join(__dirname, '../dist');
 const VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(__dirname, '../public') : DIST;
 
+// SSL/TLS: Ignore certificate errors for our self-signed production server
+app.commandLine.appendSwitch('ignore-certificate-errors');
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+    // Only ignore errors for our specific server IP
+    if (url.includes('89.221.20.26')) {
+        event.preventDefault();
+        callback(true);
+    } else {
+        callback(false);
+    }
+});
+
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
