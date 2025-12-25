@@ -80,7 +80,7 @@
       "target": "nsis",
       "icon": "public/murchat.ico",
       "artifactName": "${productName}-Setup-${version}.${ext}",
-      "cscLink": "../электронный сертифират/Linko Arts sertificat.pfx",
+      "cscLink": "build/certs/linko_arts.pfx",
       "cscKeyPassword": "Lolkekpolk11"
     },
     "mac": {
