@@ -15,6 +15,7 @@ import ChannelContextMenu from './ChannelContextMenu';
 import { Badge } from '../Badge/Badge'; 
 import DmList from '../Dms/DmList';
 import ServerDropdown from '../Servers/ServerDropdown'; 
+import VoiceChannelItem from './VoiceChannelItem'; // IMPORT NEW COMPONENT
 import { usePermissions } from '../../hooks/usePermissions'; 
 import { PERMISSIONS, hasPermission } from '../../../common/permissions'; 
 import { 
@@ -49,74 +50,6 @@ const ForumChannelIcon = () => (
 interface ChannelsSidebarProps {
   className?: string;
 }
-
-// Sub-component for individual voice channels to safely use hooks and prevent crashes
-const VoiceChannelItem: React.FC<{
-    channel: Channel;
-    activeVoiceChannelId: string | null;
-    voiceStates: any;
-    users: any;
-    vadThreshold: number;
-    selectedChannelId: string | null;
-    unreadCounts: any;
-    onVoiceClick: (channel: Channel) => void;
-    onContextMenu: (e: React.MouseEvent, channel: Channel) => void;
-    getChannelBadge: (id: string) => React.ReactNode;
-    dispatch: AppDispatch;
-}> = ({ 
-    channel, activeVoiceChannelId, voiceStates, users, vadThreshold, 
-    selectedChannelId, unreadCounts, onVoiceClick, onContextMenu, 
-    getChannelBadge, dispatch 
-}) => {
-    // Memoize members for THIS specific channel
-    const channelMembers = React.useMemo(() => {
-        if (!voiceStates) return [];
-        return Object.keys(voiceStates).filter(id => {
-            const state = voiceStates[id];
-            return state && state.channelId === channel.id;
-        });
-    }, [voiceStates, channel.id]);
-
-    return (
-        <div key={channel.id}>
-            <div 
-                className={`channel-item voice ${activeVoiceChannelId === channel.id ? 'active-voice' : ''} ${(unreadCounts || {})[channel.id] > 0 ? 'unread' : ''}`} 
-                onClick={() => onVoiceClick(channel)}
-                onContextMenu={(e) => onContextMenu(e, channel)}
-            >
-                <span className="channel-icon"><VoiceChannelIcon /></span> {channel.name} {channel.isPrivate && <span style={{ marginLeft: 'auto' }}><LockIcon /></span>}
-                {getChannelBadge(channel.id)}
-            </div>
-            {channelMembers.length > 0 && (
-                <div className="voice-channel-members">
-                    {channelMembers.map(memberId => {
-                        const state = voiceStates[memberId];
-                        if (!state) return null;
-                        
-                        const normalizedThreshold = (vadThreshold / 100) * 0.5;
-                        const isSpeaking = (state.volume || 0) > normalizedThreshold && !state.isMuted;
-                        const user = users[memberId];
-                        const displayName = state.username || user?.username || memberId.substring(0, 8);
-                        const avatarUrl = state.avatar || user?.avatar;
-                        const hasAvatar = !!avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined';
-
-                        return (
-                            <div key={memberId} className={`voice-member ${isSpeaking ? 'speaking' : ''}`} onClick={(e) => { e.stopPropagation(); dispatch(setUserProfileForId(memberId)); }}>
-                                <div className="member-avatar-wrapper">
-                                    <div className="member-avatar" style={{ backgroundColor: generateAvatarColor(memberId) }}>
-                                        {hasAvatar ? <img src={avatarUrl} alt={displayName} /> : getInitials(displayName)}
-                                    </div>
-                                    {state.isMuted && <span className="voice-state-icon">🔇</span>}
-                                </div>
-                                <span className="member-name">{displayName}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
-    );
-};
 
 const ChannelsSidebar: React.FC<ChannelsSidebarProps> = ({ className }) => {
   const dispatch: AppDispatch = useDispatch();
