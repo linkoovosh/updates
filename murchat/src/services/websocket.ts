@@ -220,6 +220,10 @@ class WebSocketService {
       }
   }
 
+  public getServerUrl(): string {
+      return this.serverUrl;
+  }
+
   setStore(dispatch: AppDispatch, getState: () => RootState) {
     this.dispatch = dispatch;
     this.getState = getState;
