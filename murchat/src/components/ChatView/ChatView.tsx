@@ -30,6 +30,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const allMessages = useSelector((state: RootState) => state.chat.messages);
   const dmMessages = useSelector((state: RootState) => state.chat.dmMessages);
   const channels = useSelector((state: RootState) => state.ui.channels);
+  const servers = useSelector((state: RootState) => state.server.servers) || []; // ADDED THIS
   const friends = useSelector((state: RootState) => state.auth.friends);
   const username = useSelector((state: RootState) => state.auth.username);
   const userId = useSelector((state: RootState) => state.auth.userId);
