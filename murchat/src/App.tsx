@@ -167,8 +167,8 @@ function App() {
                 setIsLoading(false);
             });
             
-            // Fail-safe: if sync takes too long (10s), show app anyway
-            setTimeout(() => setIsLoading(false), 10000);
+            // Fail-safe: if sync takes too long (5s), show app anyway
+            setTimeout(() => setIsLoading(false), 5000);
         } else {
             // No token, go straight to AuthScreen
             setIsLoading(false);
