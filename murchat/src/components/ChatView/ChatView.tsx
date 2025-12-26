@@ -20,6 +20,7 @@ import { getConversationId } from '../../services/db';
 import { PaperclipIcon, SmileIcon, MicIcon } from '../UI/Icons';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSIONS, hasPermission } from '../../../common/permissions';
+import { CommandPicker, DevGuideModal } from './DevToolsUI';
 
 const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const dispatch: AppDispatch = useDispatch();
@@ -58,6 +59,11 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: any } | null>(null);
   const [replyingTo, setReplyTo] = useState<any>(null);
   
+  // --- DEV TOOLS UI STATE ---
+  const isDevUser = useSelector((state: RootState) => state.auth.isDeveloper);
+  const [showCommandPicker, setShowCommandPicker] = useState(false);
+  const [showDevGuide, setShowDevGuide] = useState(false);
+
   const virtuosoRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
@@ -145,6 +151,14 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
 
   const handleSendMessage = (attachments?: Attachment[]) => {
     const content = messageInput.trim();
+
+    // SPECIAL: Dev Guide Trigger
+    if (content === '/dev' && isDevUser) {
+        setShowDevGuide(true);
+        setMessageInput('');
+        return;
+    }
+
     if ((content || (attachments && attachments.length > 0)) && effectiveChannelId && userId) {
       if (isDm) {
           webSocketService.sendDm(effectiveChannelId, content, attachments); 
@@ -310,6 +324,16 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
       </div>
 
       <div className="chat-input-area" onClick={e => e.stopPropagation()}>
+        {isDevUser && showCommandPicker && (
+            <CommandPicker 
+                filter={messageInput} 
+                onSelect={(cmd) => {
+                    setMessageInput(cmd);
+                    setShowCommandPicker(false);
+                    messageInputRef.current?.focus();
+                }} 
+            />
+        )}
         {replyingTo && (
             <div className="reply-preview">
                 <span className="reply-text">Ответ пользователю <strong>{replyingTo.author}</strong></span>
@@ -326,7 +350,15 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                 className="chat-textarea"
                 placeholder="Напишите сообщение..."
                 value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
+                onChange={(e) => {
+                    const val = e.target.value;
+                    setMessageInput(val);
+                    if (isDevUser && val.startsWith('/')) {
+                        setShowCommandPicker(true);
+                    } else {
+                        setShowCommandPicker(false);
+                    }
+                }}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                 rows={1}
             />
@@ -397,6 +429,10 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
       )}
 
       {isDragging && <div className="drag-drop-overlay">Отпустите, чтобы отправить файлы 📥</div>}
+      
+      {showDevGuide && (
+          <DevGuideModal onClose={() => setShowDevGuide(false)} />
+      )}
     </div>
   );
 };
