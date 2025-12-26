@@ -101,6 +101,7 @@ app.on('before-quit', (e) => {
 });
 
 app.whenReady().then(async () => {
+    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
     createWindow();
 
     ipcMain.on('install-update', () => { 
@@ -117,6 +118,48 @@ app.whenReady().then(async () => {
     ipcMain.on('UNLOCK_DEV_TOOLS', () => { allowDevTools = true; });
     ipcMain.on('LOCK_DEV_TOOLS', () => { allowDevTools = false; if (win) win.webContents.closeDevTools(); });
     ipcMain.on('OPEN_DEV_TOOLS', () => { if (allowDevTools && win) win.webContents.openDevTools({ mode: 'detach' }); });
+
+    // --- Restore Missing Settings IPCs ---
+    ipcMain.handle('save-settings', async (_, settings) => {
+        try { 
+            await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2)); 
+            return { success: true }; 
+        } catch (e) { 
+            log.error("Failed to save settings:", e);
+            return { success: false }; 
+        }
+    });
+
+    ipcMain.handle('load-settings', async () => {
+        try { 
+            const data = await fs.readFile(settingsPath, 'utf-8'); 
+            return JSON.parse(data); 
+        } catch (e) { 
+            return null; // Let React use defaults
+        }
+    });
+
+    ipcMain.handle('get-screen-sources', async () => {
+        const sources = await desktopCapturer.getSources({ types: ['window', 'screen'], fetchWindowIcons: true });
+        return sources.map(s => ({ id: s.id, name: s.name, thumbnail: s.thumbnail.toDataURL() }));
+    });
+
+    // Initialize Tray
+    try {
+        const iconPath = path.join(VITE_PUBLIC, 'murchat.ico');
+        tray = new Tray(iconPath);
+        const contextMenu = Menu.buildFromTemplate([
+            { label: 'Show MurCHAT', click: () => win?.show() },
+            { type: 'separator' },
+            { label: 'Quit', click: () => { isQuitting = true; app.quit(); } }
+        ]);
+        tray.setToolTip('MurCHAT');
+        tray.setContextMenu(contextMenu);
+        tray.on('click', () => {
+            if (win?.isVisible()) win.hide();
+            else win?.show();
+        });
+    } catch (e) { log.error("Tray error:", e); }
 
     // Single check on launch after 5s
     setTimeout(() => { checkUpdate(); }, 5000);

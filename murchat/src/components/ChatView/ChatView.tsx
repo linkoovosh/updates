@@ -153,7 +153,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
     const content = messageInput.trim();
 
     // SPECIAL: Dev Guide Trigger
-    if (content === '/dev' && isDevUser) {
+    if ((content === '/dev' || content === '.dev') && isDevUser) {
         setShowDevGuide(true);
         setMessageInput('');
         return;
@@ -353,7 +353,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
                 onChange={(e) => {
                     const val = e.target.value;
                     setMessageInput(val);
-                    if (isDevUser && val.startsWith('/')) {
+                    if (isDevUser && (val.startsWith('/') || val.startsWith('.'))) {
                         setShowCommandPicker(true);
                     } else {
                         setShowCommandPicker(false);

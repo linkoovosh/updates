@@ -67,6 +67,7 @@ const initialState: SettingsState = {
   accentColor: '#4D7CFF', // Default Blue
   
   isTerminalVisible: false,
+  catModeEnabled: true, // Default ON as requested
 
   // Audio/Video Defaults
   inputDeviceId: null,

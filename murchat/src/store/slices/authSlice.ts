@@ -11,7 +11,8 @@ interface AuthState {
   status: User['status'];
   bio: string | null;
   profile_banner: string | null;
-  profile_theme: string; // NEW
+  profile_theme: string;
+  isDeveloper: boolean; // NEW
   isAuthenticated: boolean;
   authError: string | null;
   authVerificationRequired: { email: string; message?: string } | null;
@@ -33,6 +34,7 @@ const initialState: AuthState = {
   bio: null,
   profile_banner: null,
   profile_theme: 'holographic',
+  isDeveloper: false,
   isAuthenticated: false,
   authError: null,
   authVerificationRequired: null,
@@ -48,7 +50,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setAuthSuccess: (state, action: PayloadAction<{ userId: string; username: string; discriminator: string; email: string; avatar?: string; bio?: string; profile_banner?: string; profile_theme?: string; }>) => {
+    setAuthSuccess: (state, action: PayloadAction<{ userId: string; username: string; discriminator: string; email: string; avatar?: string; bio?: string; profile_banner?: string; profile_theme?: string; isDeveloper?: boolean; }>) => {
         state.isAuthenticated = true;
         state.userId = action.payload.userId;
         state.username = action.payload.username;
@@ -58,6 +60,7 @@ const authSlice = createSlice({
         state.bio = action.payload.bio || null;
         state.profile_banner = action.payload.profile_banner || null;
         state.profile_theme = action.payload.profile_theme || 'holographic';
+        state.isDeveloper = action.payload.isDeveloper || false;
         state.authError = null;
         state.status = 'online';
     },

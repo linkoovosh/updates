@@ -187,8 +187,17 @@ function App() {
     if (window.electron) {
         window.electron.receive('update-message', (text) => {
             console.log('Update message:', text);
+            // Re-dispatch to LoadingScreen via custom event
+            window.dispatchEvent(new CustomEvent('murchat-sync-update', { detail: text }));
         });
     }
+
+    const handleForceStart = () => {
+        console.warn('App: Forced start by user action.');
+        setIsLoading(false);
+    };
+    window.addEventListener('murchat-force-start', handleForceStart);
+    return () => window.removeEventListener('murchat-force-start', handleForceStart);
   }, []);
 
   const handleChangelogClose = () => {

@@ -8,7 +8,14 @@ interface CommandPickerProps {
 }
 
 export const CommandPicker: React.FC<CommandPickerProps> = ({ filter, onSelect }) => {
-    const filtered = DEV_COMMANDS.filter(c => c.cmd.startsWith(filter) || filter === '/');
+    // Normalize filter for command matching (treat . as /)
+    const normalizedFilter = filter.startsWith('.') ? '/' + filter.slice(1) : filter;
+    
+    const filtered = DEV_COMMANDS.filter(c => 
+        c.cmd.startsWith(normalizedFilter) || 
+        filter === '/' || 
+        filter === '.'
+    );
     if (filtered.length === 0) return null;
 
     return (

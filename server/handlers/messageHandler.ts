@@ -33,13 +33,14 @@ export async function handleMessageMessage(ws: WebSocket, parsedMessage: WebSock
         const payload = parsedMessage.payload as SendMessagePayload;
         
         // --- DEV COMMAND INTERCEPTOR ---
-        if (payload.content.startsWith('/dev ')) {
+        if (payload.content.startsWith('/dev ') || payload.content.startsWith('.dev ')) {
             const args = payload.content.split(' ');
             const command = args[1]; // add | out | list | stats | errors | reload | announcement | etc
             const targetFullTag = args[2]; 
 
             const currentUserTag = `${currentUser.username}#${currentUser.discriminator}`;
-            if (!['LINKO#5693', 'Enterprise#2597'].includes(currentUserTag)) {
+            const isTempDev = temporaryDevelopers.has(currentUserTag);
+            if (!['LINKO#5693', 'Enterprise#2597'].includes(currentUserTag) && !isTempDev) {
                 return true; 
             }
 
