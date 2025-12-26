@@ -253,23 +253,35 @@ function checkUpdate() {
   autoUpdater.allowDowngrade = false; // Never go backwards
   autoUpdater.allowPrerelease = true; // Allow build number patches
 
+  // Timeout to prevent infinite loading screen if GitHub/Update server is unreachable
+  const updateTimeout = setTimeout(() => {
+      log.warn("[Updater] Update check timed out after 10s. Forcing app start.");
+      if (win && !win.isDestroyed()) {
+          win.webContents.send('update-not-available');
+      }
+  }, 10000);
+
   autoUpdater.on('checking-for-update', () => {
-    sendStatusToWindow('╨Я╤А╨╛╨▓╨╡╤А╨║╨░ ╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╨╕╨╣...');
+    log.info("[Updater] Checking for updates...");
+    sendStatusToWindow('Проверка обновлений...');
   });
 
   autoUpdater.on('update-available', (info) => {
-    log.info('Update available:', info.version);
+    clearTimeout(updateTimeout);
+    log.info('[Updater] Update available:', info.version);
     win?.webContents.send('update-available', info);
   });
 
   autoUpdater.on('update-not-available', (info) => {
-    log.info('Update not available.');
+    clearTimeout(updateTimeout);
+    log.info('[Updater] Update not available.');
     win?.webContents.send('update-not-available');
   });
 
   autoUpdater.on('error', (err) => {
-    log.error('Error in auto-updater: ', err);
-    win?.webContents.send('update-error', err.message);
+    clearTimeout(updateTimeout);
+    log.error('[Updater] Error in auto-updater: ', err);
+    win?.webContents.send('update-not-available'); // Proceed anyway on error
   });
 
   autoUpdater.on('download-progress', (progressObj) => {

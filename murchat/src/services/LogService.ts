@@ -97,9 +97,9 @@ class LogService {
         const content = logsToSend.join('\n');
 
         try {
-            // Correct dynamic import for ES modules
-            const { default: webSocketService } = await import('./websocket');
-            const baseUrl = webSocketService.getServerUrl()
+            // Get Server URL directly from localStorage or use default to avoid circular imports
+            const savedUrl = localStorage.getItem('serverUrl') || 'wss://89.221.20.26:22822';
+            const baseUrl = savedUrl
                 .replace('wss://', 'https://')
                 .replace('ws://', 'http://');
 
@@ -110,12 +110,12 @@ class LogService {
             });
 
             if (response.ok) {
-                console.log('[LogService] Logs successfully uploaded to server.');
+                // Success
             } else {
                 throw new Error(`Server returned ${response.status}`);
             }
         } catch (e) {
-            console.error('[LogService] Upload to server failed:', e);
+            // Put logs back to retry later
             this.logs = [...logsToSend, ...this.logs];
         }
     }
