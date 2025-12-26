@@ -132,6 +132,21 @@ class StorageService {
         await db.run(`DELETE FROM messages WHERE id = ?`, [messageId]);
     }
 
+    async wipeChannelMessages(serverId: string, channelId: string, limit: number) {
+        const db = await this.getDb(serverId);
+        // SQLite doesn't support LIMIT in DELETE directly in all versions, 
+        // so we use a subquery to find the IDs.
+        await db.run(`
+            DELETE FROM messages 
+            WHERE id IN (
+                SELECT id FROM messages 
+                WHERE channelId = ? 
+                ORDER BY timestamp DESC 
+                LIMIT ?
+            )
+        `, [channelId, limit]);
+    }
+
     async updateChannelMessage(serverId: string, messageId: string, content: string) {
         const db = await this.getDb(serverId);
         await db.run(`UPDATE messages SET content = ? WHERE id = ?`, [content, messageId]);

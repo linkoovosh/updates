@@ -268,44 +268,52 @@ function checkUpdate() {
 
   autoUpdater.on('update-available', (info) => {
     clearTimeout(updateTimeout);
+    isDownloading = true; // LOCK
     log.info('[Updater] Update available:', info.version);
     win?.webContents.send('update-available', info);
   });
 
   autoUpdater.on('update-not-available', (info) => {
     clearTimeout(updateTimeout);
+    isDownloading = false; // UNLOCK
     log.info('[Updater] Update not available.');
     win?.webContents.send('update-not-available');
   });
 
   autoUpdater.on('error', (err) => {
     clearTimeout(updateTimeout);
+    isDownloading = false; // UNLOCK
     log.error('[Updater] Error in auto-updater: ', err);
-    win?.webContents.send('update-not-available'); // Proceed anyway on error
+    win?.webContents.send('update-error', err.message);
+    win?.webContents.send('update-not-available'); 
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
-    let log_message = "Download speed: " + progressObj.bytesPerSecond;
-    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
-    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
-    log.info(log_message);
+    isDownloading = true;
+    const percent = Math.floor(progressObj.percent);
+    log.info(`[Updater] Downloading: ${percent}%`);
     win?.webContents.send('update-download-progress', progressObj);
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    log.info('Update downloaded');
+    isDownloading = false;
+    log.info('[Updater] Update downloaded');
     win?.webContents.send('update-ready', info);
   });
 
   // Start the check immediately
   autoUpdater.checkForUpdatesAndNotify();
 
-  // Loop every 10 seconds
+  // Loop every 10 minutes, not 10 seconds!
   setInterval(() => {
-      autoUpdater.checkForUpdatesAndNotify().catch(err => {
-          // Suppress errors during interval checks to avoid console spam if offline
-      });
-  }, 10000);
+      if (!isDownloading) {
+          autoUpdater.checkForUpdatesAndNotify().catch(err => {
+              log.error("[Updater] Interval check failed:", err);
+          });
+      }
+  }, 600000); 
 }
+
+let isDownloading = false; // Prevent overlapping downloads
 
 function toggleWindow() { if (win?.isVisible()) win.hide(); else win?.show(); }

@@ -159,8 +159,20 @@ function App() {
         console.log('App: Connecting WebSocket...');
         webSocketService.connect();
 
-        // App is ready to show UI
-        setIsLoading(false);
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            // WAIT for full sync before hiding loading screen
+            webSocketService.onSyncReady(() => {
+                console.log('App: Initial sync complete.');
+                setIsLoading(false);
+            });
+            
+            // Fail-safe: if sync takes too long (10s), show app anyway
+            setTimeout(() => setIsLoading(false), 10000);
+        } else {
+            // No token, go straight to AuthScreen
+            setIsLoading(false);
+        }
     };
 
     initApp();

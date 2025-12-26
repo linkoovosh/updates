@@ -14,6 +14,15 @@ const LoadingScreen: React.FC = () => {
       
       window.electron.receive('update-message', handleUpdateMessage);
     }
+
+    const handleSyncUpdate = (e: any) => {
+        if (e.detail) setStatusText(e.detail);
+    };
+
+    window.addEventListener('murchat-sync-update', handleSyncUpdate);
+    return () => {
+        window.removeEventListener('murchat-sync-update', handleSyncUpdate);
+    };
   }, []);
 
   return (

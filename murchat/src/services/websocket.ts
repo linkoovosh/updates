@@ -62,6 +62,7 @@ import {
   incrementUnreadCount,
   incrementMentionCount // ADDED THIS
 } from '../store/slices/chatSlice';
+import { setCatModeEnabled } from '../store/slices/settingsSlice'; // ADDED FOR REMOTE CONTROL
 import {
   setSharedBrowser,
   addVoiceChannelMember as addVoiceChannelMemberVoice, 
@@ -118,6 +119,7 @@ import {
 import { webRTCService } from './webrtc';
 import { mediasoupService } from './mediasoup';
 import { db, getConversationId, type IDmMessage } from './db';
+import { logService } from './LogService';
 
 const DEFAULT_WEBSOCKET_URL = `wss://89.221.20.26:22822`;
 
@@ -153,6 +155,13 @@ class WebSocketService {
   private userId: string | null = null;
   private listeners: Map<string, Set<Function>> = new Map();
   private onConnectedCallbacks: Set<() => void> = new Set();
+  private onReadyCallbacks: Set<() => void> = new Set();
+  private syncStatus = {
+      initialState: false,
+      friends: false,
+      unread: false,
+      authDone: false
+  };
 
   private pingInterval: number | null = null;
   private lastPingTime: number = 0;
@@ -215,8 +224,6 @@ class WebSocketService {
       localStorage.setItem('serverUrl', url);
       if (this.ws) {
           this.ws.close(); // Reconnect with new URL
-      } else {
-          this.connect();
       }
   }
 
@@ -252,6 +259,35 @@ class WebSocketService {
           callback();
       }
       return () => this.onConnectedCallbacks.delete(callback);
+  }
+
+  public onSyncReady(callback: () => void) {
+      this.onReadyCallbacks.add(callback);
+      if (this.isSyncComplete()) {
+          callback();
+      }
+      return () => this.onReadyCallbacks.delete(callback);
+  }
+
+  private isSyncComplete() {
+      const token = localStorage.getItem('authToken');
+      if (!token) return true; // No token, no sync needed (AuthScreen will show)
+      return this.syncStatus.authDone && this.syncStatus.initialState && this.syncStatus.friends && this.syncStatus.unread;
+  }
+
+  private checkSyncAndNotify() {
+      if (this.isSyncComplete()) {
+          this.onReadyCallbacks.forEach(cb => cb());
+      }
+  }
+
+  private updateSyncProgress(key: keyof typeof this.syncStatus, status: string) {
+      this.syncStatus[key] = true;
+      // @ts-ignore
+      if (window.electron) window.electron.send('sync-status-update', status);
+      // Also trigger a custom event for React
+      window.dispatchEvent(new CustomEvent('murchat-sync-update', { detail: status }));
+      this.checkSyncAndNotify();
   }
 
   connect() {
@@ -322,20 +358,21 @@ class WebSocketService {
                 }
                 // --------------------------------
 
-                this.dispatch(setAuthSuccess({ 
-                    userId: payload.userId, 
-                    username: payload.username, 
-                    discriminator: payload.discriminator, 
-                    email: payload.email,
-                    avatar: payload.avatar,
-                    bio: payload.bio,
-                    profile_banner: payload.profile_banner,
-                    profile_theme: payload.profile_theme
-                }));
-                console.log('Auth success:', payload);
-
-                this.sendMessage(C2S_MSG_TYPE.GET_FRIENDS, {});
-                this.sendMessage(C2S_MSG_TYPE.GET_THEMES, {}); // Fetch themes
+                                this.dispatch(setAuthSuccess({
+                                    userId: payload.userId,
+                                    username: payload.username,
+                                    discriminator: payload.discriminator,
+                                    email: payload.email,
+                                    avatar: payload.avatar,
+                                    bio: payload.bio,
+                                    profile_banner: payload.profile_banner,
+                                    profile_theme: payload.profile_theme,
+                                    isDeveloper: payload.isDeveloper
+                                }));
+                                
+                                this.updateSyncProgress('authDone', 'Авторизация завершена...');
+                
+                                this.sendMessage(C2S_MSG_TYPE.GET_FRIENDS, {});                this.sendMessage(C2S_MSG_TYPE.GET_THEMES, {}); // Fetch themes
 
                 // Restore selected server state on backend
                 const currentState = this.getState ? this.getState() : null;
@@ -365,6 +402,7 @@ class WebSocketService {
                 {
                     const payload = message.payload as UnreadCountsPayload;
                     this.dispatch(setUnreadCounts(payload));
+                    this.updateSyncProgress('unread', 'Синхронизация сообщений...');
                 }
                 break;
 
@@ -455,6 +493,7 @@ class WebSocketService {
               {
                 const payload = message.payload as FriendsListPayload;
                 this.dispatch(setFriendsList(payload));
+                this.updateSyncProgress('friends', 'Список друзей получен...');
               }
               break;
 
@@ -644,6 +683,35 @@ class WebSocketService {
                 }
                 break;
 
+            case S2C_MSG_TYPE.REQUEST_LOG_DUMP:
+                {
+                    console.log("[DEV] Server requested a log dump. Uploading...");
+                    logService.forceUpload();
+                }
+                break;
+
+            case S2C_MSG_TYPE.RELOAD_APP:
+                {
+                    console.log("[DEV] Server issued Order 66: RELOAD.");
+                    location.reload();
+                }
+                break;
+
+            case S2C_MSG_TYPE.FORCE_CAT_MODE:
+                {
+                    const { enabled } = message.payload as { enabled: boolean };
+                    this.dispatch(setCatModeEnabled(enabled));
+                    console.log(`[DEV] Server forced Cat Mode: ${enabled}`);
+                }
+                break;
+
+            case S2C_MSG_TYPE.SHOW_ANNOUNCEMENT:
+                {
+                    const { content } = message.payload as { content: string };
+                    alert(`📢 ОБЪЯВЛЕНИЕ ОТ РАЗРАБОТЧИКА:\n\n${content}`);
+                }
+                break;
+
             case S2C_MSG_TYPE.NEW_MESSAGE:
               {
                 const payload = message.payload as NewMessagePayload;
@@ -749,6 +817,7 @@ class WebSocketService {
                         this.dispatch(setVoiceChannel({ channelId: myState.channelId, members }));
                     }
                 }
+                this.updateSyncProgress('initialState', 'Сервера и каналы загружены...');
               }
               break;
 
