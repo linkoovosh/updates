@@ -105,8 +105,9 @@ app.whenReady().then(async () => {
     createWindow();
 
     ipcMain.on('install-update', () => { 
+        log.info("[IPC] Received install-update command. Initiating quitAndInstall...");
         isUpdating = true;
-        autoUpdater.quitAndInstall(false, true);
+        autoUpdater.quitAndInstall();
     });
 
     ipcMain.on('app-ready-to-quit', () => { app.quit(); });

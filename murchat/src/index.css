@@ -4,10 +4,29 @@
 
 /* 1. Design Tokens */
 :root {
-  /* Radii */
-  --radius-small: 6px;
-  --radius-medium: 10px;
-  --radius-large: 16px;
+  /* User Provided Global Overrides */
+  --font-main: Inter;
+  font-size: 18px;
+  --zoom-level: 0.85;
+  --radius-small: 8px;
+  --radius-medium: 16px;
+  --radius-large: 24px;
+  --blur-intensity: 1.5px;
+  --blur-intensity-strong: 2px;
+  --app-opacity: 0.4;
+  --accent-blue: #A56BFF;
+  --accent-blue-rgb: 165, 107, 255;
+  --bg-primary-rgb: 0, 0, 0;
+  --bg-context-menu-rgb: 17, 18, 20;
+  --bg-input-rgb: 0, 0, 0;
+  --bg-elevated-rgb: 0, 0, 0;
+  --bg-modifier-accent-rgb: 0, 0, 0;
+  --bg-modifier-hover-rgb: 0, 0, 0;
+  --status-positive-rgb: 59, 165, 93;
+  --status-negative-rgb: 237, 66, 69;
+  --status-warning-rgb: 0, 0, 0;
+
+  /* Existing derived or non-conflicting variables */
   --radius-full: 999px;
 
   /* Spacing */
@@ -24,25 +43,28 @@
   --shadow-layer: 0 8px 20px rgba(0, 0, 0, 0.25);
 
   /* Typography */
-  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  
   --h1-size: 22px;
-  --h1-weight: 600; /* Semibold */
-  
+  --h1-weight: 600;
   --h2-size: 18px;
-  --h2-weight: 600; /* Semibold */
-
+  --h2-weight: 600;
   --text1-size: 16px;
-  --text1-weight: 400; /* Regular */
-  
+  --text1-weight: 400;
   --text2-size: 14px;
-  --text2-weight: 400; /* Regular */
-  
+  --text2-weight: 400;
   --p-size: 12px;
-  --p-weight: 500; /* Medium */
-
+  --p-weight: 500;
   --micro-size: 10px;
-  --micro-weight: 400; /* Regular */
+  --micro-weight: 400;
+
+  /* Ensure colors use the new RGB vars */
+  --bg-primary: rgba(var(--bg-primary-rgb), 1);
+  --bg-secondary: rgba(var(--bg-primary-rgb), 0.8); /* Derived from primary for consistency if not specified */
+  --bg-elevated: rgba(var(--bg-elevated-rgb), 1);
+  --bg-input: rgba(var(--bg-input-rgb), 1);
+  --bg-context-menu: rgba(var(--bg-context-menu-rgb), 1);
+  
+  --status-positive: rgba(var(--status-positive-rgb), 1);
+  --status-negative: rgba(var(--status-negative-rgb), 1);
 }
 
 /* Dark Theme (Default) */

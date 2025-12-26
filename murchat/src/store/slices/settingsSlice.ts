@@ -62,7 +62,7 @@ const initialState: SettingsState = {
   animationsEnabled: true,
   blurIntensity: 1,
   enableTransparency: true,
-  glassMaterial: 'liquid-ios',
+  glassMaterial: 'solid',
   appOpacity: 0.9,
   accentColor: '#4D7CFF', // Default Blue
   

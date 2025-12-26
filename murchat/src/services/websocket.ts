@@ -160,8 +160,11 @@ class WebSocketService {
       initialState: false,
       friends: false,
       unread: false,
-      authDone: false
+      authDone: false,
+      messagesLoaded: false
   };
+
+  private pendingMessageRequests = new Set<string>(); // Track pending channel loads
 
   private pingInterval: number | null = null;
   private lastPingTime: number = 0;
@@ -272,7 +275,11 @@ class WebSocketService {
   private isSyncComplete() {
       const token = localStorage.getItem('authToken');
       if (!token) return true; // No token, no sync needed (AuthScreen will show)
-      return this.syncStatus.authDone && this.syncStatus.initialState && this.syncStatus.friends && this.syncStatus.unread;
+      return this.syncStatus.authDone && 
+             this.syncStatus.initialState && 
+             this.syncStatus.friends && 
+             this.syncStatus.unread && 
+             this.syncStatus.messagesLoaded;
   }
 
   private checkSyncAndNotify() {
@@ -410,6 +417,18 @@ class WebSocketService {
                 {
                     const payload = message.payload as ChannelMessagesPayload;
                     this.dispatch(addMessages(payload.messages));
+                    
+                    if (this.pendingMessageRequests.has(payload.channelId)) {
+                        this.pendingMessageRequests.delete(payload.channelId);
+                        if (this.pendingMessageRequests.size === 0) {
+                            this.updateSyncProgress('messagesLoaded', 'Все чаты загружены...');
+                        } else {
+                            console.log(`[Sync] Waiting for ${this.pendingMessageRequests.size} more channels...`);
+                        }
+                    } else if (!this.syncStatus.messagesLoaded) {
+                        // Fallback if we received a message update that wasn't pending but we are still waiting?
+                        // No, stick to the Set logic.
+                    }
                 }
                 break;
 
@@ -817,6 +836,38 @@ class WebSocketService {
                         this.dispatch(setVoiceChannel({ channelId: myState.channelId, members }));
                     }
                 }
+                
+                // BULK PRELOAD CHATS FOR SELECTED SERVER
+                const state = this.getState ? this.getState() : null;
+                const selectedServerId = state?.server?.selectedServerId;
+                
+                this.pendingMessageRequests.clear(); // Reset just in case
+
+                if (selectedServerId) {
+                    const serverChannels = payload.channels.filter(c => c.serverId === selectedServerId && c.type === 'text');
+                    
+                    if (serverChannels.length > 0) {
+                        console.log(`[Sync] Preloading messages for ${serverChannels.length} channels in server ${selectedServerId}`);
+                        for (const channel of serverChannels) {
+                            this.pendingMessageRequests.add(channel.id);
+                            this.getChannelMessages(channel.id, 50);
+                        }
+                        
+                        // Safety timeout: if server doesn't respond for some channels, finish anyway
+                        setTimeout(() => {
+                            if (this.pendingMessageRequests.size > 0) {
+                                console.warn(`[Sync] Timeout waiting for ${this.pendingMessageRequests.size} channels. Forcing completion.`);
+                                this.pendingMessageRequests.clear();
+                                this.updateSyncProgress('messagesLoaded', 'Загрузка чатов завершена (по таймауту)...');
+                            }
+                        }, 8000); // 8 seconds timeout
+                    } else {
+                        this.updateSyncProgress('messagesLoaded', 'Нет текстовых каналов для загрузки...');
+                    }
+                } else {
+                    this.updateSyncProgress('messagesLoaded', 'Сервер не выбран...');
+                }
+
                 this.updateSyncProgress('initialState', 'Сервера и каналы загружены...');
               }
               break;
