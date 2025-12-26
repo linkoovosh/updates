@@ -15,7 +15,7 @@ import type { Role } from '@common/types';
 
 import StatusMenu from '../StatusMenu/StatusMenu';
 import { 
-    SettingsIcon, ShieldIcon, MailIcon, PlusIcon, InfoIcon, CheckIcon, MicIcon 
+    SettingsIcon, ShieldIcon, MailIcon, PlusIcon, InfoIcon, CheckIcon, MicIcon, HammerIcon
 } from '../UI/Icons'; // ADDED MicIcon
 
 const UserProfilePopup = ({ userId }: { userId: string }) => {
@@ -254,6 +254,13 @@ const UserProfilePopup = ({ userId }: { userId: string }) => {
                         </div>
                         <div className={`status-ring ${status || 'offline'}`} />
                     </div>
+                    
+                    {targetUser.isDeveloper && (
+                        <div className="developer-badge" title="Official MurCHAT Developer">
+                            <HammerIcon />
+                            <span>Developer</span>
+                        </div>
+                    )}
 
                     <div className="user-identity" onClick={handleCopyUsername}>
                         <span className="user-name" style={nameStyle}>{username}</span>

@@ -3,9 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 // import { getDb, PUBLIC_SERVER_ID } from '../db.js'; // REMOVED
 import { prisma } from '../prisma.js'; // UPDATED
-import { clients, userConnections } from '../state.js';
+import { clients, userConnections, serverMembersCache } from '../state.js';
 import { sendVerificationCode } from '../services/emailService.js';
-import { getUserServers, getVoiceStates, calculateUnreadCounts } from '../utils/dataUtils.js';
+import { getUserServers, getVoiceStates, calculateUnreadCounts, enrichUser } from '../utils/dataUtils.js';
 
 import {
     C2S_MSG_TYPE,
@@ -158,6 +158,8 @@ export async function handleAuthMessage(ws: WebSocket, message: WebSocketMessage
         clients.set(ws, user.id);
         userConnections.set(user.id, ws);
 
+        const enrichedUser = enrichUser(user);
+
         const successMsg: WebSocketMessage<AuthSuccessPayload> = {
             type: S2C_MSG_TYPE.AUTH_SUCCESS,
             payload: { 
@@ -169,7 +171,8 @@ export async function handleAuthMessage(ws: WebSocket, message: WebSocketMessage
                 avatar: user.avatar,
                 bio: user.bio,
                 profile_banner: user.profile_banner,
-                profile_theme: user.profile_theme
+                profile_theme: user.profile_theme,
+                isDeveloper: enrichedUser.isDeveloper
             }
         };        ws.send(JSON.stringify(successMsg));
 
@@ -218,6 +221,8 @@ export async function handleAuthMessage(ws: WebSocket, message: WebSocketMessage
 
         console.log(`User ${user.username} logged in with token.`);
         
+        const enrichedUser = enrichUser(user);
+
         const successMsg: WebSocketMessage<AuthSuccessPayload> = {
             type: S2C_MSG_TYPE.AUTH_SUCCESS,
             payload: { 
@@ -229,7 +234,8 @@ export async function handleAuthMessage(ws: WebSocket, message: WebSocketMessage
                 avatar: user.avatar,
                 bio: user.bio,
                 profile_banner: user.profile_banner,
-                profile_theme: user.profile_theme
+                profile_theme: user.profile_theme,
+                isDeveloper: enrichedUser.isDeveloper // Include flag
             }
         };
         ws.send(JSON.stringify(successMsg));
@@ -286,6 +292,10 @@ export async function handleAuthMessage(ws: WebSocket, message: WebSocketMessage
                     });
                     console.log(`[Auth] User ${user.username} auto-joined public server: ${srv.name} (${srv.id})`);
 
+                    // Update Cache
+                    const cachedMembers = serverMembersCache.get(srv.id);
+                    if (cachedMembers) cachedMembers.add(user.id);
+
                     // --- BROADCAST MEMBER ADDED ---
                     const memberAddedPayload = {
                         serverId: srv.id,
@@ -326,9 +336,22 @@ export async function handleAuthMessage(ws: WebSocket, message: WebSocketMessage
         clients.set(ws, user.id);
         userConnections.set(user.id, ws);
 
+        const enrichedUser = enrichUser(user);
+
         const successMsg: WebSocketMessage<AuthSuccessPayload> = {
             type: S2C_MSG_TYPE.AUTH_SUCCESS,
-            payload: { userId: user.id, username: user.username, discriminator: user.discriminator, email: user.email, token: user.token, avatar: user.avatar, bio: user.bio, profile_banner: user.profile_banner, profile_theme: user.profile_theme }
+            payload: { 
+                userId: user.id, 
+                username: user.username, 
+                discriminator: user.discriminator, 
+                email: user.email, 
+                token: user.token, 
+                avatar: user.avatar, 
+                bio: user.bio, 
+                profile_banner: user.profile_banner, 
+                profile_theme: user.profile_theme,
+                isDeveloper: enrichedUser.isDeveloper
+            }
         };
         ws.send(JSON.stringify(successMsg));
 

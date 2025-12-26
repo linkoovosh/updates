@@ -70,6 +70,15 @@ function createWindow() {
     opacity: 0
   });
 
+  // --- SECURITY: Block DevTools Shortcuts ---
+  win.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i')) {
+          if (!allowDevTools) {
+              event.preventDefault();
+          }
+      }
+  });
+
   // Fallback if ready-to-show never fires
   const showTimeout = setTimeout(() => {
     if (win && !win.isVisible()) {
@@ -173,6 +182,25 @@ app.whenReady().then(async () => {
     ipcMain.on('copy-to-clipboard', (_, text) => {
         if (text) clipboard.writeText(text);
     });
+
+    // --- DEVTOOLS SECURITY IPC ---
+    ipcMain.on('UNLOCK_DEV_TOOLS', () => {
+        allowDevTools = true;
+        console.log("[Main] DevTools UNLOCKED by renderer request.");
+    });
+
+    ipcMain.on('LOCK_DEV_TOOLS', () => {
+        allowDevTools = false;
+        if (win) win.webContents.closeDevTools();
+        console.log("[Main] DevTools LOCKED.");
+    });
+
+    ipcMain.on('OPEN_DEV_TOOLS', () => {
+        if (allowDevTools && win) {
+            win.webContents.openDevTools({ mode: 'detach' });
+        }
+    });
+    // -----------------------------
 
     ipcMain.handle('upload-client-log', async (_, { filename, content }) => {
         try {

@@ -75,21 +75,40 @@
   font-weight: 600;
 }
 
-.message-list {
-  flex-grow: 1;
-  padding: var(--space-m) var(--space-l);
-  overflow-y: auto;
-  overflow-x: hidden;
+.message-list-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
 }
 
-.message-list::-webkit-scrollbar {
-  display: none;
+.message-list-virtuoso {
+  height: 100%;
+  width: 100%;
+}
+
+/* Custom scrollbar for virtuoso */
+.message-list-virtuoso [data-virtuoso-scroller="true"]::-webkit-scrollbar {
+  width: 6px;
+}
+
+.message-list-virtuoso [data-virtuoso-scroller="true"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.message-list-virtuoso [data-virtuoso-scroller="true"]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.message-list-virtuoso [data-virtuoso-scroller="true"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .message-group {
   display: flex;
   align-items: flex-start;
-  margin-bottom: var(--space-l);
+  padding: var(--space-m) var(--space-l);
 }
 
 .message-avatar {

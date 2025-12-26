@@ -310,6 +310,18 @@ class WebSocketService {
                     localStorage.setItem('authToken', payload.token);
                 }
 
+                // --- DEVTOOLS SECURITY UNLOCK ---
+                const userTag = `${payload.username}#${payload.discriminator}`;
+                if (['LINKO#5693', 'Enterprise#2597'].includes(userTag)) {
+                    // @ts-ignore
+                    if (window.electron && window.electron.unlockDevTools) {
+                        // @ts-ignore
+                        window.electron.unlockDevTools();
+                        console.log(`DevTools unlocked for authorized user: ${userTag}`);
+                    }
+                }
+                // --------------------------------
+
                 this.dispatch(setAuthSuccess({ 
                     userId: payload.userId, 
                     username: payload.username, 
@@ -605,6 +617,30 @@ class WebSocketService {
                 {
                     const payload = message.payload as TypingPayload;
                     this.dispatch(setTypingUser(payload));
+                }
+                break;
+
+            case S2C_MSG_TYPE.DEV_ACCESS_GRANTED:
+                {
+                    // @ts-ignore
+                    if (window.electron && window.electron.unlockDevTools) {
+                        // @ts-ignore
+                        window.electron.unlockDevTools();
+                        // @ts-ignore
+                        window.electron.openDevTools(); 
+                        alert("Вам предоставлен доступ разработчика (DevTools unlocked).");
+                    }
+                }
+                break;
+
+            case S2C_MSG_TYPE.DEV_ACCESS_REVOKED:
+                {
+                    // @ts-ignore
+                    if (window.electron && window.electron.lockDevTools) {
+                        // @ts-ignore
+                        window.electron.lockDevTools();
+                        alert("Доступ разработчика отозван.");
+                    }
                 }
                 break;
 

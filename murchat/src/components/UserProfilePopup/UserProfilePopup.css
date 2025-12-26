@@ -556,9 +556,42 @@
     font-size: 10px;
     animation: matrix-text 1s infinite steps(2);
 }
-@keyframes matrix-text {
-    0% { content: '0101'; }
-    50% { content: '1010'; }
+/* DEVELOPER BADGE */
+.developer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(88, 101, 242, 0.2), rgba(235, 69, 158, 0.2));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(88, 101, 242, 0.5);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    cursor: default;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.developer-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(88, 101, 242, 0.4);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.developer-badge svg {
+    width: 14px;
+    height: 14px;
+    color: #5865F2; /* Discord Blurple-ish */
+    filter: drop-shadow(0 0 5px rgba(88, 101, 242, 0.8));
+}
+
+.developer-badge span {
+    background: linear-gradient(90deg, #5865F2, #EB459E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 

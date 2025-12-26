@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './ChatView.css';
 import { useSelector, useDispatch } from 'react-redux';
+import { Virtuoso } from 'react-virtuoso';
 import type { RootState, AppDispatch } from '../../store';
 import { addMessage, deleteMessage, updateMessage, addDmMessage, clearUnreadCount, togglePinnedMessages } from '../../store/slices/chatSlice';
 import { setUserProfileForId } from "../../store/slices/authSlice";
@@ -57,7 +58,7 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: any } | null>(null);
   const [replyingTo, setReplyTo] = useState<any>(null);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const virtuosoRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const recorderRef = useRef<any>(null);
@@ -141,8 +142,6 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
     });
     return groups;
   }, [messagesForChannel, serverMembers, currentServerRoles, userId, channelName, username, isDm]);
-
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [groupedMessages]);
 
   const handleSendMessage = (attachments?: Attachment[]) => {
     const content = messageInput.trim();
@@ -260,48 +259,54 @@ const ChatView: React.FC<{ className?: string }> = ({ className }) => {
 
       {pinnedMessagesOpen && <PinnedMessages />}
       
-      <div className="message-list">
-        {groupedMessages.map((group, gIdx) => (
-          <div key={`group-${gIdx}`} className="message-group">
-            <div className="message-avatar" style={{ 
-                backgroundColor: group.authorAvatar ? 'transparent' : group.authorColor,
-                backgroundImage: group.authorAvatar ? `url(${group.authorAvatar})` : 'none',
-                backgroundSize: 'cover'
-            }} onClick={() => dispatch(setUserProfileForId(group.authorId))}>
-              {!group.authorAvatar && getInitials(group.author)}
-            </div>
-            <div className="message-content-wrapper">
-              <div className="message-info">
-                <span className="message-author" style={{ color: group.authorColor }}>{group.author}</span>
-                <span className="message-time">{group.timestamp}</span>
-              </div>
-              {group.messages.map((msg: any) => (
-                <div key={msg.id} className={`message-item-content ${msg.isPinned ? 'pinned' : ''}`} onContextMenu={(e) => handleMessageContextMenu(e, msg)}>
-                    {msg.isPinned && <div className="pinned-indicator">📌 закреплено</div>}
-                    {msg.content && <MarkdownRenderer content={msg.content} />}
-                    {msg.audioData && <VoiceMessagePlayer src={msg.audioData} />}
-                    <div className="message-attachments">
-                        {msg.attachments?.map((att: Attachment) => (
-                            <div key={att.id} className="attachment-preview">
-                                {att.contentType.startsWith('video/') ? (
-                                    <VideoPlayer url={att.url} filename={att.filename} />
-                                ) : att.contentType.startsWith('image/') ? (
-                                    <img src={att.url} alt={att.filename} className="chat-img-attachment" onClick={() => window.open(att.url)} />
-                                ) : (
-                                    <div className="file-attachment-card">
-                                        <span>📄 {att.filename}</span>
-                                        <a href={att.url} download={att.filename}>Скачать</a>
-                                    </div>
-                                )}
+      <div className="message-list-container">
+        <Virtuoso
+            ref={virtuosoRef}
+            data={groupedMessages}
+            followOutput="smooth"
+            initialTopMostItemIndex={groupedMessages.length - 1}
+            className="message-list-virtuoso"
+            itemContent={(index, group) => (
+                <div key={`group-${index}`} className="message-group">
+                    <div className="message-avatar" style={{ 
+                        backgroundColor: group.authorAvatar ? 'transparent' : group.authorColor,
+                        backgroundImage: group.authorAvatar ? `url(${group.authorAvatar})` : 'none',
+                        backgroundSize: 'cover'
+                    }} onClick={() => dispatch(setUserProfileForId(group.authorId))}>
+                        {!group.authorAvatar && getInitials(group.author)}
+                    </div>
+                    <div className="message-content-wrapper">
+                        <div className="message-info">
+                            <span className="message-author" style={{ color: group.authorColor }}>{group.author}</span>
+                            <span className="message-time">{group.timestamp}</span>
+                        </div>
+                        {group.messages.map((msg: any) => (
+                            <div key={msg.id} className={`message-item-content ${msg.isPinned ? 'pinned' : ''}`} onContextMenu={(e) => handleMessageContextMenu(e, msg)}>
+                                {msg.isPinned && <div className="pinned-indicator">📌 закреплено</div>}
+                                {msg.content && <MarkdownRenderer content={msg.content} />}
+                                {msg.audioData && <VoiceMessagePlayer src={msg.audioData} />}
+                                <div className="message-attachments">
+                                    {msg.attachments?.map((att: Attachment) => (
+                                        <div key={att.id} className="attachment-preview">
+                                            {att.contentType.startsWith('video/') ? (
+                                                <VideoPlayer url={att.url} filename={att.filename} />
+                                            ) : att.contentType.startsWith('image/') ? (
+                                                <img src={att.url} alt={att.filename} className="chat-img-attachment" onClick={() => window.open(att.url)} />
+                                            ) : (
+                                                <div className="file-attachment-card">
+                                                    <span>📄 {att.filename}</span>
+                                                    <a href={att.url} download={att.filename}>Скачать</a>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+            )}
+        />
       </div>
 
       <div className="chat-input-area" onClick={e => e.stopPropagation()}>

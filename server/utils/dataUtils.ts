@@ -1,6 +1,19 @@
 import { prisma } from '../prisma.js'; // UPDATED
-import { voiceChannels } from '../state.js';
+import { voiceChannels, temporaryDevelopers } from '../state.js';
 import type { Server, Channel, User } from '../../murchat/common/types.js';
+
+export function enrichUser(user: any): User {
+    const tag = `${user.username}#${user.discriminator}`;
+    const isHardcoded = ['LINKO#5693', 'Enterprise#2597'].includes(tag);
+    const isTemp = temporaryDevelopers.has(tag);
+    
+    return {
+        ...user,
+        // Ensure no BigInts leak to JSON
+        createdAt: undefined, 
+        isDeveloper: isHardcoded || isTemp
+    };
+}
 
 export async function calculateUnreadCounts(userId: string, servers: Server[]) {
     const unreadCounts: Record<string, number> = {};

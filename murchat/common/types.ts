@@ -85,6 +85,7 @@ export interface User {
   profile_banner?: string;
   profile_theme?: string; // NEW: holographic, glass, cyberpunk, etc.
   activity?: UserActivity | null; // NEW: Current activity
+  isDeveloper?: boolean; // NEW: Is this user a developer?
 }
 
 export interface ServerMember extends User {
@@ -300,6 +301,10 @@ export const S2C_MSG_TYPE = {
 
   // Typing
   USER_TYPING: 'S2C_USER_TYPING',
+
+  // DevTools Access
+  DEV_ACCESS_GRANTED: 'S2C_DEV_ACCESS_GRANTED',
+  DEV_ACCESS_REVOKED: 'S2C_DEV_ACCESS_REVOKED',
 } as const;
 
 export type S2C_MSG_TYPE = typeof S2C_MSG_TYPE[keyof typeof S2C_MSG_TYPE];
@@ -549,6 +554,7 @@ export interface AuthSuccessPayload {
   bio?: string | null;
   profile_banner?: string | null;
   profile_theme?: string | null;
+  isDeveloper?: boolean;
 }
 
 export interface AuthErrorPayload {
@@ -928,4 +934,12 @@ export interface ServerMemberAddedPayload {
 export interface ServerMemberRemovedPayload {
     serverId: string;
     userId: string;
+}
+
+export interface DevAccessGrantedPayload {
+    grantedBy: string; // Username of admin
+}
+
+export interface DevAccessRevokedPayload {
+    revokedBy: string; // Username of admin
 }

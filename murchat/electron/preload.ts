@@ -27,7 +27,12 @@ contextBridge.exposeInMainWorld('electron', {
   close: () => ipcRenderer.send('window-close'),
   onMaximizeChange: (callback: (isMaximized: boolean) => void) => {
     ipcRenderer.on('window-maximized', (_event, isMaximized) => callback(isMaximized));
-  }
+  },
+
+  // DevTools Security
+  unlockDevTools: () => ipcRenderer.send('UNLOCK_DEV_TOOLS'),
+  lockDevTools: () => ipcRenderer.send('LOCK_DEV_TOOLS'),
+  openDevTools: () => ipcRenderer.send('OPEN_DEV_TOOLS'),
 });
 
 // Example: Listen for messages from the main process

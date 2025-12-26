@@ -1,8 +1,8 @@
 import { WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../prisma.js'; // NEW
-import { clients, userConnections, voiceChannels, clientStates } from '../state.js';
-import { getVoiceStates } from '../utils/dataUtils.js';
+import { clients, userConnections, voiceChannels, clientStates, serverMembersCache } from '../state.js';
+import { getVoiceStates, enrichUser } from '../utils/dataUtils.js';
 import { PERMISSIONS, hasPermission } from '../../murchat/common/permissions.js';
 
 import {
@@ -96,12 +96,16 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                         });
                         console.log(`[ServerHandler] User ${userId} auto-joined public server ${payload.selectedServerId} on select.`);
                         
+                        // Update Cache
+                        const cachedMembers = serverMembersCache.get(payload.selectedServerId);
+                        if (cachedMembers) cachedMembers.add(userId);
+
                         // Notify others that a new member joined
                         const memberAddedMsg = {
                             type: S2C_MSG_TYPE.S2C_SERVER_MEMBER_ADDED,
                             payload: {
                                 serverId: payload.selectedServerId,
-                                member: { ...currentUser, roles: [], joinedAt: Date.now(), status: 'online' }
+                                member: { ...enrichUser(currentUser), roles: [], joinedAt: Date.now(), status: 'online' }
                             }
                         };
                         clients.forEach((uid, clientWs) => {
@@ -149,7 +153,7 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                         .map(ur => ur.roleId);
                     
                     return {
-                        ...member.user, // member.user now includes email
+                        ...enrichUser(member.user), // member.user now includes email
                         joinedAt: member.joinedAt || null,
                         roles: userRoles,
                         // email is implicitly included from member.user due to the select statement
@@ -214,12 +218,16 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                         });
                         console.log(`[ServerHandler] User ${userId} auto-joined public server ${serverId} on GET_MEMBERS.`);
                         
+                        // Update Cache
+                        const cachedMembers = serverMembersCache.get(serverId);
+                        if (cachedMembers) cachedMembers.add(userId);
+
                         // Notify others
                         const memberAddedMsg = {
                             type: S2C_MSG_TYPE.S2C_SERVER_MEMBER_ADDED,
                             payload: {
                                 serverId: serverId,
-                                member: { ...currentUser, roles: [], joinedAt: Date.now(), status: 'online' }
+                                member: { ...enrichUser(currentUser), roles: [], joinedAt: Date.now(), status: 'online' }
                             }
                         };
                         clients.forEach((uid, clientWs) => {
@@ -269,7 +277,7 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                         .map(ur => ur.roleId);
                     
                     return {
-                        ...member.user,
+                        ...enrichUser(member.user),
                         joinedAt: member.joinedAt || null,
                         roles: userRoles,
                     } as ServerMember;
@@ -515,6 +523,10 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
         await prisma.serverMember.deleteMany({ where: { userId: userId, serverId: payload.serverId } });
         console.log(`User ${userId} left server ${payload.serverId}`);
 
+        // Update Cache
+        const cachedMembers = serverMembersCache.get(payload.serverId);
+        if (cachedMembers) cachedMembers.delete(userId);
+
         const serverDeletedNotification: WebSocketMessage<ServerDeletedPayload> = {
             type: S2C_MSG_TYPE.SERVER_DELETED,
             payload: { serverId: payload.serverId }
@@ -557,6 +569,9 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                     joinedAt: BigInt(Date.now())
                 }
             });
+
+            // Init Cache for new server
+            serverMembersCache.set(newServer.id, new Set([userId]));
 
             console.log(`Server created: ${newServer.name} (${newServer.id}) by ${userId}`);
 
@@ -602,6 +617,9 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
             await prisma.serverMember.deleteMany({ where: { serverId: payload.serverId } });
             await prisma.server.delete({ where: { id: payload.serverId } });
             
+            // Clear Cache
+            serverMembersCache.delete(payload.serverId);
+
             console.log(`Server deleted successfully: ${payload.serverId}`);
 
             const serverDeletedNotification: WebSocketMessage<ServerDeletedPayload> = {
@@ -821,18 +839,22 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
         
         if (somethingChanged) {
             currentUser = await prisma.user.findUnique({ where: { id: userId } });
+            
+            // Enrich with developer status
+            const enrichedUser = enrichUser(currentUser);
 
             const userUpdatedPayload: any = { // UserUpdatedPayload
-                userId: currentUser.id,
+                userId: enrichedUser.id,
                 user: {
-                    id: currentUser.id,
-                    username: currentUser.username,
-                    discriminator: currentUser.discriminator,
-                    email: currentUser.email,
-                    avatar: currentUser.avatar,
-                    bio: currentUser.bio,
-                    profile_banner: currentUser.profile_banner,
-                    status: currentUser.status,
+                    id: enrichedUser.id,
+                    username: enrichedUser.username,
+                    discriminator: enrichedUser.discriminator,
+                    email: enrichedUser.email,
+                    avatar: enrichedUser.avatar,
+                    bio: enrichedUser.bio,
+                    profile_banner: enrichedUser.profile_banner,
+                    status: enrichedUser.status,
+                    isDeveloper: enrichedUser.isDeveloper // Include flag
                 }
             };
 
@@ -891,6 +913,10 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
             await prisma.serverMember.create({ data: { userId: friendId, serverId: payload.serverId, joinedAt: BigInt(Date.now()) } });
             console.log(`Friend ${friendId} added to server ${payload.serverId}.`);
 
+            // Update Cache
+            const cachedMembers = serverMembersCache.get(payload.serverId);
+            if (cachedMembers) cachedMembers.add(friendId);
+
             const friendWs = userConnections.get(friendId);
             if (friendWs && friendWs.readyState === WebSocket.OPEN) {
                 const friendServers = await prisma.server.findMany({
@@ -930,6 +956,10 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                     where: { userId: payload.userId, serverId: payload.serverId }
                 });
                 
+                // Update Cache
+                const cachedMembers = serverMembersCache.get(payload.serverId);
+                if (cachedMembers) cachedMembers.delete(payload.userId);
+
                 const msg: WebSocketMessage<any> = {
                     type: S2C_MSG_TYPE.S2C_SERVER_MEMBER_REMOVED,
                     payload: { serverId: payload.serverId, userId: payload.userId }
@@ -977,6 +1007,10 @@ export async function handleServerMessage(ws: WebSocket, parsedMessage: WebSocke
                     where: { userId: payload.userId, serverId: payload.serverId }
                 });
                 
+                // Update Cache
+                const cachedMembers = serverMembersCache.get(payload.serverId);
+                if (cachedMembers) cachedMembers.delete(payload.userId);
+
                 const msg: WebSocketMessage<any> = {
                     type: S2C_MSG_TYPE.S2C_SERVER_MEMBER_REMOVED,
                     payload: { serverId: payload.serverId, userId: payload.userId }
