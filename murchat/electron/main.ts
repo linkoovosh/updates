@@ -162,55 +162,61 @@ app.whenReady().then(async () => {
         });
     } catch (e) { log.error("Tray error:", e); }
 
+    setupUpdater();
+
     // Single check on launch after 5s
     setTimeout(() => { checkUpdate(); }, 5000);
 });
 
+function setupUpdater() {
+    autoUpdater.autoDownload = true;
+    autoUpdater.allowDowngrade = false;
+    autoUpdater.allowPrerelease = true;
+
+    autoUpdater.on('checking-for-update', () => {
+        log.info('[Updater] Checking for updates...');
+        sendStatusToWindow('Проверка обновлений...');
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        isDownloading = true;
+        log.info('[Updater] Update available:', info.version);
+        win?.webContents.send('update-available', info);
+    });
+
+    autoUpdater.on('update-not-available', (info) => {
+        isDownloading = false;
+        log.info('[Updater] Update not available.');
+        win?.webContents.send('update-not-available');
+    });
+
+    autoUpdater.on('error', (err) => {
+        isDownloading = false;
+        log.error('[Updater] Error:', err);
+        win?.webContents.send('update-not-available'); 
+    });
+
+    autoUpdater.on('download-progress', (progressObj) => {
+        isDownloading = true;
+        win?.webContents.send('update-download-progress', progressObj);
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+        isDownloading = false;
+        log.info('[Updater] Update downloaded');
+        win?.webContents.send('update-ready', info);
+    });
+}
+
 function checkUpdate() {
-  if (isDownloading) return;
-
-  autoUpdater.autoDownload = true;
-  autoUpdater.allowDowngrade = false;
-  autoUpdater.allowPrerelease = true;
-
-  const updateTimeout = setTimeout(() => {
-      log.warn("[Updater] Timeout. Proceeding to app.");
-      if (win && !win.isDestroyed()) win.webContents.send('update-not-available');
-  }, 15000);
-
-  autoUpdater.on('checking-for-update', () => {
-    sendStatusToWindow('Проверка обновлений...');
+  if (isDownloading) {
+      log.info('[Updater] Skip check: Downloading in progress');
+      return;
+  }
+  
+  log.info('[Updater] triggering checkForUpdatesAndNotify...');
+  autoUpdater.checkForUpdatesAndNotify().catch(e => {
+      log.error('[Updater] Failed to check for updates:', e);
+      win?.webContents.send('update-not-available');
   });
-
-  autoUpdater.on('update-available', (info) => {
-    clearTimeout(updateTimeout);
-    isDownloading = true;
-    log.info('[Updater] Available:', info.version);
-    win?.webContents.send('update-available', info);
-  });
-
-  autoUpdater.on('update-not-available', (info) => {
-    clearTimeout(updateTimeout);
-    isDownloading = false;
-    win?.webContents.send('update-not-available');
-  });
-
-  autoUpdater.on('error', (err) => {
-    clearTimeout(updateTimeout);
-    isDownloading = false;
-    log.error('[Updater] Error:', err);
-    win?.webContents.send('update-not-available'); 
-  });
-
-  autoUpdater.on('download-progress', (progressObj) => {
-    isDownloading = true;
-    win?.webContents.send('update-download-progress', progressObj);
-  });
-
-  autoUpdater.on('update-downloaded', (info) => {
-    isDownloading = false;
-    win?.webContents.send('update-ready', info);
-  });
-
-  autoUpdater.checkForUpdatesAndNotify().catch(e => log.error(e));
 }

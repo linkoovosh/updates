@@ -92,9 +92,8 @@
     },
     "publish": [
       {
-        "provider": "github",
-        "owner": "linkoovosh",
-        "repo": "updates"
+        "provider": "generic",
+        "url": "https://89.221.20.26:22822/updates"
       }
     ]
   }

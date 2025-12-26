@@ -97,6 +97,12 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Ensure updates directory exists
+const updatesDir = path.join(__dirname, 'updates');
+if (!fs.existsSync(updatesDir)) {
+    fs.mkdirSync(updatesDir, { recursive: true });
+}
+
 const app = express();
 
 // Enable CORS for file uploads
@@ -106,6 +112,8 @@ app.use(express.urlencoded({ limit: '2560mb', extended: true }));
 
 // Serve static files from uploads
 app.use('/uploads', express.static(uploadDir));
+// Serve static files for updates
+app.use('/updates', express.static(updatesDir));
 
 // Multer Config
 const storage = multer.diskStorage({
