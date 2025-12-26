@@ -371,6 +371,10 @@ class MediasoupService {
     }
 
     async onNewPeerProducer({ producerId, userId, appData }: any) {
+        if (userId === this.selfUserId) {
+            console.log("[SFU] Ignoring self-producer notification.");
+            return;
+        }
         if (!this.recvTransport) {
             this.pendingConsumers.push({ producerId, userId, appData });
             return;
@@ -394,7 +398,12 @@ class MediasoupService {
             webRTCService.injectRemoteTrack(stream, userId, appData);
         }
         this.emit('newStream', { userId, stream, appData });
-        this.signal(C2S_MSG_TYPE.MS_RESUME_CONSUMER, { producerId, channelId: this.channelId });
+        
+        // EXPLICIT RESUME: Ensure the server starts sending data for this consumer
+        this.signal(C2S_MSG_TYPE.MS_RESUME_CONSUMER, { 
+            producerId, 
+            channelId: this.channelId 
+        });
     }
 
     onProducerClosed({ producerId }: { producerId: string }) {

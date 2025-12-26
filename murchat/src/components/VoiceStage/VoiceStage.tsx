@@ -70,17 +70,20 @@ const VoiceStage: React.FC = () => {
     React.useEffect(() => {
         const handleNewStream = ({ userId, stream, appData }: any) => {
             if (!userId) return;
-            const isScreen = appData?.source === 'screen' || appData?.source === 'browser';
-            setStreams(prev => ({ ...prev, [userId]: new MediaStream(stream.getTracks()) }));
+            const source = appData?.source || 'mic';
+            const streamKey = `${userId}:${source}`;
+            setStreams(prev => ({ ...prev, [streamKey]: new MediaStream(stream.getTracks()) }));
         };
-        const handleStreamClosed = ({ userId }: any) => {
+        const handleStreamClosed = ({ userId, appData }: any) => {
             if (!userId) return;
-            setStreams(prev => { const n = { ...prev }; delete n[userId]; return n; });
+            const source = appData?.source || 'mic';
+            const streamKey = `${userId}:${source}`;
+            setStreams(prev => { const n = { ...prev }; delete n[streamKey]; return n; });
         };
         mediasoupService.on('newStream', handleNewStream);
         mediasoupService.on('streamClosed', handleStreamClosed);
         const unsubscribeLocal = webRTCService.onLocalStream((stream) => {
-            if (selfId) setStreams(prev => ({ ...prev, [selfId]: stream }));
+            if (selfId) setStreams(prev => ({ ...prev, [`${selfId}:mic`]: stream }));
         });
         return () => {
             mediasoupService.off('newStream', handleNewStream);
@@ -95,16 +98,20 @@ const VoiceStage: React.FC = () => {
     const screenSharerId = participants.find(id => voiceStates?.[id]?.isScreenSharing);
     const cameraUserId = participants.find(id => voiceStates?.[id]?.isVideoEnabled);
     
-    const activeFocusId = manualFocusId || screenSharerId || cameraUserId || (isBrowserActive ? BROWSER_ID : null);
-    const isFocusedLayout = !!activeFocusId && (activeFocusId === BROWSER_ID || participants.includes(activeFocusId));
+    // The active focus should prioritize the screen stream key if someone is sharing
+    const screenFocusKey = screenSharerId ? `${screenSharerId}:screen` : null;
+    const activeFocusId = manualFocusId || screenFocusKey || (cameraUserId ? `${cameraUserId}:webcam` : null) || (isBrowserActive ? BROWSER_ID : null);
+    
+    // Participants list for the grid should include screen shares as separate entries if focused
+    const isFocusedLayout = !!activeFocusId;
 
     const gridClass = isFocusedLayout 
         ? 'layout-focused' 
         : participants.length <= 1 ? 'grid-1' : participants.length <= 4 ? 'grid-2' : 'grid-large';
 
-    const handleTileClick = (userId: string) => {
-        if (manualFocusId === userId) setManualFocusId(null);
-        else setManualFocusId(userId);
+    const handleTileClick = (id: string) => {
+        if (manualFocusId === id) setManualFocusId(null);
+        else setManualFocusId(id);
     };
 
     const toggleScreenShare = () => {
@@ -162,7 +169,7 @@ const VoiceStage: React.FC = () => {
                                 {activeFocusId === BROWSER_ID ? (
                                     <div style={{ width: '100%', height: '100%' }}><SharedBrowserStage /></div>
                                 ) : (
-                                    <VideoTile key={activeFocusId} userId={activeFocusId} stream={streams[activeFocusId]} />
+                                    <VideoTile key={activeFocusId} userId={activeFocusId.split(':')[0]} stream={streams[activeFocusId]} />
                                 )}
                             </div>
                         </div>
@@ -173,9 +180,24 @@ const VoiceStage: React.FC = () => {
                                     <div className="tile-name">Общий Браузер</div>
                                 </div>
                             )}
-                            {participants.map(id => (
-                                <VideoTile key={id} userId={id} stream={streams[id]} onClick={() => handleTileClick(id)} isSelected={activeFocusId === id} />
-                            ))}
+                            {participants.map(id => {
+                                // For each participant, we show their mic tile
+                                const micKey = `${id}:mic`;
+                                const screenKey = `${id}:screen`;
+                                const webcamKey = `${id}:webcam`;
+                                
+                                return (
+                                    <React.Fragment key={id}>
+                                        <VideoTile userId={id} stream={streams[micKey]} onClick={() => handleTileClick(micKey)} isSelected={activeFocusId === micKey} />
+                                        {streams[webcamKey] && (
+                                            <VideoTile userId={id} stream={streams[webcamKey]} onClick={() => handleTileClick(webcamKey)} isSelected={activeFocusId === webcamKey} />
+                                        )}
+                                        {streams[screenKey] && (
+                                            <VideoTile userId={id} stream={streams[screenKey]} onClick={() => handleTileClick(screenKey)} isSelected={activeFocusId === screenKey} />
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
                         </div>
                     </>
                 ) : (
@@ -185,9 +207,10 @@ const VoiceStage: React.FC = () => {
                                  <SharedBrowserStage />
                              </div>
                         )}
-                        {participants.map(id => (
-                            <VideoTile key={id} userId={id} stream={streams[id]} onClick={() => handleTileClick(id)} />
-                        ))}
+                        {participants.map(id => {
+                            const micKey = `${id}:mic`;
+                            return <VideoTile key={id} userId={id} stream={streams[micKey]} onClick={() => handleTileClick(micKey)} />;
+                        })}
                         {participants.length === 0 && !isBrowserActive && !isScreenSharing && (
                             <div className="empty-stage-message">В канале пока никого нет... кроме вас?</div>
                         )}

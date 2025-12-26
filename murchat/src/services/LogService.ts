@@ -93,20 +93,29 @@ class LogService {
         const logsToSend = [...this.logs];
         this.logs = []; // Clear buffer
 
-        // Filename: Username_ID_LaunchN.log
         const filename = `${this.username}_${this.userId}_Launch${this.launchCount}.log`;
         const content = logsToSend.join('\n');
 
         try {
-            if ((window as any).electron) {
-                await (window as any).electron.uploadClientLog({ filename, content });
-                console.log('[LogService] Upload success via IPC');
+            // Correct dynamic import for ES modules
+            const { default: webSocketService } = await import('./websocket');
+            const baseUrl = webSocketService.getServerUrl()
+                .replace('wss://', 'https://')
+                .replace('ws://', 'http://');
+
+            const response = await fetch(`${baseUrl}/api/upload-log`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, content })
+            });
+
+            if (response.ok) {
+                console.log('[LogService] Logs successfully uploaded to server.');
             } else {
-                console.warn('[LogService] Electron not available, cannot upload logs');
+                throw new Error(`Server returned ${response.status}`);
             }
         } catch (e) {
-            console.error('[LogService] Upload failed:', e);
-            // If upload fails, put logs back at the START of the buffer to retry later
+            console.error('[LogService] Upload to server failed:', e);
             this.logs = [...logsToSend, ...this.logs];
         }
     }

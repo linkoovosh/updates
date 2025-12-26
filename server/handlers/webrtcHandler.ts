@@ -323,13 +323,16 @@ export async function handleWebRTCMessage(ws: WebSocket, parsedMessage: WebSocke
             };
             
             channelMembers.forEach(memberId => {
-                const memberWs = userConnections.get(memberId);
-                if (memberWs && memberWs.readyState === WebSocket.OPEN) {
-                    memberWs.send(JSON.stringify(joinNotification));
+                if (memberId !== userId) {
+                    const memberWs = userConnections.get(memberId);
+                    if (memberWs && memberWs.readyState === WebSocket.OPEN) {
+                        memberWs.send(JSON.stringify(joinNotification));
+                    }
                 }
             });
             
-            // Redundant self-notification removed as it's now in the loop above
+            // Send confirmation once to the joining user
+            ws.send(JSON.stringify(joinNotification));
 
             const voiceStateUpdateMsg: WebSocketMessage<any> = {
                 type: S2C_MSG_TYPE.S2C_VOICE_STATE_UPDATE,
